@@ -94,19 +94,10 @@
       </div>
     </div>
 
-    <div v-else class="card space-y-3">
+    <div v-else class="card space-y-4">
       <p class="section-title">Edit Habit</p>
-      <input v-model="editForm.title" class="input" placeholder="Title" />
-      <textarea v-model="editForm.description" class="input min-h-[80px]" placeholder="Description" rows="3"></textarea>
-      <RecurrenceBuilder v-model="editForm.recurrence" />
-      <div>
-        <label class="text-xs font-medium text-gray-400 mb-1 block">Verification</label>
-        <select v-model="editForm.verificationType" class="input">
-          <option value="none">No verification</option>
-          <option value="photo">Photo verification</option>
-        </select>
-      </div>
-      <div class="flex gap-2">
+      <HabitForm v-model="editForm" :showPresetOption="false" />
+      <div class="flex gap-2 pt-1">
         <button @click="saveEdit" class="btn flex-1">
           <Save :size="14" /> Save
         </button>
@@ -161,7 +152,7 @@ import { useRoute, useRouter } from 'vue-router'
 import api from '../api'
 import { useToast } from 'vue-toastification'
 import { ArrowLeft, Pencil, Save, Pause, Play, CheckCircle, Trash2 } from 'lucide-vue-next'
-import RecurrenceBuilder from '../components/RecurrenceBuilder.vue'
+import HabitForm from '../components/HabitForm.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -181,7 +172,8 @@ const editForm = reactive({
   title: '',
   description: '',
   recurrence: { type: 'daily' },
-  verificationType: 'none'
+  verificationType: 'honor',
+  wagers: [],
 })
 
 async function loadHabit() {
@@ -191,7 +183,8 @@ async function loadHabit() {
     editForm.title = habit.value.title
     editForm.description = habit.value.description || ''
     editForm.recurrence = habit.value.recurrence || { type: 'daily' }
-    editForm.verificationType = habit.value.verificationType || 'none'
+    editForm.verificationType = habit.value.verificationType || 'honor'
+    editForm.wagers = habit.value.wagers || []
 
     const logRes = await api.get('/logs', { params: { habitId: route.params.id } })
     logs.value = logRes.data.logs || logRes.data || []

@@ -2,7 +2,7 @@
   <div class="min-h-screen flex items-center justify-center px-4">
     <div class="w-full max-w-sm">
       <div class="text-center mb-8">
-        <div class="text-5xl mb-3 bg-gradient-to-r from-emerald-400 to-emerald-600 bg-clip-text text-transparent">🔥</div>
+        <div class="flex justify-center mb-3"><Logo :size="56" /></div>
         <h1 class="text-2xl font-bold">BeBetter</h1>
         <p class="text-gray-500 text-sm mt-1">Welcome back</p>
       </div>
@@ -34,6 +34,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useToast } from 'vue-toastification'
 import { Loader2 } from 'lucide-vue-next'
+import Logo from '../components/Logo.vue'
 
 const auth = useAuthStore()
 const router = useRouter()

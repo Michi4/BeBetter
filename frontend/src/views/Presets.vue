@@ -46,6 +46,22 @@
 
       <RecurrenceBuilder v-model="createForm.recurrence" />
 
+      <div>
+        <label class="text-xs font-medium text-gray-400 mb-1 block">Verification</label>
+        <div class="flex gap-2">
+          <button type="button" @click="createForm.verificationType = 'honor'"
+            class="flex-1 min-h-[44px] rounded-lg px-3 py-2 text-xs font-medium transition-colors"
+            :class="createForm.verificationType === 'honor' ? 'bg-emerald-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'">
+            Honor
+          </button>
+          <button type="button" @click="createForm.verificationType = 'photo'"
+            class="flex-1 min-h-[44px] rounded-lg px-3 py-2 text-xs font-medium transition-colors"
+            :class="createForm.verificationType === 'photo' ? 'bg-emerald-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'">
+            Photo
+          </button>
+        </div>
+      </div>
+
       <div class="flex gap-2 pt-1">
         <button @click="createPreset" class="btn flex-1" :disabled="!createForm.title.trim()">
           <Plus :size="16" /> Create
@@ -105,7 +121,8 @@ const createForm = reactive({
   title: '',
   description: '',
   category: 'Other',
-  recurrence: { type: 'daily' }
+  recurrence: { type: 'daily' },
+  verificationType: 'honor',
 })
 
 let debounceTimer = null
@@ -141,6 +158,7 @@ function importFromHabit(id) {
   createForm.title = h.title
   createForm.description = h.description || ''
   if (h.recurrence) createForm.recurrence = { ...h.recurrence }
+  if (h.verificationType) createForm.verificationType = h.verificationType
 }
 
 function toggleCreate() {
@@ -150,14 +168,22 @@ function toggleCreate() {
 async function createPreset() {
   if (!createForm.title.trim()) return
   try {
-    await api.post('/presets', createForm)
+    await api.post('/presets', {
+      title: createForm.title,
+      description: createForm.description,
+      category: createForm.category,
+      config: {
+        title: createForm.title,
+        description: createForm.description,
+        recurrence: createForm.recurrence,
+        verificationType: createForm.verificationType,
+      },
+    })
     toast.success('Preset created')
     showCreateForm.value = false
     Object.assign(createForm, {
-      title: '',
-      description: '',
-      category: 'Other',
-      recurrence: { type: 'daily' }
+      title: '', description: '', category: 'Other',
+      recurrence: { type: 'daily' }, verificationType: 'honor',
     })
     loadPresets()
   } catch {

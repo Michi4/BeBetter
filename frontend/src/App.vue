@@ -4,7 +4,7 @@
     <nav class="border-b border-gray-800/60 bg-gray-900/80 backdrop-blur-xl sticky top-0 z-50 safe-top">
       <div class="max-w-3xl mx-auto px-4 h-12 flex items-center justify-between">
         <router-link to="/dashboard" class="flex items-center gap-2 font-bold text-lg shrink-0">
-          <span class="text-emerald-400">🔥</span>
+          <Logo :size="28" />
           <span class="bg-gradient-to-r from-emerald-400 to-emerald-300 bg-clip-text text-transparent">BeBetter</span>
         </router-link>
         <div class="flex items-center gap-1 shrink-0">
@@ -44,6 +44,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
 import { LogOut, LayoutDashboard, ListTodo, Users, Trophy, BookOpen, Shield, Sun, Moon } from 'lucide-vue-next'
+import Logo from './components/Logo.vue'
 
 const auth = useAuthStore()
 const route = useRoute()

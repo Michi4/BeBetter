@@ -1,0 +1,147 @@
+<template>
+  <div class="space-y-4">
+    <!-- Title -->
+    <div>
+      <label class="text-xs font-medium text-gray-400 mb-1 block">Title *</label>
+      <input v-model="form.title" class="input" placeholder="Habit title" />
+    </div>
+
+    <!-- Description -->
+    <div>
+      <label class="text-xs font-medium text-gray-400 mb-1 block">Description</label>
+      <textarea v-model="form.description" class="input min-h-[60px]" placeholder="Optional description" rows="2"></textarea>
+    </div>
+
+    <!-- Recurrence -->
+    <RecurrenceBuilder v-model="form.recurrence" />
+
+    <!-- Advanced toggle -->
+    <button type="button" @click="showAdvanced = !showAdvanced"
+      class="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-300 transition-colors">
+      <ChevronDown :size="14" class="transition-transform duration-200" :class="showAdvanced ? 'rotate-180' : ''" />
+      {{ showAdvanced ? 'Hide advanced' : 'Show advanced' }}
+    </button>
+
+    <!-- Advanced options -->
+    <div v-if="showAdvanced" class="space-y-4 pt-1 border-t border-gray-800">
+      <!-- Verification Type -->
+      <div>
+        <label class="text-xs font-medium text-gray-400 mb-1 block">Verification</label>
+        <div class="flex gap-2">
+          <button type="button" @click="form.verificationType = 'honor'"
+            class="flex-1 min-h-[44px] rounded-lg px-3 py-2 text-xs font-medium transition-colors"
+            :class="form.verificationType === 'honor' ? 'bg-emerald-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'">
+            <div class="flex items-center justify-center gap-1.5">
+              <Shield :size="14" />
+              Honor
+            </div>
+          </button>
+          <button type="button" @click="form.verificationType = 'photo'"
+            class="flex-1 min-h-[44px] rounded-lg px-3 py-2 text-xs font-medium transition-colors"
+            :class="form.verificationType === 'photo' ? 'bg-emerald-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'">
+            <div class="flex items-center justify-center gap-1.5">
+              <Camera :size="14" />
+              Photo
+            </div>
+          </button>
+        </div>
+        <p class="text-[10px] text-gray-600 mt-1">
+          {{ form.verificationType === 'photo' ? 'Requires a photo proof each time' : 'Self-reported, no proof needed' }}
+        </p>
+      </div>
+
+      <!-- Wagers -->
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <label class="text-xs font-medium text-gray-400">Wagers</label>
+          <button type="button" @click="addWager"
+            class="text-[10px] px-2 py-1 rounded text-emerald-400 hover:bg-emerald-500/10 transition-colors flex items-center gap-1">
+            <Plus :size="10" /> Add wager
+          </button>
+        </div>
+        <div v-if="form.wagers.length === 0" class="text-[11px] text-gray-600">No wagers — add one for accountability</div>
+        <div v-for="(wager, i) in form.wagers" :key="i" class="rounded-lg bg-gray-800/50 border border-gray-700 p-3 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] text-gray-500 font-medium">Wager {{ i + 1 }}</span>
+            <button type="button" @click="removeWager(i)" class="text-gray-600 hover:text-red-400 transition-colors">
+              <X :size="12" />
+            </button>
+          </div>
+          <input v-model="wager.condition" class="input text-xs" placeholder="Condition (e.g. Miss 2 days)" />
+          <input v-model="wager.penaltyText" class="input text-xs" placeholder="Penalty (e.g. Buy coffee for a friend)" />
+        </div>
+      </div>
+
+      <!-- Create as Public Preset -->
+      <div v-if="showPresetOption">
+        <div class="flex items-center gap-3 p-3 rounded-lg bg-gray-800/50 border border-gray-700">
+          <button type="button" @click="form.createPreset = !form.createPreset"
+            class="shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all"
+            :class="form.createPreset ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-600'">
+            <Check :size="12" :stroke-width="3" />
+          </button>
+          <div class="flex-1 min-w-0">
+            <div class="text-xs font-medium text-gray-300">Publish as public preset</div>
+            <div class="text-[10px] text-gray-500">Others can discover and use this habit template</div>
+          </div>
+          <Globe :size="16" class="text-gray-600 shrink-0" />
+        </div>
+        <div v-if="form.createPreset" class="mt-2 pl-8">
+          <label class="text-xs font-medium text-gray-400 mb-1 block">Category</label>
+          <select v-model="form.presetCategory" class="input text-xs">
+            <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, reactive, watch } from 'vue'
+import { ChevronDown, Shield, Camera, Plus, X, Check, Globe } from 'lucide-vue-next'
+import RecurrenceBuilder from './RecurrenceBuilder.vue'
+
+const props = defineProps({
+  modelValue: { type: Object, default: () => ({}) },
+  showPresetOption: { type: Boolean, default: true },
+})
+
+const emit = defineEmits(['update:modelValue'])
+
+const categories = ['Fitness', 'Health', 'Learning', 'Productivity', 'Mindfulness', 'Social', 'Other']
+const showAdvanced = ref(false)
+
+const form = reactive({
+  title: '',
+  description: '',
+  recurrence: { type: 'daily' },
+  verificationType: 'honor',
+  wagers: [],
+  createPreset: false,
+  presetCategory: 'Other',
+  ...props.modelValue,
+})
+
+watch(form, (val) => {
+  emit('update:modelValue', { ...val })
+}, { deep: true })
+
+watch(() => props.modelValue, (val) => {
+  if (val.title !== undefined) form.title = val.title
+  if (val.description !== undefined) form.description = val.description
+  if (val.recurrence !== undefined) form.recurrence = val.recurrence
+  if (val.verificationType !== undefined) form.verificationType = val.verificationType
+  if (val.wagers !== undefined) form.wagers = val.wagers
+  if (val.createPreset !== undefined) form.createPreset = val.createPreset
+  if (val.presetCategory !== undefined) form.presetCategory = val.presetCategory
+}, { deep: true })
+
+function addWager() {
+  form.wagers.push({ condition: '', penaltyText: '' })
+}
+
+function removeWager(i) {
+  form.wagers.splice(i, 1)
+}
+</script>

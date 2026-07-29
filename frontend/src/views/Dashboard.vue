@@ -64,7 +64,7 @@
     </form>
 
     <!-- New Habit Form -->
-    <div v-if="showNewHabitForm" class="card space-y-3">
+    <div v-if="showNewHabitForm" class="card space-y-4">
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-medium">New Habit</h3>
         <button
@@ -74,9 +74,8 @@
           <X :size="18" />
         </button>
       </div>
-      <input v-model="newHabit.title" type="text" placeholder="Habit title" class="input" />
-      <RecurrenceBuilder v-model="newHabit.recurrence" />
-      <div class="flex justify-end gap-2">
+      <HabitForm v-model="newHabit" />
+      <div class="flex justify-end gap-2 pt-1">
         <button @click="showNewHabitForm = false" class="btn-secondary btn-sm">Cancel</button>
         <button @click="createHabit" class="btn-sm" :disabled="!newHabit.title.trim()">Create</button>
       </div>
@@ -143,7 +142,7 @@ import DayDetail from '../components/DayDetail.vue'
 import HabitCard from '../components/HabitCard.vue'
 import TaskCard from '../components/TaskCard.vue'
 import BeBetterCam from '../components/BeBetterCam.vue'
-import RecurrenceBuilder from '../components/RecurrenceBuilder.vue'
+import HabitForm from '../components/HabitForm.vue'
 
 const toast = useToast()
 
@@ -161,7 +160,15 @@ const gridDays = ref([])
 const selectedYear = ref(new Date().getFullYear())
 const yearRange = ref({ firstYear: new Date().getFullYear(), lastYear: new Date().getFullYear() })
 
-const newHabit = reactive({ title: '', recurrence: { type: 'daily' } })
+const newHabit = reactive({
+  title: '',
+  description: '',
+  recurrence: { type: 'daily' },
+  verificationType: 'honor',
+  wagers: [],
+  createPreset: false,
+  presetCategory: 'Other',
+})
 
 const visibleTasks = computed(() => {
   if (showAllTasks.value || todayTasks.value.length <= 5) return todayTasks.value
@@ -241,15 +248,45 @@ async function createQuickTask() {
 }
 
 async function createHabit() {
+  if (!newHabit.title.trim()) return
   try {
-    await api.post('/habits', {
+    const payload = {
       title: newHabit.title,
-      recurrence: newHabit.recurrence
-    })
+      description: newHabit.description || undefined,
+      recurrence: newHabit.recurrence,
+      verificationType: newHabit.verificationType,
+    }
+    if (newHabit.wagers.length > 0) {
+      payload.wagers = newHabit.wagers.filter(w => w.condition.trim())
+    }
+    const res = await api.post('/habits', payload)
+
+    if (newHabit.createPreset && newHabit.title.trim()) {
+      try {
+        await api.post('/presets', {
+          title: newHabit.title,
+          description: newHabit.description || '',
+          category: newHabit.presetCategory,
+          config: {
+            title: newHabit.title,
+            description: newHabit.description || '',
+            recurrence: newHabit.recurrence,
+            verificationType: newHabit.verificationType,
+          },
+        })
+        toast.success('Habit & preset created')
+      } catch {
+        toast.success('Habit created (preset failed)')
+      }
+    } else {
+      toast.success('Habit created')
+    }
+
     showNewHabitForm.value = false
-    newHabit.title = ''
-    newHabit.recurrence = { type: 'daily' }
-    toast.success('Habit created')
+    Object.assign(newHabit, {
+      title: '', description: '', recurrence: { type: 'daily' },
+      verificationType: 'honor', wagers: [], createPreset: false, presetCategory: 'Other',
+    })
     loadStats()
     loadGrid()
   } catch {
