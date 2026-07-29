@@ -1,53 +1,86 @@
 <template>
-  <div class="max-w-3xl mx-auto px-4 py-6 space-y-6">
-    <h1 class="text-xl font-bold">Presets</h1>
+  <div class="page">
+    <div class="flex items-center justify-between">
+      <h1 class="text-xl font-bold">Presets</h1>
+      <button @click="toggleCreate" class="btn-secondary text-xs">
+        <Plus :size="14" />
+        <span class="hidden sm:inline">Create Preset</span>
+        <span class="sm:hidden">Create</span>
+      </button>
+    </div>
 
     <div class="flex gap-2">
-      <input v-model="searchQuery" @input="loadPresets" type="text" placeholder="Search presets..." class="input flex-1" />
-      <select v-model="selectedCategory" @change="loadPresets" class="input w-auto">
+      <input
+        v-model="searchQuery"
+        @input="debouncedLoad"
+        type="text"
+        placeholder="Search presets..."
+        class="input flex-1"
+      />
+      <select v-model="selectedCategory" @change="loadPresets" class="input w-auto min-w-[110px]">
         <option value="">All</option>
         <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
       </select>
     </div>
 
-    <button @click="showCreateForm = !showCreateForm" class="btn text-xs">
-      <Plus :size="14" /> Create Preset
-    </button>
-
     <div v-if="showCreateForm" class="card space-y-3">
-      <div v-if="myHabits.length" class="space-y-1">
-        <label class="text-xs font-medium text-gray-400">Start from a habit</label>
-        <select @change="importFromHabit($event.target.value); $event.target.value = ''" class="input text-sm">
-          <option value="">Select a habit...</option>
+      <p class="section-title">New Preset</p>
+
+      <div v-if="myHabits.length">
+        <label class="text-xs font-medium text-gray-400 mb-1 block">Import from a habit</label>
+        <select @change="importFromHabit($event.target.value); $event.target.value = ''" class="input">
+          <option value="">Select a habit to import...</option>
           <option v-for="h in myHabits" :key="h.id" :value="h.id">{{ h.title }}</option>
         </select>
       </div>
 
       <input v-model="createForm.title" class="input" placeholder="Title" />
-      <input v-model="createForm.description" class="input" placeholder="Description" />
-      <select v-model="createForm.category" class="input">
-        <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
-      </select>
+      <textarea v-model="createForm.description" class="input min-h-[80px]" placeholder="Description" rows="3"></textarea>
+
+      <div>
+        <label class="text-xs font-medium text-gray-400 mb-1 block">Category</label>
+        <select v-model="createForm.category" class="input">
+          <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
+        </select>
+      </div>
+
       <RecurrenceBuilder v-model="createForm.recurrence" />
-      <div class="flex gap-2">
-        <button @click="createPreset" class="btn text-xs">Create</button>
-        <button @click="showCreateForm = false" class="btn-secondary text-xs">Cancel</button>
+
+      <div class="flex gap-2 pt-1">
+        <button @click="createPreset" class="btn flex-1" :disabled="!createForm.title.trim()">
+          <Plus :size="16" /> Create
+        </button>
+        <button @click="showCreateForm = false" class="btn-secondary flex-1">Cancel</button>
       </div>
     </div>
 
-    <div class="grid gap-3 md:grid-cols-2">
-      <router-link v-for="p in presets" :key="p.id" :to="`/presets/${p.id}`" class="card-hover">
-        <h3 class="font-medium text-sm">{{ p.title }}</h3>
-        <p class="text-xs text-gray-500 mt-1 line-clamp-2">{{ p.description }}</p>
-        <div class="flex items-center gap-3 mt-2 text-xs text-gray-500">
-          <span class="px-1.5 py-0.5 rounded bg-gray-800">{{ p.category }}</span>
-          <span>❤️ {{ p.likes || 0 }}</span>
-          <span>🍴 {{ p.forks || 0 }}</span>
+    <div v-if="loading" class="text-center py-8">
+      <Loader2 :size="20" class="animate-spin text-gray-500 mx-auto" />
+    </div>
+
+    <div v-else-if="presets.length" class="grid grid-cols-2 gap-3">
+      <router-link
+        v-for="p in presets"
+        :key="p.id"
+        :to="`/presets/${p.id}`"
+        class="card-hover space-y-2"
+      >
+        <h3 class="font-medium text-sm line-clamp-1">{{ p.title }}</h3>
+        <p class="text-xs text-gray-500 line-clamp-2 leading-relaxed">{{ p.description }}</p>
+        <div class="flex items-center gap-2">
+          <span class="px-1.5 py-0.5 rounded bg-gray-800 text-[10px] text-gray-400">{{ p.category }}</span>
+        </div>
+        <div class="flex items-center gap-3 text-xs text-gray-500 pt-1 border-t border-gray-800">
+          <span class="flex items-center gap-1"><Heart :size="12" /> {{ p.likes || 0 }}</span>
+          <span class="flex items-center gap-1"><GitFork :size="12" /> {{ p.forks || 0 }}</span>
         </div>
       </router-link>
     </div>
 
-    <p v-if="!presets.length" class="text-sm text-gray-500 text-center py-4">No presets found</p>
+    <div v-else class="text-center py-12 text-gray-500 text-sm">
+      <Search :size="32" class="mx-auto mb-3 opacity-40" />
+      <p>No presets found</p>
+    </div>
   </div>
 </template>
 
@@ -55,49 +88,85 @@
 import { ref, reactive, onMounted } from 'vue'
 import api from '../api'
 import { useToast } from 'vue-toastification'
-import { Plus } from 'lucide-vue-next'
+import { Plus, Heart, GitFork, Search, Loader2 } from 'lucide-vue-next'
 import RecurrenceBuilder from '../components/RecurrenceBuilder.vue'
 
 const toast = useToast()
+
 const searchQuery = ref('')
 const selectedCategory = ref('')
 const presets = ref([])
 const myHabits = ref([])
 const showCreateForm = ref(false)
+const loading = ref(false)
+
 const categories = ['Fitness', 'Health', 'Learning', 'Productivity', 'Mindfulness', 'Social', 'Other']
-const createForm = reactive({ title: '', description: '', category: 'Other', recurrence: { type: 'daily' } })
+const createForm = reactive({
+  title: '',
+  description: '',
+  category: 'Other',
+  recurrence: { type: 'daily' }
+})
+
+let debounceTimer = null
+function debouncedLoad() {
+  clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(loadPresets, 300)
+}
 
 async function loadPresets() {
+  loading.value = true
   try {
     const res = await api.get('/presets', { params: { q: searchQuery.value, category: selectedCategory.value } })
     presets.value = res.data.presets || res.data || []
-  } catch { presets.value = [] }
+  } catch {
+    presets.value = []
+  } finally {
+    loading.value = false
+  }
 }
 
 async function loadMyHabits() {
   try {
     const res = await api.get('/habits')
     myHabits.value = res.data.habits || []
-  } catch { myHabits.value = [] }
+  } catch {
+    myHabits.value = []
+  }
 }
 
 function importFromHabit(id) {
-  const h = myHabits.value.find(h => h.id === id)
+  const h = myHabits.value.find(h => String(h.id) === String(id))
   if (!h) return
   createForm.title = h.title
   createForm.description = h.description || ''
   if (h.recurrence) createForm.recurrence = { ...h.recurrence }
 }
 
+function toggleCreate() {
+  showCreateForm.value = !showCreateForm.value
+}
+
 async function createPreset() {
+  if (!createForm.title.trim()) return
   try {
     await api.post('/presets', createForm)
     toast.success('Preset created')
     showCreateForm.value = false
-    Object.assign(createForm, { title: '', description: '', category: 'Other', recurrence: { type: 'daily' } })
+    Object.assign(createForm, {
+      title: '',
+      description: '',
+      category: 'Other',
+      recurrence: { type: 'daily' }
+    })
     loadPresets()
-  } catch { toast.error('Failed') }
+  } catch {
+    toast.error('Failed to create preset')
+  }
 }
 
-onMounted(() => { loadPresets(); loadMyHabits() })
+onMounted(() => {
+  loadPresets()
+  loadMyHabits()
+})
 </script>

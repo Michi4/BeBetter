@@ -9,5 +9,5 @@ import './assets/main.css'
 const app = createApp(App)
 app.use(createPinia())
 app.use(router)
-app.use(Toast, { position: 'bottom-right', timeout: 3000, closeOnClick: true, pauseOnHover: false })
+app.use(Toast, { position: 'bottom-center', timeout: 2500, closeOnClick: true, pauseOnHover: false, toastClassName: 'text-sm' })
 app.mount('#app')

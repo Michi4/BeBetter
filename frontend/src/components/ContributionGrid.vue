@@ -1,36 +1,42 @@
 <template>
   <div class="select-none" ref="container">
     <div v-if="weeks.length">
-      <!-- Month labels row -->
-      <div class="relative h-[18px] mb-[3px]" :style="{ paddingLeft: (dayLabelW + GAP) + 'px' }">
-        <div v-for="(m, i) in monthLabels" :key="i"
-          class="absolute text-[11px] text-gray-500"
-          :style="{ left: m.left + 'px' }">
-          {{ m.label }}
-        </div>
-      </div>
-
-      <!-- Grid body: day labels + weeks -->
-      <div class="flex gap-[3px]">
-        <!-- Day labels column -->
-        <div class="flex flex-col gap-[3px] text-[10px] text-gray-500 shrink-0" :style="{ width: dayLabelW + 'px' }">
-          <div v-for="d in dayLabels" :key="d.label"
-            class="flex items-center"
-            :style="{ height: cell + 'px' }">
-            <span v-if="d.show">{{ d.label }}</span>
+      <!-- Scroll wrapper for mobile -->
+      <div class="overflow-x-auto no-scrollbar -mx-1 px-1">
+        <div :style="{ width: gridWidth + 'px', minWidth: '100%' }">
+          <!-- Month labels row -->
+          <div class="relative h-[18px] mb-[3px]">
+            <div v-for="(m, i) in monthLabels" :key="i"
+              class="absolute text-[11px] text-gray-500"
+              :style="{ left: m.left + 'px' }">
+              {{ m.label }}
+            </div>
           </div>
-        </div>
-        <!-- Weeks grid -->
-        <div class="flex gap-[3px]">
-          <div v-for="(week, wi) in weeks" :key="wi" class="flex flex-col gap-[3px]">
-            <div v-for="(day, di) in week" :key="di">
-              <div
-                class="rounded-[2px] transition-all duration-100 relative"
-                :class="day ? getCellClass(day) : 'bg-transparent'"
-                :style="{ width: cell + 'px', height: cell + 'px' }"
-                @mouseenter="day ? (hoveredDay = day, hoveredWeekIdx = wi, hoveredDayIdx = di) : null"
-                @mouseleave="hoveredDay = null"
-                @click="day && (day.scheduled > 0 || (day.tasks && day.tasks.length > 0)) && $emit('select', day)">
+
+          <!-- Grid body: day labels + weeks -->
+          <div class="flex gap-[3px]">
+            <!-- Day labels column -->
+            <div class="flex flex-col gap-[3px] text-[10px] text-gray-500 shrink-0" :style="{ width: dayLabelW + 'px' }">
+              <div v-for="d in dayLabels" :key="d.label"
+                class="flex items-center"
+                :style="{ height: cell + 'px' }">
+                <span v-if="d.show">{{ d.label }}</span>
+              </div>
+            </div>
+            <!-- Weeks grid -->
+            <div class="flex gap-[3px]">
+              <div v-for="(week, wi) in weeks" :key="wi" class="flex flex-col gap-[3px]">
+                <div v-for="(day, di) in week" :key="di">
+                  <div
+                    class="rounded-[2px] transition-all duration-100"
+                    :class="day ? getCellClass(day) : 'bg-transparent'"
+                    :style="{ width: cell + 'px', height: cell + 'px' }"
+                    @mouseenter="day ? onCellEnter(day, $event) : null"
+                    @mousemove="onCellMove($event)"
+                    @mouseleave="onCellLeave"
+                    @click="day && (day.scheduled > 0 || (day.tasks && day.tasks.length > 0)) && $emit('select', day)">
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -39,8 +45,8 @@
     </div>
 
     <!-- Tooltip -->
-    <div v-if="hoveredDay" class="fixed z-50 bg-gray-800 border border-gray-700 rounded-xl p-3 shadow-xl text-xs max-w-xs pointer-events-none"
-      :style="tooltipPos">
+    <div v-if="hoveredDay" class="fixed z-50 bg-gray-800 border border-gray-700 rounded-xl p-3 shadow-xl text-xs max-w-[220px] pointer-events-none"
+      :style="{ left: tipX + 'px', top: tipY + 'px' }">
       <div class="font-medium mb-1">{{ formatTipDate(hoveredDay.date) }}</div>
       <div v-if="hoveredDay.scheduled > 0" class="text-gray-400 mb-1">
         {{ hoveredDay.completed }}/{{ hoveredDay.scheduled }} habits done
@@ -84,25 +90,32 @@ const props = defineProps({
 defineEmits(['select'])
 
 const hoveredDay = ref(null)
-const hoveredWeekIdx = ref(0)
-const hoveredDayIdx = ref(0)
+const tipX = ref(0)
+const tipY = ref(0)
 const container = ref(null)
 const containerW = ref(700)
 
 const GAP = 3
 const DAY_LABEL_W = 24
+const MIN_CELL = 10
+const MAX_CELL = 14
+
+const isMobile = computed(() => containerW.value < 500)
 
 const cell = computed(() => {
+  if (isMobile.value) return MIN_CELL
   const wks = weeks.value.length || 53
   const avail = containerW.value - DAY_LABEL_W - GAP
-  const perWeek = avail / wks
-  const size = Math.floor((perWeek - GAP) / 7 * 7 + GAP) // not right, just fit weeks
-  // simpler: total width = wks * (cell + GAP) - GAP, solve for cell
   const c = Math.floor((avail + GAP) / wks - GAP)
-  return Math.min(Math.max(c, 8), 14)
+  return Math.min(Math.max(c, MIN_CELL), MAX_CELL)
 })
 
 const dayLabelW = DAY_LABEL_W
+
+const gridWidth = computed(() => {
+  const wks = weeks.value.length || 53
+  return DAY_LABEL_W + GAP + wks * (cell.value + GAP)
+})
 
 const dayLabels = [
   { label: 'Mon', show: false },
@@ -123,7 +136,6 @@ const legendClasses = [
   'bg-emerald-400 shadow-[0_0_6px_rgba(74,222,128,0.3)]',
 ]
 
-// Each week is an array of 7 day-objects (or null for padding days)
 const weeks = computed(() => {
   if (!props.grid.length) return []
 
@@ -134,12 +146,10 @@ const weeks = computed(() => {
   const dayMap = {}
   for (const d of props.grid) dayMap[d.date] = d
 
-  // Start from the Monday before or on Jan 1
-  const startDow = (jan1.getUTCDay() + 6) % 7 // 0=Mon
+  const startDow = (jan1.getUTCDay() + 6) % 7
   const startDate = new Date(jan1)
   startDate.setUTCDate(startDate.getUTCDate() - startDow)
 
-  // End on the Sunday on or after Dec 31
   const endDow = (dec31.getUTCDay() + 6) % 7
   const endDate = new Date(dec31)
   endDate.setUTCDate(endDate.getUTCDate() + (6 - endDow))
@@ -165,7 +175,6 @@ const monthLabels = computed(() => {
   const labels = []
   let lastMonth = -1
   for (let wi = 0; wi < weeks.value.length; wi++) {
-    // Find first non-null day in this week
     const first = weeks.value[wi].find(d => d !== null)
     if (first && first.date) {
       const d = new Date(first.date + 'T12:00:00Z')
@@ -173,7 +182,7 @@ const monthLabels = computed(() => {
       if (month !== lastMonth) {
         labels.push({
           label: d.toLocaleString('en', { month: 'short' }),
-          left: wi * (cell.value + GAP),
+          left: (dayLabelW + GAP) + wi * (cell.value + GAP),
         })
         lastMonth = month
       }
@@ -182,14 +191,30 @@ const monthLabels = computed(() => {
   return labels
 })
 
-const tooltipPos = computed(() => {
-  if (!hoveredDay.value) return {}
-  const c = cell.value + GAP
-  return {
-    left: (hoveredWeekIdx.value * c + DAY_LABEL_W + 40) + 'px',
-    top: (hoveredDayIdx.value * c + 60) + 'px',
-  }
-})
+function onCellEnter(day, e) {
+  hoveredDay.value = day
+  positionTooltip(e)
+}
+
+function onCellMove(e) {
+  positionTooltip(e)
+}
+
+function positionTooltip(e) {
+  const pad = 12
+  const tipW = 220
+  const tipH = 120
+  let x = e.clientX + pad
+  let y = e.clientY + pad
+  if (x + tipW > window.innerWidth) x = e.clientX - tipW - pad
+  if (y + tipH > window.innerHeight) y = e.clientY - tipH - pad
+  tipX.value = x
+  tipY.value = y
+}
+
+function onCellLeave() {
+  hoveredDay.value = null
+}
 
 function getCellClass(day) {
   if (!day) return 'bg-transparent'

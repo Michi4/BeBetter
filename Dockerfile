@@ -1,14 +1,14 @@
 FROM node:20-alpine AS frontend-build
 WORKDIR /frontend
-COPY frontend/package.json ./
-RUN npm install
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci --prefer-offline
 COPY frontend/ .
 RUN npm run build
 
 FROM node:20-alpine
 WORKDIR /app
-COPY backend/package.json ./
-RUN npm install
+COPY backend/package.json backend/package-lock.json ./
+RUN npm ci --prefer-offline --omit=dev
 COPY backend/prisma ./prisma
 RUN npx prisma generate
 COPY backend/ .

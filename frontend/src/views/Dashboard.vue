@@ -1,38 +1,44 @@
 <template>
-  <div class="max-w-3xl mx-auto px-4 py-6 space-y-6">
+  <div class="page">
     <!-- Stats Row -->
-    <div class="grid grid-cols-4 gap-3">
-      <div class="card text-center">
-        <div class="text-2xl font-bold text-emerald-400">{{ stats.streak || 0 }}</div>
-        <div class="text-[10px] text-gray-500 mt-1">Day Streak</div>
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div class="card text-center py-3">
+        <div class="text-xl font-bold text-emerald-400">{{ stats.streak || 0 }}</div>
+        <div class="text-[10px] text-gray-500 mt-0.5">Streak</div>
       </div>
-      <div class="card text-center">
-        <div class="text-2xl font-bold text-emerald-400">{{ stats.consistency || 0 }}%</div>
-        <div class="text-[10px] text-gray-500 mt-1">30d Consistency</div>
+      <div class="card text-center py-3">
+        <div class="text-xl font-bold text-emerald-400">{{ stats.consistency || 0 }}%</div>
+        <div class="text-[10px] text-gray-500 mt-0.5">Consistency</div>
       </div>
-      <div class="card text-center">
-        <div class="text-2xl font-bold text-emerald-400">{{ stats.totalCompletions || 0 }}</div>
-        <div class="text-[10px] text-gray-500 mt-1">Total Done</div>
+      <div class="card text-center py-3">
+        <div class="text-xl font-bold text-emerald-400">{{ stats.totalCompletions || 0 }}</div>
+        <div class="text-[10px] text-gray-500 mt-0.5">Total Done</div>
       </div>
-      <div class="card text-center">
-        <div class="text-2xl font-bold text-emerald-400">{{ stats.today?.done || 0 }}/{{ stats.today?.total || 0 }}</div>
-        <div class="text-[10px] text-gray-500 mt-1">Today</div>
+      <div class="card text-center py-3">
+        <div class="text-xl font-bold text-emerald-400">{{ stats.today?.done || 0 }}/{{ stats.today?.total || 0 }}</div>
+        <div class="text-[10px] text-gray-500 mt-0.5">Today</div>
       </div>
     </div>
 
     <!-- Contribution Grid -->
     <div class="card">
       <div class="flex items-center justify-between mb-3">
-        <h2 class="text-xs font-semibold text-gray-500 tracking-wider">YEAR IN REVIEW</h2>
+        <h2 class="section-title">Year in Review</h2>
         <div v-if="yearRange.lastYear > yearRange.firstYear" class="flex items-center gap-1">
-          <button @click="selectedYear--" :disabled="selectedYear <= yearRange.firstYear"
-            class="p-1 rounded text-gray-500 hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-            <ChevronLeft :size="14" />
+          <button
+            @click="selectedYear--"
+            :disabled="selectedYear <= yearRange.firstYear"
+            class="touch-target p-2 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            <ChevronLeft :size="16" />
           </button>
           <span class="text-xs font-medium text-gray-400 min-w-[36px] text-center">{{ selectedYear }}</span>
-          <button @click="selectedYear++" :disabled="selectedYear >= yearRange.lastYear"
-            class="p-1 rounded text-gray-500 hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-            <ChevronRight :size="14" />
+          <button
+            @click="selectedYear++"
+            :disabled="selectedYear >= yearRange.lastYear"
+            class="touch-target p-2 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            <ChevronRight :size="16" />
           </button>
         </div>
         <span v-else class="text-xs font-medium text-gray-400">{{ selectedYear }}</span>
@@ -42,26 +48,37 @@
 
     <!-- Quick Add -->
     <form @submit.prevent="handleInput" class="flex items-center gap-2">
-      <button type="submit"
-        class="p-2 rounded-lg bg-gray-800 text-gray-400 hover:bg-emerald-500/10 hover:text-emerald-400 transition-colors duration-150 shrink-0"
-        title="New habit or task">
-        <Plus :size="18" />
+      <button
+        type="submit"
+        class="touch-target shrink-0 flex items-center justify-center w-11 h-11 rounded-xl bg-gray-800 text-gray-400 hover:bg-emerald-500/10 hover:text-emerald-400 transition-colors"
+        title="New habit or task"
+      >
+        <Plus :size="20" />
       </button>
-      <input v-model="quickTaskInput" type="text" placeholder="Add a task..."
-        class="input flex-1 text-sm" />
+      <input
+        v-model="quickTaskInput"
+        type="text"
+        placeholder="Add a task..."
+        class="input flex-1 text-sm"
+      />
     </form>
 
     <!-- New Habit Form -->
     <div v-if="showNewHabitForm" class="card space-y-3">
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-medium">New Habit</h3>
-        <button @click="showNewHabitForm = false" class="text-gray-400 hover:text-gray-200 transition-colors duration-150"><X :size="16" /></button>
+        <button
+          @click="showNewHabitForm = false"
+          class="touch-target flex items-center justify-center text-gray-400 hover:text-gray-200 transition-colors"
+        >
+          <X :size="18" />
+        </button>
       </div>
-      <input v-model="newHabit.title" type="text" placeholder="Title" class="input" />
+      <input v-model="newHabit.title" type="text" placeholder="Habit title" class="input" />
       <RecurrenceBuilder v-model="newHabit.recurrence" />
       <div class="flex justify-end gap-2">
-        <button @click="showNewHabitForm = false" class="btn-secondary text-xs">Cancel</button>
-        <button @click="createHabit" class="btn text-xs" :disabled="!newHabit.title.trim()">Create</button>
+        <button @click="showNewHabitForm = false" class="btn-secondary btn-sm">Cancel</button>
+        <button @click="createHabit" class="btn-sm" :disabled="!newHabit.title.trim()">Create</button>
       </div>
     </div>
 
@@ -70,28 +87,48 @@
 
     <!-- Today's Tasks -->
     <div class="space-y-2">
-      <h3 class="text-sm font-medium text-gray-400">Today's Tasks</h3>
-      <div v-if="visibleTasks.length === 0" class="text-sm text-gray-500">No tasks for today</div>
-      <TaskCard v-for="t in visibleTasks" :key="t.id" :task="t" @complete="completeTask" @delete="deleteTask" />
-      <button v-if="todayTasks.length > 5 && !showAllTasks" @click="showAllTasks = true"
-        class="text-xs text-emerald-400 hover:text-emerald-300 transition-colors duration-150 flex items-center gap-1">
-        <ChevronDown :size="12" />
+      <h3 class="section-title">Today's Tasks</h3>
+      <div v-if="visibleTasks.length === 0" class="text-sm text-gray-500 py-2">No tasks for today</div>
+      <TaskCard
+        v-for="t in visibleTasks"
+        :key="t.id"
+        :task="t"
+        @complete="completeTask"
+        @delete="deleteTask"
+        @edit="editTask"
+      />
+      <button
+        v-if="todayTasks.length > 5 && !showAllTasks"
+        @click="showAllTasks = true"
+        class="touch-target text-xs text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1"
+      >
+        <ChevronDown :size="14" />
         Show more ({{ todayTasks.length - 5 }} remaining)
       </button>
-      <button v-if="showAllTasks && todayTasks.length > 5" @click="showAllTasks = false"
-        class="text-xs text-emerald-400 hover:text-emerald-300 transition-colors duration-150 flex items-center gap-1">
-        <ChevronUp :size="12" />
+      <button
+        v-if="showAllTasks && todayTasks.length > 5"
+        @click="showAllTasks = false"
+        class="touch-target text-xs text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1"
+      >
+        <ChevronUp :size="14" />
         Show less
       </button>
     </div>
 
     <!-- Today's Habits -->
     <div class="space-y-2">
-      <h3 class="text-sm font-medium text-gray-400">Today's Habits</h3>
-      <div v-if="todayHabits.length === 0" class="text-sm text-gray-500">No habits for today</div>
-      <HabitCard v-for="h in todayHabits" :key="h.id" :habit="h" @log="logHabit" @cam="openCam" />
+      <h3 class="section-title">Today's Habits</h3>
+      <div v-if="todayHabits.length === 0" class="text-sm text-gray-500 py-2">No habits for today</div>
+      <HabitCard
+        v-for="h in todayHabits"
+        :key="h.id"
+        :habit="h"
+        @log="logHabit"
+        @cam="openCam"
+      />
     </div>
 
+    <!-- BeBetterCam -->
     <BeBetterCam :show="!!camHabit" @close="camHabit = null" @capture="submitCamProof" />
   </div>
 </template>
@@ -130,8 +167,6 @@ const visibleTasks = computed(() => {
   if (showAllTasks.value || todayTasks.value.length <= 5) return todayTasks.value
   return todayTasks.value.slice(0, 5)
 })
-
-function todayStr() { return new Date().toISOString().slice(0, 10) }
 
 async function loadStats() {
   try {
@@ -243,6 +278,10 @@ async function deleteTask(task) {
   } catch {
     toast.error('Failed')
   }
+}
+
+function editTask(task) {
+  todayTasks.value = todayTasks.value.map(t => t.id === task.id ? task : t)
 }
 
 function openCam(habit) {

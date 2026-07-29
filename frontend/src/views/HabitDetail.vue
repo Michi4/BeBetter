@@ -1,87 +1,152 @@
 <template>
-  <div class="max-w-2xl mx-auto px-4 py-6 space-y-6">
-    <div class="flex items-center gap-3">
+  <div class="page">
+    <div class="flex items-center gap-2">
       <button @click="$router.back()" class="btn-ghost p-1"><ArrowLeft :size="18" /></button>
-      <h1 class="text-xl font-bold">{{ habit.title }}</h1>
+      <h1 class="text-xl font-bold truncate">{{ habit.title }}</h1>
     </div>
 
-    <div class="card space-y-4">
-      <div v-if="!editing">
-        <p v-if="habit.description" class="text-sm text-gray-400 mb-3">{{ habit.description }}</p>
-        <div class="grid grid-cols-2 gap-3 text-sm">
-          <div><span class="text-gray-500">Streak:</span> <span class="text-emerald-400 font-medium">{{ habit.currentStreak || 0 }} days</span></div>
-          <div><span class="text-gray-500">Best:</span> <span class="text-emerald-400 font-medium">{{ habit.bestStreak || 0 }} days</span></div>
-          <div><span class="text-gray-500">Total:</span> <span class="text-emerald-400 font-medium">{{ habit.totalCompletions || 0 }}</span></div>
-          <div><span class="text-gray-500">Verification:</span> <span class="text-gray-300">{{ habit.verificationType || 'none' }}</span></div>
+    <div v-if="!editing" class="space-y-3">
+      <div class="card space-y-4">
+        <p v-if="habit.description" class="text-sm text-gray-400 leading-relaxed">{{ habit.description }}</p>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div class="text-center p-2 rounded-lg bg-gray-800/50">
+            <div class="text-lg font-bold text-emerald-400">{{ habit.currentStreak || 0 }}</div>
+            <div class="text-[10px] text-gray-500">Current Streak</div>
+          </div>
+          <div class="text-center p-2 rounded-lg bg-gray-800/50">
+            <div class="text-lg font-bold text-amber-400">{{ habit.bestStreak || 0 }}</div>
+            <div class="text-[10px] text-gray-500">Best Streak</div>
+          </div>
+          <div class="text-center p-2 rounded-lg bg-gray-800/50">
+            <div class="text-lg font-bold text-emerald-400">{{ habit.totalCompletions || 0 }}</div>
+            <div class="text-[10px] text-gray-500">Total Done</div>
+          </div>
+          <div class="text-center p-2 rounded-lg bg-gray-800/50">
+            <div class="text-lg font-bold text-gray-300 text-sm">{{ habit.verificationType || 'None' }}</div>
+            <div class="text-[10px] text-gray-500">Verification</div>
+          </div>
         </div>
-        <div class="mt-3">
-          <span class="text-xs text-gray-500">Recurrence:</span>
-          <span class="text-xs text-gray-300 ml-1">{{ formatRecurrence(habit.recurrence) }}</span>
+
+        <div class="text-xs text-gray-500">
+          <span class="text-gray-600">Schedule:</span>
+          <span class="text-gray-400 ml-1">{{ formatRecurrence(habit.recurrence) }}</span>
         </div>
-        <div class="mt-4 flex gap-2">
-          <button @click="editing = true" class="btn-secondary text-xs">Edit</button>
-          <button @click="showBreakOptions = !showBreakOptions" class="btn-secondary text-xs">
-            {{ habit.onBreak ? 'End Break' : 'Start Break' }}
+
+        <div v-if="habit.onBreak" class="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-amber-400">On Break</p>
+              <p v-if="habit.breakEndDate" class="text-xs text-gray-500">Until {{ formatDate(habit.breakEndDate) }}</p>
+            </div>
+            <button @click="endBreak" class="btn-secondary text-xs">
+              <Play :size="12" /> End Break
+            </button>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-2 pt-1">
+          <button @click="editing = true" class="btn-secondary flex-1 min-w-0">
+            <Pencil :size="14" /> Edit
           </button>
-          <button @click="showFinishForm = !showFinishForm" class="btn text-xs">Finish with Note</button>
-          <button @click="confirmDelete = true" class="btn-danger text-xs">Delete</button>
+          <button v-if="!habit.onBreak" @click="showBreakForm = !showBreakForm" class="btn-secondary flex-1 min-w-0">
+            <Pause :size="14" /> Break
+          </button>
+          <button @click="showFinishForm = !showFinishForm" class="btn flex-1 min-w-0">
+            <CheckCircle :size="14" /> Finish
+          </button>
+          <button @click="confirmDelete = true" class="btn-danger flex-1 min-w-0">
+            <Trash2 :size="14" /> Delete
+          </button>
         </div>
       </div>
 
-      <div v-else class="space-y-3">
-        <input v-model="editForm.title" class="input" placeholder="Title" />
-        <input v-model="editForm.description" class="input" placeholder="Description" />
-        <RecurrenceBuilder v-model="editForm.recurrence" />
+      <div v-if="showBreakForm && !habit.onBreak" class="card space-y-3">
+        <p class="section-title">Start Break</p>
+        <div>
+          <label class="text-xs font-medium text-gray-400 mb-1 block">End date (optional)</label>
+          <input v-model="breakEndDate" type="date" class="input" />
+        </div>
+        <div>
+          <label class="text-xs font-medium text-gray-400 mb-1 block">Reason (optional)</label>
+          <input v-model="breakReason" class="input" placeholder="e.g. Vacation, illness..." />
+        </div>
+        <div class="flex gap-2">
+          <button @click="startBreak" class="btn flex-1">Start Break</button>
+          <button @click="showBreakForm = false" class="btn-secondary flex-1">Cancel</button>
+        </div>
+      </div>
+
+      <div v-if="showFinishForm" class="card space-y-3">
+        <p class="section-title">Finish Habit</p>
+        <textarea
+          v-model="finishNote"
+          class="input min-h-[80px]"
+          placeholder="Add a note about completing this habit..."
+          rows="3"
+        ></textarea>
+        <div class="flex gap-2">
+          <button @click="finishHabit" class="btn flex-1">
+            <CheckCircle :size="14" /> Finish Habit
+          </button>
+          <button @click="showFinishForm = false" class="btn-secondary flex-1">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <div v-else class="card space-y-3">
+      <p class="section-title">Edit Habit</p>
+      <input v-model="editForm.title" class="input" placeholder="Title" />
+      <textarea v-model="editForm.description" class="input min-h-[80px]" placeholder="Description" rows="3"></textarea>
+      <RecurrenceBuilder v-model="editForm.recurrence" />
+      <div>
+        <label class="text-xs font-medium text-gray-400 mb-1 block">Verification</label>
         <select v-model="editForm.verificationType" class="input">
           <option value="none">No verification</option>
           <option value="photo">Photo verification</option>
         </select>
-        <div class="flex gap-2">
-          <button @click="saveEdit" class="btn text-xs">Save</button>
-          <button @click="editing = false" class="btn-secondary text-xs">Cancel</button>
-        </div>
       </div>
-
-      <div v-if="showBreakOptions" class="space-y-2">
-        <div v-if="habit.onBreak">
-          <button @click="endBreak" class="btn text-xs">End Break Now</button>
-        </div>
-        <div v-else class="flex gap-2">
-          <button @click="startBreak(7)" class="btn-secondary text-xs">1 week</button>
-          <button @click="startBreak(14)" class="btn-secondary text-xs">2 weeks</button>
-          <button @click="startBreak(30)" class="btn-secondary text-xs">1 month</button>
-          <button @click="startBreak(90)" class="btn-secondary text-xs">3 months</button>
-        </div>
-      </div>
-
-      <div v-if="showFinishForm" class="space-y-2">
-        <textarea v-model="finishNote" class="input" placeholder="Note about finishing this habit..." rows="3"></textarea>
-        <div class="flex gap-2">
-          <button @click="finishHabit" class="btn text-xs">Finish</button>
-          <button @click="showFinishForm = false" class="btn-secondary text-xs">Cancel</button>
-        </div>
+      <div class="flex gap-2">
+        <button @click="saveEdit" class="btn flex-1">
+          <Save :size="14" /> Save
+        </button>
+        <button @click="editing = false" class="btn-secondary flex-1">Cancel</button>
       </div>
     </div>
 
-    <div v-if="logs.length" class="card">
-      <h3 class="text-sm font-medium text-gray-400 mb-3">Recent Logs</h3>
-      <div class="space-y-1">
-        <div v-for="log in logs" :key="log.id" class="flex items-center justify-between text-sm py-1">
-          <span class="text-gray-400">{{ formatDate(log.date || log.createdAt) }}</span>
-          <span :class="log.status === 'done' || log.completed ? 'text-emerald-400' : 'text-gray-500'">{{ log.status || (log.completed ? 'done' : 'missed') }}</span>
+    <div v-if="logs.length" class="space-y-2">
+      <p class="section-title">Recent Logs</p>
+      <div class="card divide-y divide-gray-800">
+        <div v-for="log in logs" :key="log.id" class="flex items-center gap-3 py-3">
+          <span class="text-xs text-gray-500 w-16 shrink-0">{{ formatDate(log.date || log.createdAt) }}</span>
+          <span
+            class="text-xs font-medium px-1.5 py-0.5 rounded"
+            :class="(log.status === 'done' || log.completed)
+              ? 'bg-emerald-500/10 text-emerald-400'
+              : 'bg-gray-800 text-gray-500'"
+          >
+            {{ log.status || (log.completed ? 'done' : 'missed') }}
+          </span>
+          <div v-if="log.proofUrl" class="ml-auto shrink-0">
+            <img :src="log.proofUrl" class="w-8 h-8 rounded object-cover" alt="proof" />
+          </div>
         </div>
       </div>
     </div>
 
     <Teleport to="body">
-      <div v-if="confirmDelete" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60" @click.self="confirmDelete = false">
-        <div class="card w-full max-w-sm mx-4 space-y-3">
-          <h3 class="font-semibold">Delete Habit</h3>
+      <div v-if="confirmDelete" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60" @click.self="confirmDelete = false">
+        <div class="card w-full max-w-sm mx-0 sm:mx-4 space-y-3 rounded-b-none sm:rounded-xl safe-bottom">
+          <p class="section-title">Delete Habit</p>
           <p class="text-sm text-gray-400">Are you sure? This cannot be undone.</p>
-          <div class="flex gap-2">
-            <button @click="deleteHabit(false)" class="btn-danger text-xs">Delete</button>
-            <button @click="deleteHabit(true)" class="btn-secondary text-xs">Delete with History</button>
-            <button @click="confirmDelete = false" class="btn-ghost text-xs">Cancel</button>
+          <div class="flex flex-col gap-2">
+            <button @click="deleteHabit(false)" class="btn-danger w-full">
+              <Trash2 :size="14" /> Delete
+            </button>
+            <button @click="deleteHabit(true)" class="btn w-full bg-red-600/20 text-red-400 hover:bg-red-600/30 border border-red-500/30">
+              <Trash2 :size="14" /> Delete with History
+            </button>
+            <button @click="confirmDelete = false" class="btn-secondary w-full">Cancel</button>
           </div>
         </div>
       </div>
@@ -94,7 +159,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../api'
 import { useToast } from 'vue-toastification'
-import { ArrowLeft } from 'lucide-vue-next'
+import { ArrowLeft, Pencil, Save, Pause, Play, CheckCircle, Trash2 } from 'lucide-vue-next'
 import RecurrenceBuilder from '../components/RecurrenceBuilder.vue'
 
 const route = useRoute()
@@ -104,11 +169,19 @@ const toast = useToast()
 const habit = ref({})
 const logs = ref([])
 const editing = ref(false)
-const showBreakOptions = ref(false)
+const showBreakForm = ref(false)
 const showFinishForm = ref(false)
 const finishNote = ref('')
 const confirmDelete = ref(false)
-const editForm = reactive({ title: '', description: '', recurrence: { type: 'daily' }, verificationType: 'none' })
+const breakEndDate = ref('')
+const breakReason = ref('')
+
+const editForm = reactive({
+  title: '',
+  description: '',
+  recurrence: { type: 'daily' },
+  verificationType: 'none'
+})
 
 async function loadHabit() {
   try {
@@ -118,26 +191,40 @@ async function loadHabit() {
     editForm.description = habit.value.description || ''
     editForm.recurrence = habit.value.recurrence || { type: 'daily' }
     editForm.verificationType = habit.value.verificationType || 'none'
+
     const logRes = await api.get('/logs', { params: { habitId: route.params.id } })
     logs.value = logRes.data.logs || logRes.data || []
-  } catch { toast.error('Failed to load habit') }
+  } catch {
+    toast.error('Failed to load habit')
+  }
 }
 
 async function saveEdit() {
+  if (!editForm.title.trim()) return
   try {
     await api.put(`/habits/${route.params.id}`, editForm)
     editing.value = false
     toast.success('Habit updated')
     loadHabit()
-  } catch { toast.error('Failed') }
+  } catch {
+    toast.error('Failed to update habit')
+  }
 }
 
-async function startBreak(days) {
+async function startBreak() {
   try {
-    await api.post(`/habits/${route.params.id}/break/start`, { days })
+    const payload = {}
+    if (breakEndDate.value) payload.endDate = breakEndDate.value
+    if (breakReason.value.trim()) payload.reason = breakReason.value.trim()
+    await api.post(`/habits/${route.params.id}/break/start`, payload)
     toast.success('Break started')
+    showBreakForm.value = false
+    breakEndDate.value = ''
+    breakReason.value = ''
     loadHabit()
-  } catch { toast.error('Failed') }
+  } catch {
+    toast.error('Failed to start break')
+  }
 }
 
 async function endBreak() {
@@ -145,7 +232,9 @@ async function endBreak() {
     await api.post(`/habits/${route.params.id}/break/end`)
     toast.success('Break ended')
     loadHabit()
-  } catch { toast.error('Failed') }
+  } catch {
+    toast.error('Failed to end break')
+  }
 }
 
 async function finishHabit() {
@@ -153,15 +242,20 @@ async function finishHabit() {
     await api.post(`/habits/${route.params.id}/finish`, { note: finishNote.value })
     toast.success('Habit finished')
     router.push('/dashboard')
-  } catch { toast.error('Failed') }
+  } catch {
+    toast.error('Failed to finish habit')
+  }
 }
 
 async function deleteHabit(withHistory) {
   try {
-    await api.delete(`/habits/${route.params.id}`, { data: { withHistory } })
+    const params = withHistory ? { deleteLogs: 'true' } : {}
+    await api.delete(`/habits/${route.params.id}`, { params })
     toast.success('Habit deleted')
     router.push('/dashboard')
-  } catch { toast.error('Failed') }
+  } catch {
+    toast.error('Failed to delete habit')
+  }
 }
 
 function formatRecurrence(r) {
@@ -169,7 +263,10 @@ function formatRecurrence(r) {
   if (r.type === 'daily') return 'Daily'
   if (r.type === 'weekdays') return 'Weekdays'
   if (r.type === 'weekends') return 'Weekends'
-  if (r.type === 'weekly') return `Weekly (${(r.days || []).map(d => ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d]).join(', ')})`
+  if (r.type === 'weekly') {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    return `Weekly (${(r.days || []).map(d => days[d]).join(', ')})`
+  }
   if (r.type === 'interval') return `Every ${r.intervalDays} days`
   return r.type
 }
