@@ -9,7 +9,7 @@
       <div class="flex items-center gap-2">
         <h4 class="font-medium text-sm truncate">{{ habit.title }}</h4>
         <span v-if="habit.currentStreak > 0" class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">{{ habit.currentStreak}}d</span>
-        <span v-if="habit.onBreak" class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400">break</span>
+        <span v-if="habit.onBreak" class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400">pause</span>
       </div>
       <p v-if="habit.description" class="text-xs text-gray-500 truncate mt-0.5">{{ habit.description }}</p>
     </div>

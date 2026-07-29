@@ -122,7 +122,7 @@ const statCards = computed(() => [
   { label: 'Active Streaks', value: adminStats.value.activeStreaks || 0 },
   { label: 'Presets', value: adminStats.value.totalPresets || 0 },
   { label: 'Reports', value: adminStats.value.totalReports || 0 },
-  { label: 'Active Breaks', value: adminStats.value.activeBreaks || 0 },
+  { label: 'Active Pauses', value: adminStats.value.activeBreaks || 0 },
 ])
 
 async function loadStats() {

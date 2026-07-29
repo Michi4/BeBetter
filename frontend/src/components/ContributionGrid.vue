@@ -2,7 +2,7 @@
   <div class="select-none" ref="container">
     <div v-if="weeks.length">
       <!-- Scroll wrapper for mobile -->
-      <div class="overflow-x-auto no-scrollbar -mx-1 px-1">
+      <div class="overflow-x-auto no-scrollbar -mx-1 px-1" ref="scrollRef" @scroll="onScroll">
         <div :style="{ width: gridWidth + 'px', minWidth: '100%' }">
           <!-- Month labels row -->
           <div class="relative h-[18px] mb-[3px]">
@@ -41,6 +41,14 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Scroll indicator (mobile only) -->
+      <div v-if="isScrollable" class="relative mt-2 h-[3px] rounded-full bg-gray-800/60 mx-1">
+        <div
+          class="absolute top-0 left-0 h-full rounded-full bg-emerald-500/70 transition-all duration-75"
+          :style="{ width: indicatorW + 'px', left: indicatorLeft + 'px' }"
+        ></div>
       </div>
     </div>
 
@@ -93,7 +101,9 @@ const hoveredDay = ref(null)
 const tipX = ref(0)
 const tipY = ref(0)
 const container = ref(null)
+const scrollRef = ref(null)
 const containerW = ref(700)
+const scrollLeft = ref(0)
 
 const GAP = 3
 const DAY_LABEL_W = 24
@@ -115,6 +125,20 @@ const dayLabelW = DAY_LABEL_W
 const gridWidth = computed(() => {
   const wks = weeks.value.length || 53
   return DAY_LABEL_W + GAP + wks * (cell.value + GAP)
+})
+
+const isScrollable = computed(() => gridWidth.value > containerW.value)
+
+const scrollbarTrackW = computed(() => containerW.value - 8)
+const indicatorW = computed(() => {
+  if (!isScrollable.value) return scrollbarTrackW.value
+  return Math.max(24, (containerW.value / gridWidth.value) * scrollbarTrackW.value)
+})
+const indicatorLeft = computed(() => {
+  if (!isScrollable.value || gridWidth.value <= containerW.value) return 0
+  const maxScroll = gridWidth.value - containerW.value
+  const ratio = scrollLeft.value / maxScroll
+  return ratio * (scrollbarTrackW.value - indicatorW.value)
 })
 
 const dayLabels = [
@@ -214,6 +238,10 @@ function positionTooltip(e) {
 
 function onCellLeave() {
   hoveredDay.value = null
+}
+
+function onScroll() {
+  if (scrollRef.value) scrollLeft.value = scrollRef.value.scrollLeft
 }
 
 function getCellClass(day) {

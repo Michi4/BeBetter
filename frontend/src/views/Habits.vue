@@ -27,7 +27,7 @@
         <h3 class="text-sm font-medium text-gray-400">Completed</h3>
         <div v-if="completedLogs.length === 0" class="text-xs text-gray-500">No completions</div>
         <div v-for="log in completedLogs" :key="log.id" class="flex items-center gap-2 text-sm">
-          <CheckCircle2 :size="14" class="text-emerald-400 flex-shrink-0" />
+          <CheckCircle2 :size="14" class="text-emerald-400 flex-shrink-0 animate-done" />
           <span class="text-gray-300 truncate">{{ log.habitTitle || log.title }}</span>
           <span class="text-xs text-gray-500 ml-auto shrink-0">{{ log.time || '' }}</span>
         </div>
@@ -69,7 +69,7 @@
 
       <!-- Incomplete Tasks -->
       <div v-if="incompleteTasks.length === 0" class="text-sm text-gray-500 py-2">No incomplete tasks</div>
-      <div v-for="task in incompleteTasks" :key="task.id" class="space-y-1">
+      <div v-for="task in incompleteTasks" :key="task.id" class="space-y-1" :class="{ 'animate-celebrate': completingTaskId === task.id }">
         <TaskCard :task="task" @complete="completeTask" @delete="deleteTask" @edit="openEditTask" />
 
         <!-- Edit Panel -->
@@ -126,10 +126,19 @@
             <span>Completed Tasks</span>
             <span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400">{{ completedTasks.length }}</span>
           </div>
-          <ChevronDown :size="16" class="transition-transform duration-200" :class="showCompletedTasks ? 'rotate-180' : ''" />
+          <div class="flex items-center gap-2">
+            <button
+              @click.stop="confirmDeleteAllTasks"
+              class="text-[10px] px-2 py-1 rounded text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+              title="Delete all completed tasks"
+            >
+              Clear all
+            </button>
+            <ChevronDown :size="16" class="transition-transform duration-200" :class="showCompletedTasks ? 'rotate-180' : ''" />
+          </div>
         </button>
         <div v-if="showCompletedTasks" class="border-t border-gray-800">
-          <div v-for="task in visibleCompletedTasks" :key="task.id" class="flex items-center gap-3 px-4 py-3">
+          <div v-for="task in visibleCompletedTasks" :key="task.id" class="completed-row flex items-center gap-3 px-4 py-3">
             <div class="w-8 h-8 rounded-full flex items-center justify-center bg-emerald-500/20 text-emerald-400 shrink-0">
               <Check :size="16" />
             </div>
@@ -139,6 +148,13 @@
                 Completed {{ formatDate(task.completedAt) }}
               </p>
             </div>
+            <button
+              @click="deleteCompletedTask(task)"
+              class="delete-btn shrink-0 p-1.5 rounded text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-all"
+              title="Delete"
+            >
+              <Trash2 :size="13" />
+            </button>
           </div>
           <button
             v-if="completedTasks.length > visibleCompletedTasks.length"
@@ -156,7 +172,7 @@
     <section class="space-y-3">
       <h2 class="section-title">Habits</h2>
       <div v-if="activeHabits.length === 0" class="text-sm text-gray-500">No active habits</div>
-      <div v-for="h in activeHabits" :key="h.id" class="rounded-xl border border-gray-800 bg-gray-900/50">
+      <div v-for="h in activeHabits" :key="h.id" class="rounded-xl border border-gray-800 bg-gray-900/50" :class="{ 'animate-celebrate': completingHabitId === h.id }">
         <HabitCard :habit="h" @finish="openFinishHabit" />
       </div>
 
@@ -170,10 +186,19 @@
             <span>Completed Habits</span>
             <span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400">{{ completedHabits.length }}</span>
           </div>
-          <ChevronDown :size="16" class="transition-transform duration-200" :class="showCompletedHabits ? 'rotate-180' : ''" />
+          <div class="flex items-center gap-2">
+            <button
+              @click.stop="confirmDeleteAllHabits"
+              class="text-[10px] px-2 py-1 rounded text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+              title="Delete all completed habits and their stats"
+            >
+              Clear all
+            </button>
+            <ChevronDown :size="16" class="transition-transform duration-200" :class="showCompletedHabits ? 'rotate-180' : ''" />
+          </div>
         </button>
         <div v-if="showCompletedHabits" class="border-t border-gray-800">
-          <div v-for="habit in visibleCompletedHabits" :key="habit.id" class="flex items-center gap-3 px-4 py-3">
+          <div v-for="habit in visibleCompletedHabits" :key="habit.id" class="completed-row flex items-center gap-3 px-4 py-3">
             <div class="w-8 h-8 rounded-full flex items-center justify-center bg-emerald-500/20 text-emerald-400 shrink-0">
               <Check :size="16" />
             </div>
@@ -183,6 +208,13 @@
                 Completed {{ formatDate(habit.completedAt) }}
               </p>
             </div>
+            <button
+              @click="deleteCompletedHabit(habit)"
+              class="delete-btn shrink-0 p-1.5 rounded text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-all"
+              title="Delete habit and all its data"
+            >
+              <Trash2 :size="13" />
+            </button>
           </div>
           <button
             v-if="completedHabits.length > visibleCompletedHabits.length"
@@ -204,7 +236,7 @@
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import api from '../api'
 import { useToast } from 'vue-toastification'
-import { Plus, Check, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, CheckCircle2, Circle, RefreshCw } from 'lucide-vue-next'
+import { Plus, Check, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, CheckCircle2, Circle, RefreshCw, Trash2 } from 'lucide-vue-next'
 import HabitCard from '../components/HabitCard.vue'
 import TaskCard from '../components/TaskCard.vue'
 import BeBetterCam from '../components/BeBetterCam.vue'
@@ -216,6 +248,9 @@ const habitFilter = ref('')
 const historyHabits = ref([])
 const logs = ref([])
 const historyTasks = ref([])
+
+const completingTaskId = ref(null)
+const completingHabitId = ref(null)
 
 const todayStr = () => new Date().toISOString().slice(0, 10)
 
@@ -344,9 +379,13 @@ async function addTask() {
 async function completeTask(task) {
   try {
     await api.post(`/tasks/${task.id}/complete`)
-    incompleteTasks.value = incompleteTasks.value.filter(t => t.id !== task.id)
-    completedTasks.value.unshift({ ...task, completed: true, completedAt: new Date().toISOString() })
-    toast.success('Task completed')
+    completingTaskId.value = task.id
+    toast.success(`"${task.title}" done!`)
+    setTimeout(() => {
+      completingTaskId.value = null
+      incompleteTasks.value = incompleteTasks.value.filter(t => t.id !== task.id)
+      completedTasks.value.unshift({ ...task, completed: true, completedAt: new Date().toISOString() })
+    }, 600)
   } catch {
     toast.error('Failed')
   }
@@ -381,6 +420,28 @@ async function deleteTask(task) {
   }
 }
 
+async function deleteCompletedTask(task) {
+  try {
+    await api.delete(`/tasks/${task.id}`)
+    completedTasks.value = completedTasks.value.filter(t => t.id !== task.id)
+    toast.success('Task deleted')
+  } catch {
+    toast.error('Failed')
+  }
+}
+
+async function confirmDeleteAllTasks() {
+  if (!confirm(`Delete all ${completedTasks.value.length} completed tasks? This cannot be undone.`)) return
+  try {
+    await Promise.all(completedTasks.value.map(t => api.delete(`/tasks/${t.id}`)))
+    completedTasks.value = []
+    showCompletedTasks.value = false
+    toast.success('All completed tasks deleted')
+  } catch {
+    toast.error('Failed to delete some tasks')
+  }
+}
+
 function openFinishHabit(habit) {
   if (habit.verificationType === 'photo') {
     finishingHabit.value = habit
@@ -393,8 +454,12 @@ async function finishHabit(habit, proofUrl) {
   try {
     const payload = proofUrl ? { proofUrl } : {}
     await api.post(`/habits/${habit.id}/finish`, payload)
-    toast.success('Habit completed!')
-    loadAll()
+    completingHabitId.value = habit.id
+    toast.success(`"${habit.title}" completed!`)
+    setTimeout(() => {
+      completingHabitId.value = null
+      loadAll()
+    }, 600)
   } catch {
     toast.error('Failed')
   }
@@ -404,6 +469,30 @@ function submitHabitProof(dataUrl) {
   if (finishingHabit.value) {
     finishHabit(finishingHabit.value, dataUrl)
     finishingHabit.value = null
+  }
+}
+
+async function deleteCompletedHabit(habit) {
+  if (!confirm(`Delete "${habit.title}" and ALL its data (stats, logs, streaks, pauses)? This cannot be undone.`)) return
+  try {
+    await api.delete(`/habits/${habit.id}?deleteLogs=true`)
+    completedHabits.value = completedHabits.value.filter(h => h.id !== habit.id)
+    toast.success(`"${habit.title}" deleted with all data`)
+  } catch {
+    toast.error('Failed')
+  }
+}
+
+async function confirmDeleteAllHabits() {
+  const count = completedHabits.value.length
+  if (!confirm(`Delete ALL ${count} completed habits and ALL their data (stats, logs, streaks, pauses, wagers)? This cannot be undone.`)) return
+  try {
+    await Promise.all(completedHabits.value.map(h => api.delete(`/habits/${h.id}?deleteLogs=true`)))
+    completedHabits.value = []
+    showCompletedHabits.value = false
+    toast.success('All completed habits deleted with their data')
+  } catch {
+    toast.error('Failed to delete some habits')
   }
 }
 

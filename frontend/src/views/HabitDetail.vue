@@ -36,11 +36,11 @@
         <div v-if="habit.onBreak" class="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-sm font-medium text-amber-400">On Break</p>
+              <p class="text-sm font-medium text-amber-400">On Pause</p>
               <p v-if="habit.breakEndDate" class="text-xs text-gray-500">Until {{ formatDate(habit.breakEndDate) }}</p>
             </div>
             <button @click="endBreak" class="btn-secondary text-xs">
-              <Play :size="12" /> End Break
+              <Play :size="12" /> Resume
             </button>
           </div>
         </div>
@@ -50,7 +50,7 @@
             <Pencil :size="14" /> Edit
           </button>
           <button v-if="!habit.onBreak" @click="showBreakForm = !showBreakForm" class="btn-secondary flex-1 min-w-0">
-            <Pause :size="14" /> Break
+            <Pause :size="14" /> Pause
           </button>
           <button @click="showFinishForm = !showFinishForm" class="btn flex-1 min-w-0">
             <CheckCircle :size="14" /> Finish
@@ -62,7 +62,7 @@
       </div>
 
       <div v-if="showBreakForm && !habit.onBreak" class="card space-y-3">
-        <p class="section-title">Start Break</p>
+        <p class="section-title">Start Pause</p>
         <div>
           <label class="text-xs font-medium text-gray-400 mb-1 block">End date (optional)</label>
           <input v-model="breakEndDate" type="date" class="input" />
@@ -72,7 +72,7 @@
           <input v-model="breakReason" class="input" placeholder="e.g. Vacation, illness..." />
         </div>
         <div class="flex gap-2">
-          <button @click="startBreak" class="btn flex-1">Start Break</button>
+          <button @click="startBreak" class="btn flex-1">Start Pause</button>
           <button @click="showBreakForm = false" class="btn-secondary flex-1">Cancel</button>
         </div>
       </div>
@@ -118,14 +118,14 @@
       <p class="section-title">Recent Logs</p>
       <div class="card divide-y divide-gray-800">
         <div v-for="log in logs" :key="log.id" class="flex items-center gap-3 py-3">
-          <span class="text-xs text-gray-500 w-16 shrink-0">{{ formatDate(log.date || log.createdAt) }}</span>
+          <span class="text-xs text-gray-500 w-16 shrink-0">{{ formatDate(log.completedAt) }}</span>
           <span
             class="text-xs font-medium px-1.5 py-0.5 rounded"
-            :class="(log.status === 'done' || log.completed)
+            :class="(log.status === 'done' || log.status === 'completed')
               ? 'bg-emerald-500/10 text-emerald-400'
               : 'bg-gray-800 text-gray-500'"
           >
-            {{ log.status || (log.completed ? 'done' : 'missed') }}
+            {{ log.status || 'completed' }}
           </span>
           <div v-if="log.proofUrl" class="ml-auto shrink-0">
             <img :src="log.proofUrl" class="w-8 h-8 rounded object-cover" alt="proof" />
@@ -133,6 +133,7 @@
         </div>
       </div>
     </div>
+    <div v-else class="text-sm text-gray-500 py-2">No logs yet</div>
 
     <Teleport to="body">
       <div v-if="confirmDelete" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60" @click.self="confirmDelete = false">
@@ -217,23 +218,23 @@ async function startBreak() {
     if (breakEndDate.value) payload.endDate = breakEndDate.value
     if (breakReason.value.trim()) payload.reason = breakReason.value.trim()
     await api.post(`/habits/${route.params.id}/break/start`, payload)
-    toast.success('Break started')
+    toast.success('Pause started')
     showBreakForm.value = false
     breakEndDate.value = ''
     breakReason.value = ''
     loadHabit()
   } catch {
-    toast.error('Failed to start break')
+    toast.error('Failed to start pause')
   }
 }
 
 async function endBreak() {
   try {
     await api.post(`/habits/${route.params.id}/break/end`)
-    toast.success('Break ended')
+    toast.success('Pause ended')
     loadHabit()
   } catch {
-    toast.error('Failed to end break')
+    toast.error('Failed to end pause')
   }
 }
 

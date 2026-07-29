@@ -5,7 +5,7 @@
       <button @click="$emit('complete', task)"
         class="shrink-0 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all duration-200"
         :class="task.completed
-          ? 'bg-emerald-500 border-emerald-500 text-white scale-110'
+          ? 'bg-emerald-500 border-emerald-500 text-white scale-110 animate-check'
           : 'border-gray-600 hover:border-emerald-400 hover:bg-emerald-500/10 text-transparent hover:text-emerald-400/40'">
         <Check :size="14" :stroke-width="3" />
       </button>
@@ -21,8 +21,8 @@
       </div>
 
       <!-- Delete -->
-      <button v-if="!task.completed" @click.stop="$emit('delete', task)"
-        class="shrink-0 p-1 rounded text-gray-600 opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all duration-150">
+      <button @click.stop="$emit('delete', task)"
+        class="delete-btn shrink-0 p-1 rounded text-gray-600 hover:text-red-400 transition-all duration-150">
         <X :size="14" />
       </button>
     </div>
