@@ -36,6 +36,22 @@ function isScheduled(habit, date) {
   return false;
 }
 
+router.get('/years', async (req, res) => {
+  try {
+    const firstHabit = await prisma.habit.findFirst({
+      where: { userId: req.userId },
+      orderBy: { createdAt: 'asc' },
+      select: { createdAt: true },
+    });
+    const firstYear = firstHabit ? firstHabit.createdAt.getFullYear() : new Date().getFullYear();
+    const lastYear = new Date().getFullYear();
+    res.json({ firstYear, lastYear });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 router.get('/', async (req, res) => {
   try {
     const from = req.query.from

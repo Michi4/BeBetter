@@ -21,9 +21,23 @@
     </div>
 
     <!-- Contribution Grid -->
-    <div class="card overflow-x-auto">
-      <h2 class="text-xs font-semibold text-gray-500 mb-3 tracking-wider">YEAR IN REVIEW</h2>
-      <ContributionGrid :grid="gridDays" @select="selectDay" />
+    <div class="card">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-xs font-semibold text-gray-500 tracking-wider">YEAR IN REVIEW</h2>
+        <div v-if="yearRange.lastYear > yearRange.firstYear" class="flex items-center gap-1">
+          <button @click="selectedYear--" :disabled="selectedYear <= yearRange.firstYear"
+            class="p-1 rounded text-gray-500 hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+            <ChevronLeft :size="14" />
+          </button>
+          <span class="text-xs font-medium text-gray-400 min-w-[36px] text-center">{{ selectedYear }}</span>
+          <button @click="selectedYear++" :disabled="selectedYear >= yearRange.lastYear"
+            class="p-1 rounded text-gray-500 hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+            <ChevronRight :size="14" />
+          </button>
+        </div>
+        <span v-else class="text-xs font-medium text-gray-400">{{ selectedYear }}</span>
+      </div>
+      <ContributionGrid :grid="gridDays" :year="selectedYear" @select="selectDay" />
     </div>
 
     <!-- Quick Add -->
@@ -83,10 +97,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import api from '../api'
 import { useToast } from 'vue-toastification'
-import { Plus, X, ChevronDown, ChevronUp } from 'lucide-vue-next'
+import { Plus, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import ContributionGrid from '../components/ContributionGrid.vue'
 import DayDetail from '../components/DayDetail.vue'
 import HabitCard from '../components/HabitCard.vue'
@@ -107,6 +121,9 @@ const todayTasks = ref([])
 const todayHabits = ref([])
 const gridDays = ref([])
 
+const selectedYear = ref(new Date().getFullYear())
+const yearRange = ref({ firstYear: new Date().getFullYear(), lastYear: new Date().getFullYear() })
+
 const newHabit = reactive({ title: '', recurrence: { type: 'daily' } })
 
 const visibleTasks = computed(() => {
@@ -116,26 +133,38 @@ const visibleTasks = computed(() => {
 
 function todayStr() { return new Date().toISOString().slice(0, 10) }
 
-function getDateOffset(n) {
-  const d = new Date()
-  d.setDate(d.getDate() + n)
-  return d.toISOString().slice(0, 10)
-}
-
-async function loadAll() {
+async function loadStats() {
   try {
-    const from = getDateOffset(-364)
-    const to = getDateOffset(30)
-    const [statsRes, tasksRes, habitsRes, gridRes] = await Promise.all([
+    const [statsRes, tasksRes, habitsRes] = await Promise.all([
       api.get('/stats'),
       api.get('/tasks/today'),
       api.get('/habits'),
-      api.get('/grid', { params: { from, to } }),
     ])
     stats.value = statsRes.data
     todayTasks.value = (tasksRes.data.tasks || []).filter(t => !t.completed)
     todayHabits.value = habitsRes.data.habits || []
+  } catch {
+    toast.error('Failed to load data')
+  }
+}
 
+async function loadYearRange() {
+  try {
+    const res = await api.get('/grid/years')
+    yearRange.value = res.data
+    if (selectedYear.value < res.data.firstYear) selectedYear.value = res.data.firstYear
+    if (selectedYear.value > res.data.lastYear) selectedYear.value = res.data.lastYear
+  } catch {
+    yearRange.value = { firstYear: new Date().getFullYear(), lastYear: new Date().getFullYear() }
+  }
+}
+
+async function loadGrid() {
+  try {
+    const year = selectedYear.value
+    const from = `${year}-01-01`
+    const to = `${year}-12-31`
+    const gridRes = await api.get('/grid', { params: { from, to } })
     const gridRaw = gridRes.data.grid || []
     const map = {}
     gridRaw.forEach(d => { map[d.date] = d })
@@ -150,9 +179,11 @@ async function loadAll() {
     }
     gridDays.value = days
   } catch {
-    toast.error('Failed to load data')
+    toast.error('Failed to load grid')
   }
 }
+
+watch(selectedYear, loadGrid)
 
 function handleInput() {
   if (quickTaskInput.value.trim()) {
@@ -176,7 +207,7 @@ async function createQuickTask() {
 
 async function createHabit() {
   try {
-      await api.post('/habits', {
+    await api.post('/habits', {
       title: newHabit.title,
       recurrence: newHabit.recurrence
     })
@@ -184,7 +215,8 @@ async function createHabit() {
     newHabit.title = ''
     newHabit.recurrence = { type: 'daily' }
     toast.success('Habit created')
-    loadAll()
+    loadStats()
+    loadGrid()
   } catch {
     toast.error('Failed to create habit')
   }
@@ -192,11 +224,12 @@ async function createHabit() {
 
 async function completeTask(task) {
   try {
-    await api.post(`/api/tasks/${task.id}/complete`)
+    await api.post(`/tasks/${task.id}/complete`)
     task.completed = true
     todayTasks.value = todayTasks.value.filter(t => t.id !== task.id)
     toast.success('Task completed')
-    loadAll()
+    loadStats()
+    loadGrid()
   } catch {
     toast.error('Failed')
   }
@@ -204,7 +237,7 @@ async function completeTask(task) {
 
 async function deleteTask(task) {
   try {
-    await api.delete(`/api/tasks/${task.id}`)
+    await api.delete(`/tasks/${task.id}`)
     todayTasks.value = todayTasks.value.filter(t => t.id !== task.id)
     toast.success('Task deleted')
   } catch {
@@ -220,7 +253,8 @@ async function logHabit(habit) {
   try {
     await api.post('/logs', { habitId: habit.id, status: 'completed' })
     toast.success('Habit completed!')
-    loadAll()
+    loadStats()
+    loadGrid()
   } catch (e) {
     if (e.response?.status === 409) toast.info('Already completed today!')
     else toast.error('Failed')
@@ -236,7 +270,8 @@ async function submitCamProof(blob) {
     await api.post('/logs', { habitId: camHabit.value.id, status: 'completed', proofUrl: data.url })
     toast.success('Photo proof submitted!')
     camHabit.value = null
-    loadAll()
+    loadStats()
+    loadGrid()
   } catch {
     toast.error('Failed to upload')
   }
@@ -262,5 +297,9 @@ async function selectDay(day) {
   }
 }
 
-onMounted(loadAll)
+onMounted(() => {
+  loadStats()
+  loadYearRange()
+  loadGrid()
+})
 </script>
