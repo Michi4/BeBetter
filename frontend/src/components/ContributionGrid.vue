@@ -2,7 +2,7 @@
   <div class="select-none" ref="container">
     <div v-if="weeks.length">
       <!-- Month labels row -->
-      <div class="relative h-[18px] mb-[3px]" :style="{ paddingLeft: dayLabelW + 'px' }">
+      <div class="relative h-[18px] mb-[3px]" :style="{ paddingLeft: (dayLabelW + GAP) + 'px' }">
         <div v-for="(m, i) in monthLabels" :key="i"
           class="absolute text-[11px] text-gray-500"
           :style="{ left: m.left + 'px' }">
@@ -28,7 +28,7 @@
                 class="rounded-[2px] transition-all duration-100 relative"
                 :class="day ? getCellClass(day) : 'bg-transparent'"
                 :style="{ width: cell + 'px', height: cell + 'px' }"
-                @mouseenter="day && (day.scheduled > 0 || (day.tasks && day.tasks.length > 0)) ? (hoveredDay = day, hoveredWeekIdx = wi, hoveredDayIdx = di) : null"
+                @mouseenter="day ? (hoveredDay = day, hoveredWeekIdx = wi, hoveredDayIdx = di) : null"
                 @mouseleave="hoveredDay = null"
                 @click="day && (day.scheduled > 0 || (day.tasks && day.tasks.length > 0)) && $emit('select', day)">
               </div>
@@ -42,7 +42,7 @@
     <div v-if="hoveredDay" class="fixed z-50 bg-gray-800 border border-gray-700 rounded-xl p-3 shadow-xl text-xs max-w-xs pointer-events-none"
       :style="tooltipPos">
       <div class="font-medium mb-1">{{ formatTipDate(hoveredDay.date) }}</div>
-      <div class="text-gray-400 mb-1" v-if="hoveredDay.scheduled > 0">
+      <div v-if="hoveredDay.scheduled > 0" class="text-gray-400 mb-1">
         {{ hoveredDay.completed }}/{{ hoveredDay.scheduled }} habits done
       </div>
       <div v-if="hoveredDay.habits && hoveredDay.habits.length" class="space-y-0.5 mb-1">
@@ -58,6 +58,7 @@
           <span :class="t.completed ? 'text-gray-500 line-through' : ''">{{ t.title }}</span>
         </div>
       </div>
+      <div v-if="hoveredDay.scheduled === 0 && (!hoveredDay.tasks || hoveredDay.tasks.length === 0)" class="text-gray-500 text-[10px]">No activity</div>
     </div>
 
     <!-- Legend -->
