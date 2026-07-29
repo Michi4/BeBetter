@@ -1,0 +1,56 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: bebetter-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-bebetter}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secretpassword}
+      POSTGRES_DB: ${POSTGRES_DB:-bebetter_db}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - bebetter-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bebetter} -d ${POSTGRES_DB:-bebetter_db}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bebetter-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-bebetter}:${POSTGRES_PASSWORD:-secretpassword}@postgres:5432/${POSTGRES_DB:-bebetter_db}
+      JWT_SECRET: ${JWT_SECRET:-bebetter-jwt-secret-change-me-in-prod}
+      PORT: "3000"
+      TZ: Europe/Vienna
+    volumes:
+      - ./uploads:/app/uploads
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      - "traefik.http.routers.bebetter.entrypoints=websecure"
+      - "traefik.http.routers.bebetter.rule=Host(`${DOMAIN:-bebetter.home.websters.at}`)"
+      - "traefik.http.routers.bebetter.middlewares=strip-xframe@file"
+      - "traefik.http.routers.bebetter.tls.certresolver=myresolver"
+      - "traefik.http.services.bebetter.loadbalancer.server.port=3000"
+    networks:
+      - bebetter-net
+      - proxy
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+
+networks:
+  bebetter-net:
+    driver: bridge
+  proxy:
+    external: true
+    name: traefik
