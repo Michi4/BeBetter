@@ -8,16 +8,10 @@
       </div>
       <form @submit.prevent="handleRegister" class="card space-y-4">
         <div v-if="error" class="text-red-400 text-sm bg-red-500/10 px-3 py-2 rounded-lg">{{ error }}</div>
-        <input v-model="form.name" type="text" placeholder="Full name" class="input" required />
         <input v-model="form.username" type="text" placeholder="Username (3-20 chars)" class="input" required
           minlength="3" maxlength="20" pattern="[a-zA-Z0-9_]+" />
         <input v-model="form.email" type="email" placeholder="Email" class="input" required />
-        <input v-model="form.password" type="password" placeholder="Password" class="input" required minlength="6" />
-        <input v-if="!form.referralCode" v-model="form.referralCode" type="text" placeholder="Referral code (optional)" class="input" />
-        <div v-else class="text-xs text-emerald-400 bg-emerald-500/10 px-3 py-2 rounded-lg">
-          Referred by: {{ form.referralCode }}
-          <button type="button" @click="form.referralCode = ''" class="ml-2 text-gray-400 hover:text-gray-200 transition-colors duration-150">✕</button>
-        </div>
+        <input v-model="form.password" type="password" placeholder="Password (min 6 chars)" class="input" required minlength="6" />
         <label class="flex items-center gap-2 cursor-pointer">
           <input v-model="stayLoggedIn" type="checkbox"
             class="w-4 h-4 rounded border-gray-600 bg-gray-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0 cursor-pointer" />
@@ -37,8 +31,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useToast } from 'vue-toastification'
 import { Loader2 } from 'lucide-vue-next'
@@ -46,17 +40,12 @@ import Logo from '../components/Logo.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
-const route = useRoute()
 const toast = useToast()
 
-const form = ref({ name: '', username: '', email: '', password: '', referralCode: '' })
+const form = ref({ username: '', email: '', password: '' })
 const stayLoggedIn = ref(true)
 const error = ref('')
 const loading = ref(false)
-
-onMounted(() => {
-  if (route.query.ref) form.value.referralCode = route.query.ref
-})
 
 async function handleRegister() {
   loading.value = true

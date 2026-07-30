@@ -10,7 +10,7 @@
           <Copy :size="14" /> Copy
         </button>
       </div>
-      <p class="text-xs text-gray-500">{{ referralCount }} friends joined via your link</p>
+      <p class="text-xs text-gray-500">Share this link. When they sign up, you'll be friends automatically.</p>
     </div>
 
     <div class="card space-y-3">
@@ -19,7 +19,7 @@
         v-model="searchQuery"
         @input="searchUsers"
         type="text"
-        placeholder="Search by name or username..."
+        placeholder="Search by username..."
         class="input"
       />
       <div v-if="searching" class="text-center py-4">
@@ -33,14 +33,14 @@
           class="flex items-center gap-3 p-2 min-h-[44px] rounded-lg hover:bg-gray-800 transition-colors"
         >
           <div v-if="u.avatar" class="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
-            <img :src="u.avatar" :alt="u.name" class="w-full h-full object-cover" />
+            <img :src="u.avatar" :alt="u.username" class="w-full h-full object-cover" />
           </div>
           <div v-else class="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-xs font-bold flex-shrink-0">
-            {{ (u.name || u.username || 'U')[0].toUpperCase() }}
+            {{ (u.username || 'U')[0].toUpperCase() }}
           </div>
           <div class="min-w-0">
-            <div class="text-sm font-medium truncate">{{ u.name }}</div>
-            <div class="text-xs text-gray-500 truncate">@{{ u.username }}</div>
+            <div class="text-sm font-medium truncate">@{{ u.username }}</div>
+            <div v-if="u.bio" class="text-xs text-gray-500 truncate">{{ u.bio }}</div>
           </div>
         </router-link>
       </div>
@@ -50,18 +50,18 @@
     <div v-if="pendingRequests.length" class="space-y-3">
       <h3 class="section-title">Friend Requests ({{ pendingRequests.length }})</h3>
       <div v-for="req in pendingRequests" :key="req.id" class="card flex items-center gap-3">
-        <div v-if="req.from?.avatar" class="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
-          <img :src="req.from.avatar" :alt="req.from.name" class="w-full h-full object-cover" />
+        <div v-if="req.requester?.avatar" class="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+          <img :src="req.requester.avatar" :alt="req.requester.username" class="w-full h-full object-cover" />
         </div>
         <div v-else class="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-xs font-bold flex-shrink-0">
-          {{ (req.from?.name || req.from?.username || 'U')[0].toUpperCase() }}
+          {{ (req.requester?.username || 'U')[0].toUpperCase() }}
         </div>
-        <span class="text-sm flex-1 min-w-0 truncate">{{ req.from?.name || req.from?.username }}</span>
+        <span class="text-sm flex-1 min-w-0 truncate">@{{ req.requester?.username }}</span>
         <div class="flex gap-2 flex-shrink-0">
-          <button @click="acceptRequest(req.fromId || req.from?.id)" class="btn min-h-[40px] px-3 py-1.5 text-xs">
+          <button @click="acceptRequest(req.id)" class="btn min-h-[40px] px-3 py-1.5 text-xs">
             <Check :size="14" /> Accept
           </button>
-          <button @click="declineRequest(req.fromId || req.from?.id)" class="btn-secondary min-h-[40px] px-3 py-1.5 text-xs">
+          <button @click="declineRequest(req.id)" class="btn-secondary min-h-[40px] px-3 py-1.5 text-xs">
             Decline
           </button>
         </div>
@@ -78,14 +78,13 @@
           class="flex items-center gap-3 p-2 min-h-[44px] rounded-lg hover:bg-gray-800 transition-colors"
         >
           <div v-if="f.avatar" class="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
-            <img :src="f.avatar" :alt="f.name" class="w-full h-full object-cover" />
+            <img :src="f.avatar" :alt="f.username" class="w-full h-full object-cover" />
           </div>
           <div v-else class="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-xs font-bold flex-shrink-0">
-            {{ (f.name || f.username || 'U')[0].toUpperCase() }}
+            {{ (f.username || 'U')[0].toUpperCase() }}
           </div>
           <div class="min-w-0">
-            <div class="text-sm font-medium truncate">{{ f.name }}</div>
-            <div class="text-xs text-gray-500 truncate">@{{ f.username }}</div>
+            <div class="text-sm font-medium truncate">@{{ f.username }}</div>
           </div>
         </router-link>
       </div>
@@ -112,11 +111,13 @@ const searchResults = ref([])
 const searching = ref(false)
 const pendingRequests = ref([])
 const friends = ref([])
-const referralCount = ref(0)
+const friendToken = ref('')
 
 const inviteLink = computed(() => {
-  const code = auth.user?.referralCode || auth.user?.username || ''
-  return `${window.location.origin}/register?ref=${code}`
+  if (friendToken.value) {
+    return `${window.location.origin}/register?friend=${friendToken.value}`
+  }
+  return 'Generating link...'
 })
 
 function copyInvite() {
@@ -135,7 +136,7 @@ function searchUsers() {
   searchTimeout = setTimeout(async () => {
     try {
       const res = await api.get('/friends/search', { params: { q: searchQuery.value } })
-      searchResults.value = (res.data.users || res.data || []).slice(0, 5)
+      searchResults.value = (res.data.users || []).slice(0, 5)
     } catch {
       searchResults.value = []
     }
@@ -143,9 +144,9 @@ function searchUsers() {
   }, 300)
 }
 
-async function acceptRequest(userId) {
+async function acceptRequest(requestId) {
   try {
-    await api.post('/friends/accept', { userId })
+    await api.post(`/friends/request/${requestId}/accept`)
     toast.success('Friend added')
     loadAll()
   } catch {
@@ -153,9 +154,9 @@ async function acceptRequest(userId) {
   }
 }
 
-async function declineRequest(userId) {
+async function declineRequest(requestId) {
   try {
-    await api.post('/friends/decline', { userId })
+    await api.post(`/friends/request/${requestId}/decline`)
     toast.success('Request declined')
     loadAll()
   } catch {
@@ -165,13 +166,14 @@ async function declineRequest(userId) {
 
 async function loadAll() {
   try {
-    const [friendsRes, requestsRes] = await Promise.all([
+    const [friendsRes, requestsRes, linkRes] = await Promise.all([
       api.get('/friends'),
-      api.get('/friends/requests')
+      api.get('/friends/requests'),
+      api.post('/friends/link'),
     ])
-    friends.value = friendsRes.data.friends || friendsRes.data || []
-    pendingRequests.value = requestsRes.data.requests || requestsRes.data || []
-    referralCount.value = friends.value.length
+    friends.value = friendsRes.data.friends || []
+    pendingRequests.value = requestsRes.data.requests || []
+    friendToken.value = linkRes.data.token || ''
   } catch {
     toast.error('Failed to load friends')
   }

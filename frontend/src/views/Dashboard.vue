@@ -1,9 +1,23 @@
 <template>
   <div class="page">
+    <!-- Vacation Banner -->
+    <div v-if="isOnVacation" class="card bg-amber-500/10 border border-amber-500/20">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">🏖️</span>
+          <div>
+            <p class="text-sm font-medium text-amber-300">You're on vacation</p>
+            <p class="text-xs text-amber-400/70">No habits scheduled. Enjoy your break!</p>
+          </div>
+        </div>
+        <button @click="endVacation" class="text-xs text-amber-400 hover:text-amber-300 transition-colors">End early</button>
+      </div>
+    </div>
+
     <!-- Stats Row -->
     <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
       <div class="card text-center py-3">
-        <div class="text-xl font-bold text-emerald-400">{{ stats.streak || 0 }}</div>
+        <div class="text-xl font-bold text-emerald-400">{{ stats.activeStreak || 0 }}</div>
         <div class="text-[10px] text-gray-500 mt-0.5">Streak</div>
       </div>
       <div class="card text-center py-3">
@@ -11,11 +25,11 @@
         <div class="text-[10px] text-gray-500 mt-0.5">Consistency</div>
       </div>
       <div class="card text-center py-3">
-        <div class="text-xl font-bold text-emerald-400">{{ stats.totalCompletions || 0 }}</div>
+        <div class="text-xl font-bold text-emerald-400">{{ stats.totalLogs || 0 }}</div>
         <div class="text-[10px] text-gray-500 mt-0.5">Total Done</div>
       </div>
       <div class="card text-center py-3">
-        <div class="text-xl font-bold text-emerald-400">{{ stats.today?.done || 0 }}/{{ stats.today?.total || 0 }}</div>
+        <div class="text-xl font-bold text-emerald-400">{{ stats.todayLogs || 0 }}</div>
         <div class="text-[10px] text-gray-500 mt-0.5">Today</div>
       </div>
     </div>
@@ -122,7 +136,7 @@
         v-for="h in todayHabits"
         :key="h.id"
         :habit="h"
-        @log="logHabit"
+        @finish="logHabit"
         @cam="openCam"
       />
     </div>
@@ -151,6 +165,7 @@ const showNewHabitForm = ref(false)
 const showAllTasks = ref(false)
 const selectedDay = ref(null)
 const camHabit = ref(null)
+const isOnVacation = ref(false)
 
 const stats = ref({})
 const todayTasks = ref([])
@@ -163,9 +178,12 @@ const yearRange = ref({ firstYear: new Date().getFullYear(), lastYear: new Date(
 const newHabit = reactive({
   title: '',
   description: '',
-  recurrence: { type: 'daily' },
+  emoji: '🎯',
+  schedule: [1, 2, 3, 4, 5, 6, 7],
   verificationType: 'honor',
-  wagers: [],
+  wagerDays: 0,
+  wagerAmount: 0,
+  makePublic: false,
   createPreset: false,
   presetCategory: 'Other',
 })
@@ -177,25 +195,44 @@ const visibleTasks = computed(() => {
 
 async function loadStats() {
   try {
-    const [statsRes, tasksRes, habitsRes] = await Promise.all([
-      api.get('/stats'),
-      api.get('/tasks/today'),
+    const [statsRes, overviewRes, habitsRes] = await Promise.all([
+      api.get('/logs/with-scheduled'),
+      api.get('/stats/overview'),
       api.get('/habits'),
     ])
-    stats.value = statsRes.data
-    todayTasks.value = (tasksRes.data.tasks || []).filter(t => !t.completed)
-    todayHabits.value = habitsRes.data.habits || []
+    stats.value = overviewRes.data
+    isOnVacation.value = overviewRes.data.isOnVacation || false
+
+    const today = new Date().toISOString().split('T')[0]
+    const dayData = statsRes.data
+    todayHabits.value = (dayData.scheduled || []).map(h => ({
+      ...h,
+      completedToday: h.logged || false,
+    }))
   } catch {
     toast.error('Failed to load data')
+  }
+}
+
+async function loadTasks() {
+  try {
+    const res = await api.get('/tasks')
+    todayTasks.value = (res.data.tasks || []).filter(t => !t.isCompletedToday)
+  } catch {
+    // silent
   }
 }
 
 async function loadYearRange() {
   try {
     const res = await api.get('/grid/years')
-    yearRange.value = res.data
-    if (selectedYear.value < res.data.firstYear) selectedYear.value = res.data.firstYear
-    if (selectedYear.value > res.data.lastYear) selectedYear.value = res.data.lastYear
+    const years = res.data.years || [new Date().getFullYear()]
+    yearRange.value = {
+      firstYear: Math.min(...years),
+      lastYear: Math.max(...years),
+    }
+    if (selectedYear.value < yearRange.value.firstYear) selectedYear.value = yearRange.value.firstYear
+    if (selectedYear.value > yearRange.value.lastYear) selectedYear.value = yearRange.value.lastYear
   } catch {
     yearRange.value = { firstYear: new Date().getFullYear(), lastYear: new Date().getFullYear() }
   }
@@ -207,16 +244,20 @@ async function loadGrid() {
     const from = `${year}-01-01`
     const to = `${year}-12-31`
     const gridRes = await api.get('/grid', { params: { from, to } })
-    const gridRaw = gridRes.data.grid || []
-    const map = {}
-    gridRaw.forEach(d => { map[d.date] = d })
+    const gridRaw = gridRes.data.grid || {}
+    const vacationDays = gridRes.data.vacationDays || []
     const days = []
     const cur = new Date(from + 'T12:00:00Z')
     const end = new Date(to + 'T12:00:00Z')
     while (cur <= end) {
       const ds = cur.toISOString().slice(0, 10)
-      const data = map[ds]
-      days.push(data || { date: ds, scheduled: 0, completed: 0, ratio: null, habits: [], tasks: [] })
+      const data = gridRaw[ds]
+      const isVacation = vacationDays.includes(ds)
+      if (data) {
+        days.push({ date: ds, count: (data.habits || 0) + (data.tasks || 0), items: data.items || [], isVacation })
+      } else {
+        days.push({ date: ds, count: 0, items: [], isVacation })
+      }
       cur.setDate(cur.getDate() + 1)
     }
     gridDays.value = days
@@ -253,11 +294,16 @@ async function createHabit() {
     const payload = {
       title: newHabit.title,
       description: newHabit.description || undefined,
-      recurrence: newHabit.recurrence,
+      emoji: newHabit.emoji,
+      frequencyType: 'daily',
+      daysPerWeek: newHabit.schedule,
+      schedule: newHabit.schedule,
       verificationType: newHabit.verificationType,
+      makePublic: newHabit.makePublic,
     }
-    if (newHabit.wagers.length > 0) {
-      payload.wagers = newHabit.wagers.filter(w => w.condition.trim())
+    if (newHabit.wagerDays > 0 && newHabit.wagerAmount > 0) {
+      payload.wagerDays = newHabit.wagerDays
+      payload.wagerAmount = newHabit.wagerAmount
     }
     const res = await api.post('/habits', payload)
 
@@ -267,12 +313,10 @@ async function createHabit() {
           title: newHabit.title,
           description: newHabit.description || '',
           category: newHabit.presetCategory,
-          config: {
-            title: newHabit.title,
-            description: newHabit.description || '',
-            recurrence: newHabit.recurrence,
-            verificationType: newHabit.verificationType,
-          },
+          emoji: newHabit.emoji,
+          frequencyType: 'daily',
+          daysPerWeek: JSON.stringify(newHabit.schedule),
+          verificationType: newHabit.verificationType,
         })
         toast.success('Habit & preset created')
       } catch {
@@ -284,8 +328,10 @@ async function createHabit() {
 
     showNewHabitForm.value = false
     Object.assign(newHabit, {
-      title: '', description: '', recurrence: { type: 'daily' },
-      verificationType: 'honor', wagers: [], createPreset: false, presetCategory: 'Other',
+      title: '', description: '', emoji: '🎯',
+      schedule: [1, 2, 3, 4, 5, 6, 7],
+      verificationType: 'honor', wagerDays: 0, wagerAmount: 0,
+      makePublic: false, createPreset: false, presetCategory: 'Other',
     })
     loadStats()
     loadGrid()
@@ -297,7 +343,6 @@ async function createHabit() {
 async function completeTask(task) {
   try {
     await api.post(`/tasks/${task.id}/complete`)
-    task.completed = true
     todayTasks.value = todayTasks.value.filter(t => t.id !== task.id)
     toast.success('Task completed')
     loadStats()
@@ -327,7 +372,10 @@ function openCam(habit) {
 
 async function logHabit(habit) {
   try {
-    await api.post('/logs', { habitId: habit.id, status: 'completed' })
+    await api.post('/logs', { habitId: habit.id })
+    todayHabits.value = todayHabits.value.map(h =>
+      h.id === habit.id ? { ...h, completedToday: true } : h
+    )
     toast.success('Habit completed!')
     loadStats()
     loadGrid()
@@ -341,9 +389,12 @@ async function submitCamProof(blob) {
   if (!camHabit.value) return
   try {
     const form = new FormData()
-    form.append('file', blob, 'proof.jpg')
+    form.append('photo', blob, 'proof.jpg')
     const { data } = await api.post('/upload', form)
-    await api.post('/logs', { habitId: camHabit.value.id, status: 'completed', proofUrl: data.url })
+    await api.post('/logs', { habitId: camHabit.value.id, photo: data.url })
+    todayHabits.value = todayHabits.value.map(h =>
+      h.id === camHabit.value.id ? { ...h, completedToday: true } : h
+    )
     toast.success('Photo proof submitted!')
     camHabit.value = null
     loadStats()
@@ -354,27 +405,34 @@ async function submitCamProof(blob) {
 }
 
 async function selectDay(day) {
-  if (day.scheduled === 0 && (!day.tasks || day.tasks.length === 0)) {
-    try {
-      const res = await api.get('/logs', { params: { date: day.date, withScheduled: true } })
-      const d = res.data
-      selectedDay.value = {
-        ...day,
-        habits: d.scheduled || d.habits || [],
-        tasks: d.tasks || [],
-        completed: (d.logs || []).length,
-        total: (d.scheduled || []).length + (d.tasks || []).length
-      }
-    } catch {
-      selectedDay.value = day
+  try {
+    const res = await api.get('/grid/day', { params: { date: day.date } })
+    selectedDay.value = {
+      ...day,
+      habits: res.data.habits || [],
+      tasks: res.data.tasks || [],
+      isOnVacation: res.data.isOnVacation || false,
     }
-  } else {
+  } catch {
     selectedDay.value = day
+  }
+}
+
+async function endVacation() {
+  try {
+    await api.post('/vacation/end')
+    isOnVacation.value = false
+    toast.success('Vacation ended')
+    loadStats()
+    loadTasks()
+  } catch {
+    toast.error('Failed to end vacation')
   }
 }
 
 onMounted(() => {
   loadStats()
+  loadTasks()
   loadYearRange()
   loadGrid()
 })

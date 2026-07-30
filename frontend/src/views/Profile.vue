@@ -12,13 +12,13 @@
             class="w-24 h-24 rounded-full bg-emerald-600 flex items-center justify-center text-4xl font-bold mx-auto ring-2 ring-emerald-400 overflow-hidden cursor-pointer"
             @click="showFullAvatar = true"
           >
-            <img :src="profile.avatar" :alt="profile.name" class="w-full h-full object-cover" />
+            <img :src="profile.avatar" :alt="profile.username" class="w-full h-full object-cover" />
           </div>
           <div
             v-else
             class="w-24 h-24 rounded-full bg-emerald-600 flex items-center justify-center text-4xl font-bold mx-auto ring-2 ring-emerald-400"
           >
-            {{ (profile.name || profile.username || 'U')[0].toUpperCase() }}
+            {{ (profile.username || 'U')[0].toUpperCase() }}
           </div>
           <label
             v-if="isOwn"
@@ -30,8 +30,7 @@
         </div>
 
         <div>
-          <h1 class="text-xl font-bold">{{ profile.name }}</h1>
-          <p class="text-sm text-gray-500">@{{ profile.username }}</p>
+          <h1 class="text-xl font-bold">{{ profile.username }}</h1>
         </div>
 
         <p v-if="profile.bio" class="text-sm text-gray-400 max-w-sm mx-auto">{{ profile.bio }}</p>
@@ -42,20 +41,12 @@
 
         <div class="grid grid-cols-2 gap-3 pt-2">
           <div class="text-center">
-            <div class="text-xl font-bold text-emerald-400">{{ profile.stats?.streak || 0 }}</div>
-            <div class="text-[10px] text-gray-500">Streak</div>
+            <div class="text-xl font-bold text-emerald-400">{{ profileStats.bestStreak || 0 }}</div>
+            <div class="text-[10px] text-gray-500">Best Streak</div>
           </div>
           <div class="text-center">
-            <div class="text-xl font-bold text-emerald-400">{{ profile.stats?.totalCompletions || 0 }}</div>
-            <div class="text-[10px] text-gray-500">Done</div>
-          </div>
-          <div class="text-center">
-            <div class="text-xl font-bold text-emerald-400">{{ profile.stats?.totalHabits || 0 }}</div>
+            <div class="text-xl font-bold text-emerald-400">{{ profileStats.totalHabits || 0 }}</div>
             <div class="text-[10px] text-gray-500">Habits</div>
-          </div>
-          <div class="text-center">
-            <div class="text-xl font-bold text-emerald-400">{{ profile.stats?.friendsCount || 0 }}</div>
-            <div class="text-[10px] text-gray-500">Friends</div>
           </div>
         </div>
 
@@ -89,7 +80,7 @@
               <Check :size="14" class="text-emerald-400" />
             </div>
             <div class="flex-1 min-w-0">
-              <div class="text-sm font-medium truncate">{{ item.habitTitle || item.title }}</div>
+              <div class="text-sm font-medium truncate">{{ item.habit?.title || item.title }}</div>
               <div class="text-[10px] text-gray-500">{{ formatDate(item.completedAt || item.date) }}</div>
             </div>
           </div>
@@ -103,7 +94,6 @@
             <X :size="16" />
           </button>
         </div>
-        <input v-model="editForm.name" class="input" placeholder="Name" />
         <textarea v-model="editForm.bio" class="input" placeholder="Bio" rows="3"></textarea>
         <label class="flex items-center gap-3 cursor-pointer min-h-[44px]">
           <input
@@ -125,7 +115,7 @@
             <button @click="showFullAvatar = false" class="absolute -top-10 right-0 text-gray-400 hover:text-gray-200 transition-colors">
               <X :size="24" />
             </button>
-            <img :src="profile.avatar" :alt="profile.name" class="w-full h-auto rounded-lg" />
+            <img :src="profile.avatar" :alt="profile.username" class="w-full h-auto rounded-lg" />
           </div>
         </div>
       </Teleport>
@@ -169,6 +159,7 @@ const toast = useToast()
 const profile = ref(null)
 const loading = ref(true)
 const activity = ref([])
+const profileStats = ref({})
 const isFriend = ref(false)
 const requestSent = ref(false)
 const showEdit = ref(false)
@@ -176,24 +167,24 @@ const showDeleteConfirm = ref(false)
 const showFullAvatar = ref(false)
 const deleteConfirm = ref('')
 const deleting = ref(false)
-const editForm = reactive({ name: '', bio: '', isPublic: false })
+const editForm = reactive({ bio: '', isPublic: false })
 
 const isOwn = computed(() => {
   const param = route.params.id
-  return auth.user?.id === param || auth.user?.username === param
+  if (!param || !auth.user) return false
+  return auth.user.id === param || auth.user.username === param
 })
 
 async function loadProfile() {
   loading.value = true
   try {
-    const res = await api.get(`/friends/${route.params.id}/profile`)
+    const res = await api.get(`/friends/profile/${route.params.id}`)
     profile.value = res.data.user || res.data
-    editForm.name = profile.value.name || ''
     editForm.bio = profile.value.bio || ''
     editForm.isPublic = profile.value.isPublic || false
     isFriend.value = res.data.isFriend || false
-    requestSent.value = res.data.requestSent || false
-    activity.value = res.data.activity || []
+    activity.value = res.data.recentLogs || []
+    profileStats.value = res.data.stats || {}
   } catch {
     toast.error('Profile not found')
   }
@@ -201,7 +192,6 @@ async function loadProfile() {
 }
 
 function openEdit() {
-  editForm.name = profile.value.name || ''
   editForm.bio = profile.value.bio || ''
   editForm.isPublic = profile.value.isPublic || false
   showEdit.value = true
@@ -209,7 +199,7 @@ function openEdit() {
 
 async function saveProfile() {
   try {
-    await api.put('/friends/me', editForm)
+    await api.put('/auth/me', { bio: editForm.bio, isPublic: editForm.isPublic })
     showEdit.value = false
     toast.success('Profile updated')
     loadProfile()
@@ -232,13 +222,13 @@ async function handleAvatarUpload(e) {
   const file = e.target.files?.[0]
   if (!file) return
   const formData = new FormData()
-  formData.append('file', file)
+  formData.append('photo', file)
   try {
     const uploadRes = await api.post('/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     })
-    const avatarUrl = uploadRes.data.url || uploadRes.data.file
-    await api.put('/friends/me', { avatar: avatarUrl })
+    const avatarUrl = uploadRes.data.url
+    await api.put('/auth/me', { avatar: avatarUrl })
     profile.value.avatar = avatarUrl
     toast.success('Avatar updated')
   } catch {
@@ -250,8 +240,9 @@ async function deleteAccount() {
   if (deleteConfirm.value !== 'DELETE_MY_ACCOUNT') return
   deleting.value = true
   try {
-    await api.delete('/friends/me')
+    await api.delete('/auth/account', { data: { confirm: 'DELETE_MY_ACCOUNT' } })
     toast.success('Account deleted')
+    auth.logout()
     router.push('/login')
   } catch {
     toast.error('Failed to delete account')

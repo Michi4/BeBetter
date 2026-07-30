@@ -20,6 +20,9 @@
           <span v-else>Sign In</span>
         </button>
         <p class="text-center text-sm text-gray-500">
+          <router-link to="/forgot-password" class="text-emerald-400 hover:text-emerald-300 transition-colors duration-150">Forgot password?</router-link>
+        </p>
+        <p class="text-center text-sm text-gray-500">
           Don't have an account?
           <router-link to="/register" class="text-emerald-400 hover:text-emerald-300 transition-colors duration-150">Sign up</router-link>
         </p>

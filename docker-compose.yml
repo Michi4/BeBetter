@@ -35,7 +35,7 @@ services:
       - "traefik.docker.network=traefik"
       - "traefik.http.routers.bebetter.entrypoints=websecure"
       - "traefik.http.routers.bebetter.rule=Host(`${DOMAIN:-bebetter.home.websters.at}`)"
-      - "traefik.http.routers.bebetter.middlewares=strip-xframe@file"
+      - "traefik.http.routers.bebetter.middlewares=crowdsec@docker,strip-xframe@file"
       - "traefik.http.routers.bebetter.tls.certresolver=myresolver"
       - "traefik.http.services.bebetter.loadbalancer.server.port=3000"
     networks:

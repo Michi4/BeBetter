@@ -4,141 +4,193 @@ const { authMiddleware } = require('../middleware/auth');
 
 const router = Router();
 const prisma = new PrismaClient();
-router.use(authMiddleware);
 
-const DAY_NAMES = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-
-router.get('/', async (req, res) => {
+router.get('/overview', authMiddleware, async (req, res) => {
   try {
-    const habits = await prisma.habit.findMany({
-      where: { userId: req.userId, active: true },
+    const userId = req.userId;
+
+    const activeHabits = await prisma.habit.count({
+      where: { userId, active: true },
     });
 
-    const allLogs = await prisma.habitLog.findMany({
-      where: { userId: req.userId, status: 'completed' },
-      orderBy: { completedAt: 'desc' },
-    });
-
-    const vacation = await prisma.vacation.findFirst({
-      where: {
-        userId: req.userId,
-        OR: [
-          { endDate: null },
-          { endDate: { gt: new Date() } },
-        ],
-      },
-    });
-
-    const activeBreaks = await prisma.habitBreak.count({
-      where: {
-        userId: req.userId,
-        OR: [
-          { endDate: null },
-          { endDate: { gt: new Date() } },
-        ],
-      },
-    });
-
-    const logDaysSet = new Set(allLogs.map(l => l.completedAt.toISOString().slice(0, 10)));
-
-    const breaks = await prisma.habitBreak.findMany({
-      where: {
-        userId: req.userId,
-        OR: [
-          { endDate: null },
-          { endDate: { gt: new Date(0) } },
-        ],
-      },
-    });
-    const breakByHabit = {};
-    for (const b of breaks) {
-      if (!breakByHabit[b.habitId]) breakByHabit[b.habitId] = [];
-      breakByHabit[b.habitId].push(b);
-    }
-
-    function isOnBreak(habitId, date) {
-      const habitBreaks = breakByHabit[habitId];
-      if (!habitBreaks) return false;
-      return habitBreaks.some(b => {
-        const start = new Date(b.startDate);
-        start.setHours(0, 0, 0, 0);
-        const end = b.endDate ? new Date(b.endDate) : new Date('2099-12-31');
-        end.setHours(23, 59, 59, 999);
-        return date >= start && date <= end;
-      });
-    }
-
-    let streak = 0;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const cursor = new Date(today);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
-    if (!logDaysSet.has(cursor.toISOString().slice(0, 10))) {
-      cursor.setDate(cursor.getDate() - 1);
-    }
-
-    while (logDaysSet.has(cursor.toISOString().slice(0, 10))) {
-      const dateStr = cursor.toISOString().slice(0, 10);
-      const hasScheduled = habits.some(h => {
-        const rec = h.recurrence;
-        if (!rec) return false;
-        if (isOnBreak(h.id, cursor)) return false;
-        if (rec.type === 'daily') return true;
-        if (rec.type === 'weekdays') return ['mon', 'tue', 'wed', 'thu', 'fri'].includes(DAY_NAMES[cursor.getDay()]);
-        if (rec.type === 'weekends') return ['sat', 'sun'].includes(DAY_NAMES[cursor.getDay()]);
-        if (rec.type === 'weekly' && rec.days) return rec.days.includes(DAY_NAMES[cursor.getDay()]);
-        if (rec.type === 'x_per_week') return true;
-        if (rec.type === 'interval') return true;
-        if (rec.type === 'monthly') return cursor.getDate() === (rec.dayOfMonth || 1);
-        return false;
-      });
-      if (!hasScheduled) break;
-      streak++;
-      cursor.setDate(cursor.getDate() - 1);
-    }
-
-    const thirtyDaysAgo = new Date(today);
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    let activeDays = 0;
-    for (let d = new Date(thirtyDaysAgo); d <= today; d.setDate(d.getDate() + 1)) {
-      if (logDaysSet.has(d.toISOString().slice(0, 10))) activeDays++;
-    }
-    const consistency = Math.min(100, Math.round((activeDays / 30) * 100));
-
-    const totalCompletions = allLogs.length;
-
-    const todayStr = today.toISOString().slice(0, 10);
-    const todayLogs = allLogs.filter(l => l.completedAt.toISOString().slice(0, 10) === todayStr);
-    const todayHabits = habits.filter(h => {
-      if (isOnBreak(h.id, today)) return false;
-      const rec = h.recurrence;
-      if (!rec) return false;
-      if (rec.type === 'daily') return true;
-      if (rec.type === 'weekdays') return ['mon', 'tue', 'wed', 'thu', 'fri'].includes(DAY_NAMES[today.getDay()]);
-      if (rec.type === 'weekends') return ['sat', 'sun'].includes(DAY_NAMES[today.getDay()]);
-      if (rec.type === 'weekly' && rec.days) return rec.days.includes(DAY_NAMES[today.getDay()]);
-      if (rec.type === 'x_per_week') return true;
-      if (rec.type === 'interval') return true;
-      if (rec.type === 'monthly') return today.getDate() === (rec.dayOfMonth || 1);
-      return false;
+    const todayLogs = await prisma.habitLog.count({
+      where: { userId, completedAt: { gte: today, lt: tomorrow } },
     });
-    const todayTotal = todayHabits.length;
-    const todayDone = todayLogs.length;
 
-    const totalTasks = await prisma.task.count({ where: { userId: req.userId } });
-    const completedTasks = await prisma.task.count({ where: { userId: req.userId, completed: true } });
+    const todayVacation = await prisma.vacation.findFirst({
+      where: { userId, startDate: { lte: today }, OR: [{ endDate: null }, { endDate: { gte: today } }] },
+    });
+
+    const totalLogs = await prisma.habitLog.count({ where: { userId } });
+
+    const allHabits = await prisma.habit.findMany({
+      where: { userId },
+      select: { id: true, bestStreak: true },
+    });
+
+    const bestStreak = allHabits.reduce((max, h) => Math.max(max, h.bestStreak || 0), 0);
+
+    let consistency = 0;
+    if (totalLogs > 0 && activeHabits > 0) {
+      const firstLog = await prisma.habitLog.findFirst({
+        where: { userId },
+        orderBy: { completedAt: 'asc' },
+      });
+      if (firstLog) {
+        const daysSinceFirst = Math.max(1, Math.ceil((today - firstLog.completedAt) / (1000 * 60 * 60 * 24)) + 1);
+        const totalPossible = daysSinceFirst * activeHabits;
+        consistency = Math.min(100, Math.round((totalLogs / totalPossible) * 100));
+      }
+    }
+
+    const activeStreak = bestStreak;
 
     res.json({
-      streak,
+      activeHabits,
+      todayLogs,
+      totalLogs,
+      bestStreak,
+      activeStreak,
       consistency,
-      totalCompletions,
-      totalHabits: habits.length,
-      today: { done: todayDone, total: todayTotal },
-      breaksActive: activeBreaks,
-      vacationActive: !!vacation,
-      totalTasks,
-      completedTasks,
+      isOnVacation: !!todayVacation,
     });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.get('/streak', authMiddleware, async (req, res) => {
+  try {
+    const { habitId } = req.query;
+    const where = { userId: req.userId };
+    if (habitId) where.habitId = habitId;
+
+    const logs = await prisma.habitLog.findMany({
+      where,
+      orderBy: { completedAt: 'asc' },
+    });
+
+    let bestStreak = 0;
+    let currentStreak = 0;
+    let lastDate = null;
+
+    for (const log of logs) {
+      const d = new Date(log.completedAt);
+      d.setHours(0, 0, 0, 0);
+      if (lastDate) {
+        const diff = (d - lastDate) / (1000 * 60 * 60 * 24);
+        if (diff === 1) {
+          currentStreak++;
+        } else if (diff > 1) {
+          currentStreak = 1;
+        }
+      } else {
+        currentStreak = 1;
+      }
+      if (currentStreak > bestStreak) bestStreak = currentStreak;
+      lastDate = d;
+    }
+
+    res.json({ bestStreak, currentStreak });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.get('/consistency', authMiddleware, async (req, res) => {
+  try {
+    const { habitId, days } = req.query;
+    const numDays = parseInt(days) || 30;
+    const endDate = new Date();
+    endDate.setHours(0, 0, 0, 0);
+    const startDate = new Date(endDate);
+    startDate.setDate(startDate.getDate() - numDays);
+
+    const where = {
+      userId: req.userId,
+      completedAt: { gte: startDate, lte: endDate },
+    };
+    if (habitId) where.habitId = habitId;
+
+    const logs = await prisma.habitLog.findMany({ where });
+    const uniqueDays = new Set(logs.map((l) => new Date(l.completedAt).toISOString().split('T')[0]));
+
+    const vacationDays = await prisma.vacation.findMany({
+      where: {
+        userId: req.userId,
+        OR: [
+          { startDate: { gte: startDate, lte: endDate } },
+          { endDate: { gte: startDate, lte: endDate } },
+          { startDate: { lte: startDate }, OR: [{ endDate: null }, { endDate: { gte: endDate } }] },
+        ],
+      },
+    });
+
+    let vacationDaysCount = 0;
+    for (const v of vacationDays) {
+      const vStart = v.startDate > startDate ? v.startDate : startDate;
+      const vEnd = v.endDate ? (v.endDate < endDate ? v.endDate : endDate) : endDate;
+      vacationDaysCount += Math.ceil((vEnd - vStart) / (1000 * 60 * 60 * 24)) + 1;
+    }
+
+    const effectiveDays = Math.max(1, numDays - vacationDaysCount);
+    const consistency = Math.min(100, Math.round((uniqueDays.size / effectiveDays) * 100));
+
+    res.json({
+      consistency,
+      daysLogged: uniqueDays.size,
+      totalDays: numDays,
+      vacationDays: vacationDaysCount,
+      effectiveDays,
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.get('/weekly', authMiddleware, async (req, res) => {
+  try {
+    const { weeks } = req.query;
+    const numWeeks = parseInt(weeks) || 4;
+
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const weeksData = [];
+
+    for (let i = numWeeks - 1; i >= 0; i--) {
+      const weekStart = new Date(startOfWeek);
+      weekStart.setDate(startOfWeek.getDate() - i * 7);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 7);
+
+      const logs = await prisma.habitLog.findMany({
+        where: {
+          userId: req.userId,
+          completedAt: { gte: weekStart, lt: weekEnd },
+        },
+      });
+
+      const uniqueDays = new Set(logs.map((l) => new Date(l.completedAt).toISOString().split('T')[0]));
+
+      weeksData.push({
+        weekStart: weekStart.toISOString().split('T')[0],
+        logs: logs.length,
+        uniqueDays: uniqueDays.size,
+      });
+    }
+
+    res.json({ weeks: weeksData });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Server error' });

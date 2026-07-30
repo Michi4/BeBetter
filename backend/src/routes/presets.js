@@ -6,6 +6,8 @@ const router = Router();
 const prisma = new PrismaClient();
 router.use(authMiddleware);
 
+const authorSelect = { id: true, username: true, avatar: true };
+
 router.get('/', async (req, res) => {
   try {
     const { q, category } = req.query;
@@ -22,7 +24,7 @@ router.get('/', async (req, res) => {
     const presets = await prisma.preset.findMany({
       where,
       include: {
-        author: { select: { id: true, name: true, avatar: true, username: true } },
+        author: { select: authorSelect },
         _count: { select: { likes: true, usages: true } },
       },
       orderBy: { likesCount: 'desc' },
@@ -51,18 +53,24 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { title, description, config, category } = req.body;
-    if (!title || !config) {
-      return res.status(400).json({ error: 'title and config are required' });
-    }
+    const { title, description, config, category, emoji, frequencyType, daysPerWeek, verificationType } = req.body;
+    if (!title) return res.status(400).json({ error: 'title is required' });
+
+    const author = await prisma.user.findUnique({ where: { id: req.userId }, select: { username: true } });
 
     const preset = await prisma.preset.create({
       data: {
         authorId: req.userId,
+        authorName: author.username,
         title,
         description: description || '',
-        config,
+        config: config || undefined,
         category: category || 'general',
+        emoji: emoji || '🎯',
+        frequencyType: frequencyType || 'daily',
+        daysPerWeek: daysPerWeek || JSON.stringify([1, 2, 3, 4, 5, 6, 7]),
+        verificationType: verificationType || 'honor',
+        isPublished: true,
       },
     });
 
@@ -78,10 +86,10 @@ router.get('/:id', async (req, res) => {
     const preset = await prisma.preset.findUnique({
       where: { id: req.params.id },
       include: {
-        author: { select: { id: true, name: true, avatar: true, username: true } },
+        author: { select: authorSelect },
         usages: {
           include: {
-            user: { select: { id: true, name: true, avatar: true, username: true } },
+            user: { select: { id: true, username: true, avatar: true } },
           },
           orderBy: { completions: 'desc' },
         },
@@ -100,9 +108,8 @@ router.get('/:id', async (req, res) => {
     const leaderboard = preset.usages
       .map(u => ({
         id: u.user.id,
-        name: u.user.name,
-        avatar: u.user.avatar,
         username: u.user.username,
+        avatar: u.user.avatar,
         completions: u.completions,
         currentStreak: u.currentStreak,
         bestStreak: u.bestStreak,
@@ -154,17 +161,17 @@ router.post('/:id/fork', async (req, res) => {
     const preset = await prisma.preset.findUnique({ where: { id: req.params.id } });
     if (!preset) return res.status(404).json({ error: 'Preset not found' });
 
-    const cfg = preset.config;
     const habit = await prisma.habit.create({
       data: {
         userId: req.userId,
-        title: cfg.title || preset.title,
-        description: cfg.description || preset.description,
-        recurrence: cfg.recurrence || { type: 'daily' },
-        verificationType: cfg.verificationType || 'honor',
-        presetId: preset.id,
+        title: preset.title,
+        description: preset.description || '',
+        emoji: preset.emoji || '🎯',
+        frequencyType: preset.frequencyType || 'daily',
+        daysPerWeek: preset.daysPerWeek || JSON.stringify([1, 2, 3, 4, 5, 6, 7]),
+        verificationType: preset.verificationType || 'honor',
+        config: preset.config || undefined,
       },
-      include: { wagers: true },
     });
 
     await prisma.preset.update({
@@ -177,6 +184,45 @@ router.post('/:id/fork', async (req, res) => {
       update: {},
       create: { userId: req.userId, presetId: preset.id, isOriginal: false },
     });
+
+    res.status(201).json({ habit });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.post('/:id/use', async (req, res) => {
+  try {
+    const preset = await prisma.preset.findUnique({ where: { id: req.params.id } });
+    if (!preset) return res.status(404).json({ error: 'Preset not found' });
+
+    const existingUsage = await prisma.presetUsage.findUnique({
+      where: { userId_presetId: { userId: req.userId, presetId: preset.id } },
+    });
+    if (existingUsage) return res.status(400).json({ error: 'Already using this preset' });
+
+    const habit = await prisma.habit.create({
+      data: {
+        userId: req.userId,
+        title: preset.title,
+        description: preset.description || '',
+        emoji: preset.emoji || '🎯',
+        frequencyType: preset.frequencyType || 'daily',
+        daysPerWeek: preset.daysPerWeek || JSON.stringify([1, 2, 3, 4, 5, 6, 7]),
+        verificationType: preset.verificationType || 'honor',
+        config: preset.config || undefined,
+      },
+    });
+
+    await prisma.presetUsage.create({
+      data: { userId: req.userId, presetId: preset.id, isOriginal: preset.authorId === req.userId },
+    });
+
+    await prisma.preset.update({
+      where: { id: preset.id },
+      data: { usagesCount: { increment: 1 } },
+    }).catch(() => {});
 
     res.status(201).json({ habit });
   } catch (e) {
@@ -208,7 +254,7 @@ router.get('/:id/users', async (req, res) => {
     const usages = await prisma.presetUsage.findMany({
       where: { presetId: req.params.id },
       include: {
-        user: { select: { id: true, name: true, avatar: true, username: true } },
+        user: { select: { id: true, username: true, avatar: true } },
       },
       orderBy: { completions: 'desc' },
     });

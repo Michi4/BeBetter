@@ -12,35 +12,37 @@ model User {
   email         String   @unique
   username      String   @unique
   passwordHash  String
-  name          String
   avatar        String?
   bio           String?
   isPublic      Boolean  @default(false)
-  referralCode  String   @unique @default(uuid())
   role          String   @default("user")
   bannedUntil   DateTime?
+  banReason     String?
   createdAt     DateTime @default(now())
 
-  habits        Habit[]
-  logs          HabitLog[]
-  wagersAsUser  Wager[]        @relation("WagerUser")
-  wagersAsPeer  Wager[]        @relation("WagerPeer")
-  presets       Preset[]
-  presetUsages  PresetUsage[]
-
-  sentRequests     FriendRequest[] @relation("Requester")
-  receivedRequests FriendRequest[] @relation("Receiver")
-  friendships1     Friendship[]    @relation("User1")
-  friendships2     Friendship[]    @relation("User2")
-
+  habits             Habit[]
+  logs               HabitLog[]
+  wagersAsUser       Wager[]        @relation("WagerUser")
+  wagersAsPeer       Wager[]        @relation("WagerPeer")
+  presets            Preset[]
+  presetUsages       PresetUsage[]
+  sentRequests       FriendRequest[] @relation("Requester")
+  receivedRequests   FriendRequest[] @relation("Receiver")
+  friendships1       Friendship[]    @relation("User1")
+  friendships2       Friendship[]    @relation("User2")
   challengesAsCreator  Challenge[] @relation("ChallengeCreator")
   challengesAsOpponent Challenge[] @relation("ChallengeOpponent")
-
-  activities     Activity[]
-  breaks          HabitBreak[]
-  vacations       Vacation[]
-  tasks           Task[]
-  taskLogs        TaskLog[]
+  activities         Activity[]
+  breaks             HabitBreak[]
+  vacations          Vacation[]
+  tasks              Task[]
+  taskLogs           TaskLog[]
+  reports            Report[]
+  notifications      Notification[]
+  pushSubscriptions  PushSubscription[]
+  notificationPrefs  NotificationPreference?
+  friendLinksSent    FriendLink[] @relation("FriendLinkSender")
+  passwordResets     PasswordReset[]
 }
 
 model Habit {
@@ -49,34 +51,48 @@ model Habit {
   user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   title            String
   description      String?
-  recurrence       Json
+  emoji            String      @default("🎯")
+  frequencyType    String      @default("daily")
+  daysPerWeek      Json        @default("[1,2,3,4,5,6,7]")
+  config           Json?
   verificationType String      @default("honor")
   active           Boolean     @default(true)
-  endDate          DateTime?
+  bestStreak       Int         @default(0)
+  isPublic         Boolean     @default(false)
+  wagerDays        Int         @default(0)
+  wagerAmount      Float       @default(0)
   finishedAt       DateTime?
-  finishNote       String?
+  finishedNote     String?
   createdAt        DateTime    @default(now())
 
   presetId         String?
-  preset           Preset?     @relation(fields: [presetId], references: [id])
   wagers           Wager[]
   logs             HabitLog[]
   challenges       Challenge[]
   breaks           HabitBreak[]
+  tags             HabitTag[]
+}
+
+model HabitTag {
+  id       String @id @default(uuid())
+  habitId  String
+  habit    Habit  @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  name     String
+  color    String?
 }
 
 model Wager {
-  id             String   @id @default(uuid())
+  id             String    @id @default(uuid())
   habitId        String
-  habit          Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  habit          Habit     @relation(fields: [habitId], references: [id], onDelete: Cascade)
   userId         String
-  user           User     @relation("WagerUser", fields: [userId], references: [id])
+  user           User      @relation("WagerUser", fields: [userId], references: [id])
   counterpartyId String?
-  counterparty   User?    @relation("WagerPeer", fields: [counterpartyId], references: [id])
+  counterparty   User?     @relation("WagerPeer", fields: [counterpartyId], references: [id])
   condition      String
-  penaltyText    String
-  status         String   @default("active")
-  createdAt      DateTime @default(now())
+  penaltyText    String    @default("")
+  status         String    @default("active")
+  createdAt      DateTime  @default(now())
 }
 
 model HabitLog {
@@ -91,21 +107,49 @@ model HabitLog {
   verifiedBy  String?
 }
 
+model HabitBreak {
+  id        String    @id @default(uuid())
+  habitId   String
+  habit     Habit     @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  startDate DateTime  @default(now())
+  endDate   DateTime?
+  reason    String?
+}
+
+model Vacation {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  startDate DateTime
+  endDate   DateTime?
+  reason    String?
+  createdAt DateTime  @default(now())
+}
+
 model Preset {
-  id          String   @id @default(uuid())
-  authorId    String
-  author      User     @relation(fields: [authorId], references: [id])
-  title       String
-  description String
-  config      Json
-  category    String   @default("general")
-  likesCount  Int      @default(0)
-  forksCount  Int      @default(0)
-  isPublished Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  habits      Habit[]
-  likes       PresetLike[]
-  usages      PresetUsage[]
+  id               String   @id @default(uuid())
+  authorId         String
+  author           User     @relation(fields: [authorId], references: [id])
+  authorName       String?
+  title            String
+  description      String?
+  emoji            String?
+  category         String   @default("general")
+  frequencyType    String   @default("daily")
+  daysPerWeek      Json?
+  verificationType String   @default("honor")
+  config           Json?
+  isPublished      Boolean  @default(false)
+  likesCount       Int      @default(0)
+  forksCount       Int      @default(0)
+  usagesCount      Int      @default(0)
+  createdAt        DateTime @default(now())
+
+  habitId          String?
+  likes            PresetLike[]
+  usages           PresetUsage[]
 }
 
 model PresetLike {
@@ -119,129 +163,92 @@ model PresetLike {
 }
 
 model PresetUsage {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  presetId  String
-  preset    Preset   @relation(fields: [presetId], references: [id], onDelete: Cascade)
-  isOriginal Boolean @default(true)
-  completions Int    @default(0)
-  currentStreak Int  @default(0)
-  bestStreak   Int   @default(0)
-  createdAt DateTime @default(now())
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  presetId       String
+  preset         Preset   @relation(fields: [presetId], references: [id], onDelete: Cascade)
+  isOriginal     Boolean  @default(false)
+  completions    Int      @default(0)
+  currentStreak  Int      @default(0)
+  bestStreak     Int      @default(0)
+  createdAt      DateTime @default(now())
 
   @@unique([userId, presetId])
 }
 
-model FriendRequest {
-  id         String   @id @default(uuid())
-  requesterId String
-  requester  User     @relation("Requester", fields: [requesterId], references: [id], onDelete: Cascade)
-  receiverId String
-  receiver   User     @relation("Receiver", fields: [receiverId], references: [id], onDelete: Cascade)
-  status     String   @default("pending")
-  createdAt  DateTime @default(now())
+model Challenge {
+  id         String    @id @default(uuid())
+  creatorId  String
+  creator    User      @relation("ChallengeCreator", fields: [creatorId], references: [id])
+  opponentId String
+  opponent   User      @relation("ChallengeOpponent", fields: [opponentId], references: [id])
+  habitId    String
+  habit      Habit     @relation(fields: [habitId], references: [id])
+  title      String    @default("")
+  description String?
+  startDate  DateTime  @default(now())
+  endDate    DateTime  @default(now())
+  stake      String?
+  status     String    @default("active")
+  winnerId   String?
+  createdAt  DateTime  @default(now())
+}
 
-  @@unique([requesterId, receiverId])
+model FriendRequest {
+  id          String   @id @default(uuid())
+  requesterId String
+  requester   User     @relation("Requester", fields: [requesterId], references: [id])
+  receiverId  String
+  receiver    User     @relation("Receiver", fields: [receiverId], references: [id])
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
 }
 
 model Friendship {
-  id        String   @id @default(uuid())
-  user1Id   String
-  user1     User     @relation("User1", fields: [user1Id], references: [id], onDelete: Cascade)
-  user2Id   String
-  user2     User     @relation("User2", fields: [user2Id], references: [id], onDelete: Cascade)
+  id       String @id @default(uuid())
+  user1Id  String
+  user1    User   @relation("User1", fields: [user1Id], references: [id])
+  user2Id  String
+  user2    User   @relation("User2", fields: [user2Id], references: [id])
   createdAt DateTime @default(now())
 
   @@unique([user1Id, user2Id])
 }
 
-model Challenge {
-  id          String   @id @default(uuid())
-  creatorId   String
-  creator     User     @relation("ChallengeCreator", fields: [creatorId], references: [id], onDelete: Cascade)
-  opponentId  String
-  opponent    User     @relation("ChallengeOpponent", fields: [opponentId], references: [id], onDelete: Cascade)
-  habitId     String
-  habit       Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
-  title       String
-  description String?
-  startDate   DateTime
-  endDate     DateTime
-  stake       String?
-  status      String   @default("active")
-  winnerId    String?
-  createdAt   DateTime @default(now())
-}
-
 model Activity {
   id         String   @id @default(uuid())
   userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id])
   type       String
-  payload    Json
+  payload    Json?
   visibility String   @default("friends")
   createdAt  DateTime @default(now())
 }
 
 model Report {
-  id          String   @id @default(uuid())
-  reporterId  String
-  targetType  String
-  targetId    String
-  reason      String
-  description String?
-  status      String   @default("pending")
-  adminNote   String?
-  createdAt   DateTime @default(now())
-}
-
-model Notification {
-  id        String   @id @default(uuid())
-  userId    String
-  type      String
-  title     String
-  message   String
-  link      String?
-  read      Boolean  @default(false)
-  createdAt DateTime @default(now())
-}
-
-model HabitBreak {
-  id        String   @id @default(uuid())
-  habitId   String
-  habit     Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  startDate DateTime @default(now())
-  endDate   DateTime?
-  reason    String?
-  createdAt DateTime @default(now())
-
-  @@unique([habitId, userId])
-}
-
-model Vacation {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  startDate DateTime @default(now())
-  endDate   DateTime?
-  reason    String?
-  createdAt DateTime @default(now())
+  id           String   @id @default(uuid())
+  reporterId   String
+  reporter     User     @relation(fields: [reporterId], references: [id])
+  targetType   String
+  targetId     String
+  reason       String
+  description  String?
+  status       String   @default("pending")
+  createdAt    DateTime @default(now())
 }
 
 model Task {
   id          String    @id @default(uuid())
   userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id])
   title       String
   description String?
+  emoji       String    @default("📝")
   dueDate     DateTime?
-  isScheduled Boolean   @default(false)
-  completed   Boolean   @default(false)
-  completedAt DateTime?
-  finishNote  String?
+  isScheduled Boolean   @default(true)
+  isEveryday  Boolean   @default(false)
+  isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
 
   logs        TaskLog[]
@@ -256,4 +263,62 @@ model TaskLog {
   completedAt DateTime @default(now())
   note        String?
   proofUrl    String?
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  message   String
+  data      Json?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model FriendLink {
+  id        String    @id @default(uuid())
+  senderId  String
+  sender    User      @relation("FriendLinkSender", fields: [senderId], references: [id], onDelete: Cascade)
+  token     String    @unique
+  used      Boolean   @default(false)
+  usedById  String?
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@unique([userId, endpoint])
+}
+
+model NotificationPreference {
+  id                    String   @id @default(uuid())
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  morningEnabled        Boolean  @default(true)
+  morningTime           String   @default("08:00")
+  habitRemindersEnabled Boolean  @default(true)
+  eveningEnabled        Boolean  @default(true)
+  eveningTime           String   @default("21:00")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @default(now())
+}
+
+model PasswordReset {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
 }

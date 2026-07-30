@@ -5,16 +5,20 @@ const routes = [
   { path: '/', redirect: '/dashboard' },
   { path: '/login', name: 'login', component: () => import('../views/Login.vue'), meta: { guest: true } },
   { path: '/register', name: 'register', component: () => import('../views/Register.vue'), meta: { guest: true } },
+  { path: '/forgot-password', name: 'forgot-password', component: () => import('../views/ForgotPassword.vue'), meta: { guest: true } },
+  { path: '/reset-password', name: 'reset-password', component: () => import('../views/ResetPassword.vue'), meta: { guest: true } },
   { path: '/dashboard', name: 'dashboard', component: () => import('../views/Dashboard.vue'), meta: { auth: true } },
   { path: '/habits', name: 'habits', component: () => import('../views/Habits.vue'), meta: { auth: true } },
   { path: '/habits/:id', name: 'habit-detail', component: () => import('../views/HabitDetail.vue'), meta: { auth: true } },
   { path: '/presets', name: 'presets', component: () => import('../views/Presets.vue'), meta: { auth: true } },
   { path: '/presets/:id', name: 'preset-detail', component: () => import('../views/PresetDetail.vue'), meta: { auth: true } },
   { path: '/friends', name: 'friends', component: () => import('../views/Friends.vue'), meta: { auth: true } },
-  { path: '/profile/:id', name: 'profile', component: () => import('../views/Profile.vue'), meta: { auth: true } },
+  { path: '/profile/:id', name: 'profile', component: () => import('../views/Profile.vue') },
   { path: '/leaderboard', name: 'leaderboard', component: () => import('../views/Leaderboard.vue'), meta: { auth: true } },
   { path: '/challenges/new', name: 'new-challenge', component: () => import('../views/NewChallenge.vue'), meta: { auth: true } },
   { path: '/admin', name: 'admin', component: () => import('../views/Admin.vue'), meta: { auth: true } },
+  { path: '/notifications', name: 'notifications', component: () => import('../views/Notifications.vue'), meta: { auth: true } },
+  { path: '/:pathMatch(.*)*', name: 'not-found', redirect: '/dashboard' },
 ]
 
 const router = createRouter({ history: createWebHistory(), routes })

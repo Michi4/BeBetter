@@ -1,50 +1,6 @@
 <template>
   <div class="page">
-    <!-- History Section -->
-    <section class="space-y-3">
-      <h2 class="section-title">History</h2>
-
-      <div class="flex flex-wrap items-center gap-2">
-        <button @click="prevDay" class="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg p-2 text-gray-400 hover:bg-gray-800 transition-colors">
-          <ChevronLeft :size="18" />
-        </button>
-        <input v-model="selectedDate" type="date" class="min-h-[44px] flex-1 min-w-0 rounded-lg border border-gray-700 bg-gray-800/50 px-3 py-2 text-sm text-gray-200 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
-        <button @click="nextDay" class="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg p-2 text-gray-400 hover:bg-gray-800 transition-colors">
-          <ChevronRight :size="18" />
-        </button>
-        <button @click="selectedDate = todayStr()" class="min-h-[44px] rounded-lg bg-gray-800 px-3 py-2 text-xs font-medium text-gray-300 hover:bg-gray-700 transition-colors">
-          Today
-        </button>
-      </div>
-
-      <select v-model="habitFilter" class="min-h-[44px] w-full rounded-lg border border-gray-700 bg-gray-800/50 px-3 py-2 text-sm text-gray-300 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
-        <option value="">All habits</option>
-        <option v-for="h in habits" :key="h.id" :value="h.id">{{ h.title }}</option>
-      </select>
-
-      <!-- Completed Logs Card -->
-      <div class="rounded-xl border border-gray-800 bg-gray-900/50 p-4 space-y-3">
-        <h3 class="text-sm font-medium text-gray-400">Completed</h3>
-        <div v-if="completedLogs.length === 0" class="text-xs text-gray-500">No completions</div>
-        <div v-for="log in completedLogs" :key="log.id" class="flex items-center gap-2 text-sm">
-          <CheckCircle2 :size="14" class="text-emerald-400 flex-shrink-0 animate-done" />
-          <span class="text-gray-300 truncate">{{ log.habitTitle || log.title }}</span>
-          <span class="text-xs text-gray-500 ml-auto shrink-0">{{ log.time || '' }}</span>
-        </div>
-      </div>
-
-      <!-- Scheduled (uncompleted) Card -->
-      <div class="rounded-xl border border-gray-800 bg-gray-900/50 p-4 space-y-3">
-        <h3 class="text-sm font-medium text-gray-400">Scheduled (uncompleted)</h3>
-        <div v-if="scheduledTasks.length === 0" class="text-xs text-gray-500">Nothing scheduled</div>
-        <div v-for="task in scheduledTasks" :key="task.id" class="flex items-center gap-2 text-sm">
-          <Circle :size="14" class="text-gray-600 flex-shrink-0" />
-          <span class="text-gray-500 truncate">{{ task.title }}</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- Tasks Section -->
+    <!-- Tasks Section (moved above history) -->
     <section class="space-y-3">
       <div class="flex items-center gap-2">
         <h2 class="section-title">Tasks</h2>
@@ -67,73 +23,29 @@
         </button>
       </form>
 
-      <!-- Incomplete Tasks -->
       <div v-if="incompleteTasks.length === 0" class="text-sm text-gray-500 py-2">No incomplete tasks</div>
       <div v-for="task in incompleteTasks" :key="task.id" class="space-y-1" :class="{ 'animate-celebrate': completingTaskId === task.id }">
         <TaskCard :task="task" @complete="completeTask" @delete="deleteTask" @edit="openEditTask" />
 
-        <!-- Edit Panel -->
         <div v-if="expandedTask === task.id" class="rounded-xl border border-gray-700 bg-gray-800/50 p-4 space-y-3 ml-9">
-          <input
-            v-model="editTaskForm.title"
-            class="min-h-[44px] w-full rounded-lg border border-gray-700 bg-gray-900/50 px-3 py-2 text-sm text-gray-200 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-            placeholder="Title"
-          />
-          <textarea
-            v-model="editTaskForm.description"
-            class="min-h-[44px] w-full rounded-lg border border-gray-700 bg-gray-900/50 px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
-            placeholder="Description"
-            rows="2"
-          ></textarea>
-          <input
-            v-model="editTaskForm.dueDate"
-            type="date"
-            class="min-h-[44px] w-full rounded-lg border border-gray-700 bg-gray-900/50 px-3 py-2 text-sm text-gray-200 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-          />
-          <div class="flex flex-col sm:flex-row justify-between gap-2">
-            <button
-              @click="convertToHabit(task)"
-              class="min-h-[44px] flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-emerald-400 hover:bg-emerald-500/10 transition-colors"
-            >
-              <RefreshCw :size="14" />
-              Convert to Habit
-            </button>
-            <div class="flex gap-2">
-              <button
-                @click="expandedTask = null"
-                class="min-h-[44px] flex-1 sm:flex-none rounded-lg bg-gray-800 px-4 py-2 text-xs font-medium text-gray-300 hover:bg-gray-700 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                @click="updateTask(task)"
-                class="min-h-[44px] flex-1 sm:flex-none rounded-lg bg-emerald-600 px-4 py-2 text-xs font-medium text-white hover:bg-emerald-500 transition-colors"
-              >
-                Save
-              </button>
-            </div>
+          <input v-model="editTaskForm.title" class="min-h-[44px] w-full rounded-lg border border-gray-700 bg-gray-900/50 px-3 py-2 text-sm text-gray-200 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500" placeholder="Title" />
+          <textarea v-model="editTaskForm.description" class="min-h-[44px] w-full rounded-lg border border-gray-700 bg-gray-900/50 px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none" placeholder="Description" rows="2"></textarea>
+          <input v-model="editTaskForm.dueDate" type="date" class="min-h-[44px] w-full rounded-lg border border-gray-700 bg-gray-900/50 px-3 py-2 text-sm text-gray-200 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+          <div class="flex justify-end gap-2">
+            <button @click="expandedTask = null" class="min-h-[44px] rounded-lg bg-gray-800 px-4 py-2 text-xs font-medium text-gray-300 hover:bg-gray-700 transition-colors">Cancel</button>
+            <button @click="updateTask(task)" class="min-h-[44px] rounded-lg bg-emerald-600 px-4 py-2 text-xs font-medium text-white hover:bg-emerald-500 transition-colors">Save</button>
           </div>
         </div>
       </div>
 
-      <!-- Completed Tasks (collapsible) -->
       <div v-if="completedTasks.length > 0" class="rounded-xl border border-gray-800 bg-gray-900/50 overflow-hidden">
-        <button
-          @click="showCompletedTasks = !showCompletedTasks"
-          class="min-h-[44px] w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-400 hover:bg-gray-800/50 transition-colors"
-        >
+        <button @click="showCompletedTasks = !showCompletedTasks" class="min-h-[44px] w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-400 hover:bg-gray-800/50 transition-colors">
           <div class="flex items-center gap-2">
             <span>Completed Tasks</span>
             <span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400">{{ completedTasks.length }}</span>
           </div>
           <div class="flex items-center gap-2">
-            <button
-              @click.stop="confirmDeleteAllTasks"
-              class="text-[10px] px-2 py-1 rounded text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-              title="Delete all completed tasks"
-            >
-              Clear all
-            </button>
+            <button @click.stop="confirmDeleteAllTasks" class="text-[10px] px-2 py-1 rounded text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-colors" title="Delete all completed tasks">Clear all</button>
             <ChevronDown :size="16" class="transition-transform duration-200" :class="showCompletedTasks ? 'rotate-180' : ''" />
           </div>
         </button>
@@ -144,23 +56,13 @@
             </div>
             <div class="flex-1 min-w-0">
               <h4 class="font-medium text-sm truncate text-gray-400 line-through">{{ task.title }}</h4>
-              <p v-if="task.completedAt" class="text-[10px] text-gray-500">
-                Completed {{ formatDate(task.completedAt) }}
-              </p>
+              <p v-if="task.completedAt" class="text-[10px] text-gray-500">Completed {{ formatDate(task.completedAt) }}</p>
             </div>
-            <button
-              @click="deleteCompletedTask(task)"
-              class="delete-btn shrink-0 p-1.5 rounded text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-all"
-              title="Delete"
-            >
+            <button @click="deleteCompletedTask(task)" class="delete-btn shrink-0 p-1.5 rounded text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-all" title="Delete">
               <Trash2 :size="13" />
             </button>
           </div>
-          <button
-            v-if="completedTasks.length > visibleCompletedTasks.length"
-            @click="loadMoreCompletedTasks"
-            class="min-h-[44px] w-full flex items-center justify-center gap-1 px-4 py-3 text-xs text-emerald-400 hover:bg-gray-800/50 transition-colors"
-          >
+          <button v-if="completedTasks.length > visibleCompletedTasks.length" @click="loadMoreCompletedTasks" class="min-h-[44px] w-full flex items-center justify-center gap-1 px-4 py-3 text-xs text-emerald-400 hover:bg-gray-800/50 transition-colors">
             <ChevronDown :size="12" />
             Load more ({{ completedTasks.length - visibleCompletedTasks.length }} remaining)
           </button>
@@ -173,27 +75,17 @@
       <h2 class="section-title">Habits</h2>
       <div v-if="activeHabits.length === 0" class="text-sm text-gray-500">No active habits</div>
       <div v-for="h in activeHabits" :key="h.id" class="rounded-xl border border-gray-800 bg-gray-900/50" :class="{ 'animate-celebrate': completingHabitId === h.id }">
-        <HabitCard :habit="h" @finish="openFinishHabit" />
+        <HabitCard :habit="h" @finish="completeHabit" @cam="openCamHabit" />
       </div>
 
-      <!-- Completed Habits (collapsible) -->
       <div v-if="completedHabits.length > 0" class="rounded-xl border border-gray-800 bg-gray-900/50 overflow-hidden">
-        <button
-          @click="showCompletedHabits = !showCompletedHabits"
-          class="min-h-[44px] w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-400 hover:bg-gray-800/50 transition-colors"
-        >
+        <button @click="showCompletedHabits = !showCompletedHabits" class="min-h-[44px] w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-400 hover:bg-gray-800/50 transition-colors">
           <div class="flex items-center gap-2">
             <span>Completed Habits</span>
             <span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400">{{ completedHabits.length }}</span>
           </div>
           <div class="flex items-center gap-2">
-            <button
-              @click.stop="confirmDeleteAllHabits"
-              class="text-[10px] px-2 py-1 rounded text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-              title="Delete all completed habits and their stats"
-            >
-              Clear all
-            </button>
+            <button @click.stop="confirmDeleteAllHabits" class="text-[10px] px-2 py-1 rounded text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-colors" title="Delete all completed habits and their stats">Clear all</button>
             <ChevronDown :size="16" class="transition-transform duration-200" :class="showCompletedHabits ? 'rotate-180' : ''" />
           </div>
         </button>
@@ -204,23 +96,13 @@
             </div>
             <div class="flex-1 min-w-0">
               <h4 class="font-medium text-sm truncate text-gray-400 line-through">{{ habit.title }}</h4>
-              <p v-if="habit.completedAt" class="text-[10px] text-gray-500">
-                Completed {{ formatDate(habit.completedAt) }}
-              </p>
+              <p v-if="habit.finishedAt" class="text-[10px] text-gray-500">Finished {{ formatDate(habit.finishedAt) }}</p>
             </div>
-            <button
-              @click="deleteCompletedHabit(habit)"
-              class="delete-btn shrink-0 p-1.5 rounded text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-all"
-              title="Delete habit and all its data"
-            >
+            <button @click="deleteCompletedHabit(habit)" class="delete-btn shrink-0 p-1.5 rounded text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-all" title="Delete habit and all its data">
               <Trash2 :size="13" />
             </button>
           </div>
-          <button
-            v-if="completedHabits.length > visibleCompletedHabits.length"
-            @click="loadMoreCompletedHabits"
-            class="min-h-[44px] w-full flex items-center justify-center gap-1 px-4 py-3 text-xs text-emerald-400 hover:bg-gray-800/50 transition-colors"
-          >
+          <button v-if="completedHabits.length > visibleCompletedHabits.length" @click="loadMoreCompletedHabits" class="min-h-[44px] w-full flex items-center justify-center gap-1 px-4 py-3 text-xs text-emerald-400 hover:bg-gray-800/50 transition-colors">
             <ChevronDown :size="12" />
             Load more ({{ completedHabits.length - visibleCompletedHabits.length }} remaining)
           </button>
@@ -228,7 +110,35 @@
       </div>
     </section>
 
-    <BeBetterCam :show="!!finishingHabit" @close="finishingHabit = null" @capture="submitHabitProof" />
+    <!-- History Section (moved below) -->
+    <section class="space-y-3">
+      <h2 class="section-title">History</h2>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <button @click="prevDay" class="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg p-2 text-gray-400 hover:bg-gray-800 transition-colors">
+          <ChevronLeft :size="18" />
+        </button>
+        <input v-model="selectedDate" type="date" class="min-h-[44px] flex-1 min-w-0 rounded-lg border border-gray-700 bg-gray-800/50 px-3 py-2 text-sm text-gray-200 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+        <button @click="nextDay" class="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg p-2 text-gray-400 hover:bg-gray-800 transition-colors">
+          <ChevronRight :size="18" />
+        </button>
+        <button @click="selectedDate = todayStr()" class="min-h-[44px] rounded-lg bg-gray-800 px-3 py-2 text-xs font-medium text-gray-300 hover:bg-gray-700 transition-colors">
+          Today
+        </button>
+      </div>
+
+      <div class="rounded-xl border border-gray-800 bg-gray-900/50 p-4 space-y-3">
+        <h3 class="text-sm font-medium text-gray-400">Completed that day</h3>
+        <div v-if="historyLogs.length === 0" class="text-xs text-gray-500">No completions</div>
+        <div v-for="log in historyLogs" :key="log.id" class="flex items-center gap-2 text-sm">
+          <CheckCircle2 :size="14" class="text-emerald-400 flex-shrink-0 animate-done" />
+          <span class="text-gray-300 truncate">{{ log.habit?.title || log.title }}</span>
+          <span class="text-xs text-gray-500 ml-auto shrink-0">{{ formatTime(log.completedAt) }}</span>
+        </div>
+      </div>
+    </section>
+
+    <BeBetterCam :show="!!camHabit" @close="camHabit = null" @capture="submitHabitProof" />
   </div>
 </template>
 
@@ -236,7 +146,7 @@
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import api from '../api'
 import { useToast } from 'vue-toastification'
-import { Plus, Check, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, CheckCircle2, Circle, RefreshCw, Trash2 } from 'lucide-vue-next'
+import { Plus, Check, ChevronDown, ChevronLeft, ChevronRight, CheckCircle2, Trash2 } from 'lucide-vue-next'
 import HabitCard from '../components/HabitCard.vue'
 import TaskCard from '../components/TaskCard.vue'
 import BeBetterCam from '../components/BeBetterCam.vue'
@@ -244,23 +154,13 @@ import BeBetterCam from '../components/BeBetterCam.vue'
 const toast = useToast()
 
 const selectedDate = ref(new Date().toISOString().slice(0, 10))
-const habitFilter = ref('')
-const historyHabits = ref([])
-const logs = ref([])
-const historyTasks = ref([])
+const historyLogs = ref([])
 
 const completingTaskId = ref(null)
 const completingHabitId = ref(null)
+const camHabit = ref(null)
 
 const todayStr = () => new Date().toISOString().slice(0, 10)
-
-const completedLogs = computed(() => {
-  let filtered = logs.value.filter(l => l.completed || l.status === 'done')
-  if (habitFilter.value) filtered = filtered.filter(l => l.habitId === habitFilter.value)
-  return filtered
-})
-
-const scheduledTasks = computed(() => historyTasks.value.filter(t => !t.completed))
 
 function prevDay() {
   const d = new Date(selectedDate.value)
@@ -276,16 +176,10 @@ function nextDay() {
 
 async function loadHistory() {
   try {
-    const [logsRes, tasksRes, habitsRes] = await Promise.all([
-      api.get('/logs', { params: { date: selectedDate.value, withScheduled: true } }),
-      api.get('/tasks', { params: { date: selectedDate.value } }),
-      api.get('/habits'),
-    ])
-    logs.value = logsRes.data.logs || logsRes.data || []
-    historyTasks.value = tasksRes.data.tasks || tasksRes.data || []
-    historyHabits.value = habitsRes.data.habits || habitsRes.data || []
+    const res = await api.get('/grid/day', { params: { date: selectedDate.value } })
+    historyLogs.value = res.data.habits || []
   } catch {
-    toast.error('Failed to load history')
+    historyLogs.value = []
   }
 }
 
@@ -297,7 +191,6 @@ const activeHabits = ref([])
 const completedHabits = ref([])
 const newTaskTitle = ref('')
 const expandedTask = ref(null)
-const finishingHabit = ref(null)
 const showCompletedTasks = ref(false)
 const showCompletedHabits = ref(false)
 
@@ -309,8 +202,6 @@ const PAGE_SIZE = 10
 
 const visibleCompletedTasks = computed(() => completedTasks.value.slice(0, (completedTasksPage.value + 1) * PAGE_SIZE))
 const visibleCompletedHabits = computed(() => completedHabits.value.slice(0, (completedHabitsPage.value + 1) * PAGE_SIZE))
-
-const habits = computed(() => historyHabits.value)
 
 function formatDate(dateStr) {
   if (!dateStr) return ''
@@ -324,6 +215,12 @@ function formatDate(dateStr) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
+function formatTime(dateStr) {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+}
+
 function openEditTask(task) {
   expandedTask.value = task.id
   editTaskForm.title = task.title
@@ -331,33 +228,22 @@ function openEditTask(task) {
   editTaskForm.dueDate = task.dueDate ? task.dueDate.slice(0, 10) : ''
 }
 
-async function convertToHabit(task) {
-  try {
-    await api.post('/habits', { title: task.title, description: task.description || '', recurrence: { type: 'daily' } })
-    await api.delete(`/tasks/${task.id}`)
-    incompleteTasks.value = incompleteTasks.value.filter(t => t.id !== task.id)
-    expandedTask.value = null
-    toast.success('Converted to habit')
-    loadAll()
-  } catch {
-    toast.error('Failed to convert')
-  }
-}
-
 async function loadAll() {
   try {
-    const [tasksRes, habitsRes, completedTasksRes, completedHabitsRes] = await Promise.all([
+    const [tasksRes, habitsRes] = await Promise.all([
       api.get('/tasks'),
       api.get('/habits'),
-      api.get('/tasks', { params: { completed: true } }),
-      api.get('/habits', { params: { includeInactive: true } }),
     ])
-    const allTasks = tasksRes.data.tasks || tasksRes.data || []
-    incompleteTasks.value = allTasks.filter(t => !t.completed)
-    completedTasks.value = (completedTasksRes.data.tasks || completedTasksRes.data || []).filter(t => t.completed)
+    const allTasks = tasksRes.data.tasks || []
+    incompleteTasks.value = allTasks.filter(t => !t.isCompletedToday)
+    completedTasks.value = allTasks.filter(t => t.isCompletedToday)
 
-    const allHabits = habitsRes.data.habits || habitsRes.data || []
-    activeHabits.value = allHabits.filter(h => h.active !== false)
+    const allHabits = habitsRes.data.habits || []
+    activeHabits.value = allHabits.filter(h => h.active !== false).map(h => ({
+      ...h,
+      completedToday: false,
+      hasBreak: !!h.breaks?.find(b => !b.endDate),
+    }))
     completedHabits.value = allHabits.filter(h => h.active === false)
   } catch {
     toast.error('Failed to load data')
@@ -367,7 +253,7 @@ async function loadAll() {
 async function addTask() {
   if (!newTaskTitle.value.trim()) return
   try {
-    const res = await api.post('/tasks', { title: newTaskTitle.value.trim(), isScheduled: false })
+    const res = await api.post('/tasks', { title: newTaskTitle.value.trim() })
     incompleteTasks.value.unshift(res.data.task || res.data)
     newTaskTitle.value = ''
     toast.success('Task created')
@@ -384,7 +270,7 @@ async function completeTask(task) {
     setTimeout(() => {
       completingTaskId.value = null
       incompleteTasks.value = incompleteTasks.value.filter(t => t.id !== task.id)
-      completedTasks.value.unshift({ ...task, completed: true, completedAt: new Date().toISOString() })
+      completedTasks.value.unshift({ ...task, isCompletedToday: true, completedAt: new Date().toISOString() })
     }, 600)
   } catch {
     toast.error('Failed')
@@ -396,7 +282,6 @@ async function updateTask(task) {
     const payload = {
       title: editTaskForm.title,
       description: editTaskForm.description || undefined,
-      isScheduled: !!editTaskForm.dueDate,
     }
     if (editTaskForm.dueDate) payload.dueDate = editTaskForm.dueDate
     await api.put(`/tasks/${task.id}`, payload)
@@ -442,40 +327,46 @@ async function confirmDeleteAllTasks() {
   }
 }
 
-function openFinishHabit(habit) {
-  if (habit.verificationType === 'photo') {
-    finishingHabit.value = habit
-  } else {
-    finishHabit(habit)
-  }
+function openCamHabit(habit) {
+  camHabit.value = habit
 }
 
-async function finishHabit(habit, proofUrl) {
+async function completeHabit(habit) {
   try {
-    const payload = proofUrl ? { proofUrl } : {}
-    await api.post(`/habits/${habit.id}/finish`, payload)
+    await api.post('/logs', { habitId: habit.id })
     completingHabitId.value = habit.id
+    activeHabits.value = activeHabits.value.map(h =>
+      h.id === habit.id ? { ...h, completedToday: true } : h
+    )
     toast.success(`"${habit.title}" completed!`)
-    setTimeout(() => {
-      completingHabitId.value = null
-      loadAll()
-    }, 600)
-  } catch {
-    toast.error('Failed')
+    setTimeout(() => { completingHabitId.value = null }, 600)
+  } catch (e) {
+    if (e.response?.status === 409) toast.info('Already completed today!')
+    else toast.error('Failed')
   }
 }
 
-function submitHabitProof(dataUrl) {
-  if (finishingHabit.value) {
-    finishHabit(finishingHabit.value, dataUrl)
-    finishingHabit.value = null
+async function submitHabitProof(dataUrl) {
+  if (!camHabit.value) return
+  try {
+    const form = new FormData()
+    form.append('photo', dataUrl, 'proof.jpg')
+    const { data } = await api.post('/upload', form)
+    await api.post('/logs', { habitId: camHabit.value.id, photo: data.url })
+    activeHabits.value = activeHabits.value.map(h =>
+      h.id === camHabit.value.id ? { ...h, completedToday: true } : h
+    )
+    toast.success('Photo proof submitted!')
+    camHabit.value = null
+  } catch {
+    toast.error('Failed to upload')
   }
 }
 
 async function deleteCompletedHabit(habit) {
   if (!confirm(`Delete "${habit.title}" and ALL its data (stats, logs, streaks, pauses)? This cannot be undone.`)) return
   try {
-    await api.delete(`/habits/${habit.id}?deleteLogs=true`)
+    await api.delete(`/habits/${habit.id}`)
     completedHabits.value = completedHabits.value.filter(h => h.id !== habit.id)
     toast.success(`"${habit.title}" deleted with all data`)
   } catch {
@@ -485,12 +376,12 @@ async function deleteCompletedHabit(habit) {
 
 async function confirmDeleteAllHabits() {
   const count = completedHabits.value.length
-  if (!confirm(`Delete ALL ${count} completed habits and ALL their data (stats, logs, streaks, pauses, wagers)? This cannot be undone.`)) return
+  if (!confirm(`Delete ALL ${count} completed habits and ALL their data? This cannot be undone.`)) return
   try {
-    await Promise.all(completedHabits.value.map(h => api.delete(`/habits/${h.id}?deleteLogs=true`)))
+    await Promise.all(completedHabits.value.map(h => api.delete(`/habits/${h.id}`)))
     completedHabits.value = []
     showCompletedHabits.value = false
-    toast.success('All completed habits deleted with their data')
+    toast.success('All completed habits deleted')
   } catch {
     toast.error('Failed to delete some habits')
   }

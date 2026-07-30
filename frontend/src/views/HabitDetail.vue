@@ -2,7 +2,7 @@
   <div class="page">
     <div class="flex items-center gap-2">
       <button @click="$router.back()" class="btn-ghost p-1"><ArrowLeft :size="18" /></button>
-      <h1 class="text-xl font-bold truncate">{{ habit.title }}</h1>
+      <h1 class="text-xl font-bold truncate">{{ habit.emoji || '' }} {{ habit.title }}</h1>
     </div>
 
     <div v-if="!editing" class="space-y-3">
@@ -11,33 +11,29 @@
 
         <div class="grid grid-cols-2 gap-3">
           <div class="text-center p-2 rounded-lg bg-gray-800/50">
-            <div class="text-lg font-bold text-emerald-400">{{ habit.currentStreak || 0 }}</div>
-            <div class="text-[10px] text-gray-500">Current Streak</div>
+            <div class="text-lg font-bold text-emerald-400">{{ habit._count?.logs || habit.totalCompletions || 0 }}</div>
+            <div class="text-[10px] text-gray-500">Total Done</div>
           </div>
           <div class="text-center p-2 rounded-lg bg-gray-800/50">
             <div class="text-lg font-bold text-amber-400">{{ habit.bestStreak || 0 }}</div>
             <div class="text-[10px] text-gray-500">Best Streak</div>
           </div>
           <div class="text-center p-2 rounded-lg bg-gray-800/50">
-            <div class="text-lg font-bold text-emerald-400">{{ habit.totalCompletions || 0 }}</div>
-            <div class="text-[10px] text-gray-500">Total Done</div>
-          </div>
-          <div class="text-center p-2 rounded-lg bg-gray-800/50">
-            <div class="text-lg font-bold text-gray-300 text-sm">{{ habit.verificationType || 'None' }}</div>
+            <div class="text-lg font-bold text-gray-300 text-sm">{{ habit.verificationType || 'honor' }}</div>
             <div class="text-[10px] text-gray-500">Verification</div>
           </div>
+          <div class="text-center p-2 rounded-lg bg-gray-800/50">
+            <div class="text-lg font-bold text-gray-300 text-sm">{{ formatRecurrence(habit) }}</div>
+            <div class="text-[10px] text-gray-500">Schedule</div>
+          </div>
         </div>
 
-        <div class="text-xs text-gray-500">
-          <span class="text-gray-600">Schedule:</span>
-          <span class="text-gray-400 ml-1">{{ formatRecurrence(habit.recurrence) }}</span>
-        </div>
-
-        <div v-if="habit.onBreak" class="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+        <div v-if="activeBreak" class="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium text-amber-400">On Pause</p>
-              <p v-if="habit.breakEndDate" class="text-xs text-gray-500">Until {{ formatDate(habit.breakEndDate) }}</p>
+              <p class="text-xs text-gray-500">Since {{ formatDate(activeBreak.startDate) }}</p>
+              <p v-if="activeBreak.reason" class="text-xs text-gray-500">{{ activeBreak.reason }}</p>
             </div>
             <button @click="endBreak" class="btn-secondary text-xs">
               <Play :size="12" /> Resume
@@ -49,7 +45,7 @@
           <button @click="editing = true" class="btn-secondary flex-1 min-w-0">
             <Pencil :size="14" /> Edit
           </button>
-          <button v-if="!habit.onBreak" @click="showBreakForm = !showBreakForm" class="btn-secondary flex-1 min-w-0">
+          <button v-if="!activeBreak" @click="showBreakForm = !showBreakForm" class="btn-secondary flex-1 min-w-0">
             <Pause :size="14" /> Pause
           </button>
           <button @click="showFinishForm = !showFinishForm" class="btn flex-1 min-w-0">
@@ -61,12 +57,8 @@
         </div>
       </div>
 
-      <div v-if="showBreakForm && !habit.onBreak" class="card space-y-3">
+      <div v-if="showBreakForm && !activeBreak" class="card space-y-3">
         <p class="section-title">Start Pause</p>
-        <div>
-          <label class="text-xs font-medium text-gray-400 mb-1 block">End date (optional)</label>
-          <input v-model="breakEndDate" type="date" class="input" />
-        </div>
         <div>
           <label class="text-xs font-medium text-gray-400 mb-1 block">Reason (optional)</label>
           <input v-model="breakReason" class="input" placeholder="e.g. Vacation, illness..." />
@@ -110,16 +102,11 @@
       <div class="card divide-y divide-gray-800">
         <div v-for="log in logs" :key="log.id" class="flex items-center gap-3 py-3">
           <span class="text-xs text-gray-500 w-16 shrink-0">{{ formatDate(log.completedAt) }}</span>
-          <span
-            class="text-xs font-medium px-1.5 py-0.5 rounded"
-            :class="(log.status === 'done' || log.status === 'completed')
-              ? 'bg-emerald-500/10 text-emerald-400'
-              : 'bg-gray-800 text-gray-500'"
-          >
-            {{ log.status || 'completed' }}
+          <span class="text-xs font-medium px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">
+            completed
           </span>
-          <div v-if="log.proofUrl" class="ml-auto shrink-0">
-            <img :src="log.proofUrl" class="w-8 h-8 rounded object-cover" alt="proof" />
+          <div v-if="log.photo" class="ml-auto shrink-0">
+            <img :src="log.photo" class="w-8 h-8 rounded object-cover" alt="proof" />
           </div>
         </div>
       </div>
@@ -135,9 +122,6 @@
             <button @click="deleteHabit(false)" class="btn-danger w-full">
               <Trash2 :size="14" /> Delete
             </button>
-            <button @click="deleteHabit(true)" class="btn w-full bg-red-600/20 text-red-400 hover:bg-red-600/30 border border-red-500/30">
-              <Trash2 :size="14" /> Delete with History
-            </button>
             <button @click="confirmDelete = false" class="btn-secondary w-full">Cancel</button>
           </div>
         </div>
@@ -147,7 +131,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../api'
 import { useToast } from 'vue-toastification'
@@ -165,15 +149,19 @@ const showBreakForm = ref(false)
 const showFinishForm = ref(false)
 const finishNote = ref('')
 const confirmDelete = ref(false)
-const breakEndDate = ref('')
 const breakReason = ref('')
+
+const activeBreak = computed(() => {
+  return habit.value.breaks?.find(b => !b.endDate) || null
+})
 
 const editForm = reactive({
   title: '',
   description: '',
-  recurrence: { type: 'daily' },
+  emoji: '🎯',
+  schedule: [1, 2, 3, 4, 5, 6, 7],
   verificationType: 'honor',
-  wagers: [],
+  config: null,
 })
 
 async function loadHabit() {
@@ -182,12 +170,14 @@ async function loadHabit() {
     habit.value = res.data.habit || res.data
     editForm.title = habit.value.title
     editForm.description = habit.value.description || ''
-    editForm.recurrence = habit.value.recurrence || { type: 'daily' }
+    editForm.emoji = habit.value.emoji || '🎯'
     editForm.verificationType = habit.value.verificationType || 'honor'
-    editForm.wagers = habit.value.wagers || []
+    editForm.config = habit.value.config || null
 
-    const logRes = await api.get('/logs', { params: { habitId: route.params.id } })
-    logs.value = logRes.data.logs || logRes.data || []
+    const sched = JSON.parse(typeof habit.value.daysPerWeek === 'string' ? habit.value.daysPerWeek : JSON.stringify(habit.value.daysPerWeek || '[]'))
+    editForm.schedule = Array.isArray(sched) ? sched : [1, 2, 3, 4, 5, 6, 7]
+
+    logs.value = habit.value.logs || []
   } catch {
     toast.error('Failed to load habit')
   }
@@ -196,7 +186,16 @@ async function loadHabit() {
 async function saveEdit() {
   if (!editForm.title.trim()) return
   try {
-    await api.put(`/habits/${route.params.id}`, editForm)
+    await api.put(`/habits/${route.params.id}`, {
+      title: editForm.title,
+      description: editForm.description,
+      emoji: editForm.emoji,
+      frequencyType: 'daily',
+      schedule: editForm.schedule,
+      daysPerWeek: editForm.schedule,
+      verificationType: editForm.verificationType,
+      config: editForm.config,
+    })
     editing.value = false
     toast.success('Habit updated')
     loadHabit()
@@ -208,12 +207,10 @@ async function saveEdit() {
 async function startBreak() {
   try {
     const payload = {}
-    if (breakEndDate.value) payload.endDate = breakEndDate.value
     if (breakReason.value.trim()) payload.reason = breakReason.value.trim()
     await api.post(`/habits/${route.params.id}/break/start`, payload)
     toast.success('Pause started')
     showBreakForm.value = false
-    breakEndDate.value = ''
     breakReason.value = ''
     loadHabit()
   } catch {
@@ -241,10 +238,9 @@ async function finishHabit() {
   }
 }
 
-async function deleteHabit(withHistory) {
+async function deleteHabit() {
   try {
-    const params = withHistory ? { deleteLogs: 'true' } : {}
-    await api.delete(`/habits/${route.params.id}`, { params })
+    await api.delete(`/habits/${route.params.id}`)
     toast.success('Habit deleted')
     router.push('/dashboard')
   } catch {
@@ -252,17 +248,19 @@ async function deleteHabit(withHistory) {
   }
 }
 
-function formatRecurrence(r) {
-  if (!r) return 'Daily'
-  if (r.type === 'daily') return 'Daily'
-  if (r.type === 'weekdays') return 'Weekdays'
-  if (r.type === 'weekends') return 'Weekends'
-  if (r.type === 'weekly') {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-    return `Weekly (${(r.days || []).map(d => days[d]).join(', ')})`
+function formatRecurrence(h) {
+  if (!h) return 'Daily'
+  if (h.frequencyType === 'daily' || h.frequencyType === 'always') return 'Daily'
+  const sched = JSON.parse(typeof h.daysPerWeek === 'string' ? h.daysPerWeek : JSON.stringify(h.daysPerWeek || '[]'))
+  if (h.frequencyType === 'days_per_week' || h.frequencyType === 'x_per_week') {
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    const names = sched.map(d => dayNames[d]).filter(Boolean)
+    if (names.length === 7) return 'Daily'
+    if (names.length === 5 && sched.every(d => d >= 1 && d <= 5)) return 'Weekdays'
+    if (names.length === 2 && sched.includes(0) && sched.includes(6)) return 'Weekends'
+    return names.join(', ')
   }
-  if (r.type === 'interval') return `Every ${r.intervalDays} days`
-  return r.type
+  return h.frequencyType || 'Daily'
 }
 
 function formatDate(d) {

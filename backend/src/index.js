@@ -15,6 +15,7 @@ const challengeRoutes = require('./routes/challenges');
 const adminRoutes = require('./routes/admin');
 const vacationRoutes = require('./routes/vacation');
 const taskRoutes = require('./routes/tasks');
+const notificationRoutes = require('./routes/notifications');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -35,7 +36,8 @@ app.use('/api/friends', friendRoutes);
 app.use('/api/challenges', challengeRoutes);
 app.use('/api/vacation', vacationRoutes);
 app.use('/api/tasks', taskRoutes);
-app.use('/api', adminRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.get('/api/health', (_, res) => res.json({ ok: true }));
 
@@ -50,4 +52,10 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`BeBetter API running on :${PORT}`);
+  try {
+    const { startScheduler } = require('./scheduler');
+    startScheduler();
+  } catch (e) {
+    console.warn('Scheduler not started:', e.message);
+  }
 });

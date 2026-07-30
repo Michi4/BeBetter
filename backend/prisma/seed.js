@@ -13,11 +13,10 @@ async function main() {
     create: {
       email: 'michael.ruep@gmail.com',
       passwordHash: adminHash,
-      name: 'Michi',
       username: 'michi',
       role: 'admin',
       isPublic: true,
-      bio: 'Building better habits every day 🔥',
+      bio: 'Building better habits every day',
     },
   });
 
@@ -28,11 +27,10 @@ async function main() {
     create: {
       email: 'demo@bebetter.local',
       passwordHash: hash,
-      name: 'Demo User',
       username: 'demo',
       role: 'user',
       isPublic: true,
-      bio: 'Building better habits every day 🔥',
+      bio: 'Building better habits every day',
     },
   });
 
@@ -43,10 +41,9 @@ async function main() {
     create: {
       email: 'alex@bebetter.local',
       passwordHash: hash2,
-      name: 'Alex Smith',
       username: 'alex',
       isPublic: true,
-      bio: 'Fitness enthusiast 💪',
+      bio: 'Fitness enthusiast',
     },
   });
 
@@ -59,31 +56,41 @@ async function main() {
     {
       title: 'Morning Workout',
       description: '30 min exercise',
-      recurrence: { type: 'daily' },
+      emoji: '💪',
+      frequencyType: 'daily',
+      daysPerWeek: JSON.stringify([1, 2, 3, 4, 5, 6, 7]),
       verificationType: 'be_better_cam',
     },
     {
       title: 'Read 20 Pages',
       description: 'Non-fiction book',
-      recurrence: { type: 'daily' },
+      emoji: '📖',
+      frequencyType: 'daily',
+      daysPerWeek: JSON.stringify([1, 2, 3, 4, 5, 6, 7]),
       verificationType: 'honor',
     },
     {
       title: 'Meditate',
       description: '10 min mindfulness',
-      recurrence: { type: 'weekly', days: ['mon', 'wed', 'fri'] },
+      emoji: '🧘',
+      frequencyType: 'days_per_week',
+      daysPerWeek: JSON.stringify([1, 3, 5]),
       verificationType: 'honor',
     },
     {
       title: 'No Social Media',
       description: 'Avoid Instagram/TikTok',
-      recurrence: { type: 'daily' },
+      emoji: '📵',
+      frequencyType: 'daily',
+      daysPerWeek: JSON.stringify([1, 2, 3, 4, 5, 6, 7]),
       verificationType: 'honor',
     },
     {
       title: 'Cold Shower',
       description: '2 min cold water',
-      recurrence: { type: 'daily' },
+      emoji: '🧊',
+      frequencyType: 'daily',
+      daysPerWeek: JSON.stringify([1, 2, 3, 4, 5, 6, 7]),
       verificationType: 'be_better_cam',
     },
   ];
@@ -105,13 +112,13 @@ async function main() {
   for (let i = 1; i <= 60; i++) {
     const date = new Date(now);
     date.setDate(date.getDate() - i);
-    const dayName = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][date.getDay()];
+    const dayOfWeek = date.getDay();
 
     for (const habit of createdHabits) {
-      const rec = habit.recurrence;
+      const sched = JSON.parse(habit.daysPerWeek || '[]');
       let scheduled = false;
-      if (rec.type === 'daily') scheduled = true;
-      if (rec.type === 'weekly' && rec.days && rec.days.includes(dayName)) scheduled = true;
+      if (habit.frequencyType === 'daily') scheduled = true;
+      if (habit.frequencyType === 'days_per_week' && sched.includes(dayOfWeek)) scheduled = true;
       if (!scheduled) continue;
 
       if (Math.random() < 0.7) {
@@ -122,7 +129,6 @@ async function main() {
             habitId: habit.id,
             userId: user.id,
             completedAt: logDate,
-            status: 'completed',
           },
         });
       }
@@ -134,56 +140,46 @@ async function main() {
       title: '5AM Club Morning Routine',
       description: 'Wake at 5am, hydrate, journal, move. Start the day ahead.',
       category: 'routine',
-      config: {
-        title: '5AM Morning Routine',
-        description: 'Wake at 5am, drink water, journal 10 min, 15 min stretching',
-        recurrence: { type: 'daily' },
-        verificationType: 'be_better_cam',
-      },
+      emoji: '🌅',
+      frequencyType: 'daily',
+      daysPerWeek: JSON.stringify([1, 2, 3, 4, 5, 6, 7]),
+      verificationType: 'be_better_cam',
     },
     {
       title: '30-Day Fitness Challenge',
       description: 'Daily workout for 30 days straight. Build the habit.',
       category: 'fitness',
-      config: {
-        title: 'Daily Workout',
-        description: '30 min minimum - any activity counts',
-        recurrence: { type: 'daily' },
-        verificationType: 'be_better_cam',
-      },
+      emoji: '💪',
+      frequencyType: 'daily',
+      daysPerWeek: JSON.stringify([1, 2, 3, 4, 5, 6, 7]),
+      verificationType: 'be_better_cam',
     },
     {
       title: 'Digital Detox Weekends',
       description: 'No social media on weekends. Reclaim your attention.',
       category: 'mindfulness',
-      config: {
-        title: 'No Social Media (Weekends)',
-        description: 'Zero Instagram, TikTok, Twitter on Sat & Sun',
-        recurrence: { type: 'weekly', days: ['sat', 'sun'] },
-        verificationType: 'honor',
-      },
+      emoji: '📵',
+      frequencyType: 'days_per_week',
+      daysPerWeek: JSON.stringify([0, 6]),
+      verificationType: 'honor',
     },
     {
       title: 'Read Every Day',
       description: '20 pages of non-fiction daily. Compound your knowledge.',
       category: 'learning',
-      config: {
-        title: 'Read 20 Pages',
-        description: 'Non-fiction book, physical or ebook',
-        recurrence: { type: 'daily' },
-        verificationType: 'honor',
-      },
+      emoji: '📖',
+      frequencyType: 'daily',
+      daysPerWeek: JSON.stringify([1, 2, 3, 4, 5, 6, 7]),
+      verificationType: 'honor',
     },
     {
       title: 'Cold Exposure Protocol',
       description: 'Cold shower every morning. Builds discipline and resilience.',
       category: 'wellness',
-      config: {
-        title: 'Cold Shower',
-        description: '2 minutes of cold water at end of shower',
-        recurrence: { type: 'daily' },
-        verificationType: 'be_better_cam',
-      },
+      emoji: '🧊',
+      frequencyType: 'daily',
+      daysPerWeek: JSON.stringify([1, 2, 3, 4, 5, 6, 7]),
+      verificationType: 'be_better_cam',
     },
   ];
 
@@ -191,7 +187,18 @@ async function main() {
     const exists = await prisma.preset.findFirst({ where: { title: p.title } });
     if (!exists) {
       await prisma.preset.create({
-        data: { ...p, authorId: user.id, likesCount: Math.floor(Math.random() * 50) },
+        data: {
+          title: p.title,
+          description: p.description,
+          category: p.category,
+          emoji: p.emoji,
+          frequencyType: p.frequencyType,
+          daysPerWeek: p.daysPerWeek,
+          verificationType: p.verificationType,
+          authorId: user.id,
+          authorName: user.username,
+          likesCount: Math.floor(Math.random() * 50),
+        },
       });
     }
   }

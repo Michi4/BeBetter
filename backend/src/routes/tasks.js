@@ -4,96 +4,62 @@ const { authMiddleware } = require('../middleware/auth');
 
 const router = Router();
 const prisma = new PrismaClient();
-router.use(authMiddleware);
 
-router.get('/today', async (req, res) => {
+router.get('/', authMiddleware, async (req, res) => {
   try {
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
+    const { date } = req.query;
+    const d = date ? new Date(date) : new Date();
+    d.setHours(0, 0, 0, 0);
 
-    const tasks = await prisma.task.findMany({
+    const vacation = await prisma.vacation.findFirst({
       where: {
         userId: req.userId,
-        completed: false,
-        OR: [
-          { dueDate: null },
-          { dueDate: { gte: todayStart, lte: todayEnd } },
-        ],
+        startDate: { lte: d },
+        OR: [{ endDate: null }, { endDate: { gte: d } }],
       },
-      include: { _count: { select: { logs: true } } },
-      orderBy: { createdAt: 'desc' },
     });
-
-    res.json({ tasks });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-router.get('/', async (req, res) => {
-  try {
-    const where = { userId: req.userId };
-
-    if (req.query.completed === 'true') {
-      where.completed = true;
-    } else if (req.query.completed === 'false') {
-      where.completed = false;
-    }
-
-    if (req.query.date) {
-      const date = new Date(req.query.date + 'T00:00:00.000Z');
-      const nextDay = new Date(req.query.date + 'T23:59:59.999Z');
-      where.OR = [
-        { dueDate: { gte: date, lte: nextDay } },
-        { dueDate: null, completed: false },
-      ];
-    }
 
     const tasks = await prisma.task.findMany({
-      where,
-      include: { _count: { select: { logs: true } } },
-      orderBy: { createdAt: 'desc' },
+      where: { userId: req.userId, isActive: true },
+      orderBy: [{ dueDate: 'asc' }, { createdAt: 'desc' }],
+      include: { tags: true },
     });
 
-    res.json({ tasks });
+    const completedToday = await prisma.taskLog.findMany({
+      where: { userId: req.userId, completedAt: d },
+      select: { taskId: true },
+    });
+    const completedIds = new Set(completedToday.map((l) => l.taskId));
+
+    const result = tasks.map((t) => {
+      const isCompletedToday = completedIds.has(t.id);
+      return { ...t, isCompletedToday };
+    });
+
+    res.json({ tasks: result, isOnVacation: !!vacation });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { title, description, dueDate, isScheduled } = req.body;
-    if (!title) return res.status(400).json({ error: 'Title is required' });
+    const { title, description, emoji, dueDate, isScheduled, isEveryday } = req.body;
+    if (!title) return res.status(400).json({ error: 'Title required' });
 
     const task = await prisma.task.create({
       data: {
         userId: req.userId,
-        title,
-        description: description || null,
-        dueDate: dueDate ? new Date(dueDate) : null,
-        isScheduled: isScheduled || false,
+        title: title.trim(),
+        description: description || '',
+        emoji: emoji || '📝',
+        dueDate: dueDate ? new Date(dueDate) : undefined,
+        isScheduled: isScheduled !== false,
+        isEveryday: isEveryday || false,
       },
     });
 
-    res.status(201).json({ task });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-router.get('/:id', async (req, res) => {
-  try {
-    const task = await prisma.task.findFirst({
-      where: { id: req.params.id, userId: req.userId },
-      include: { logs: { orderBy: { completedAt: 'desc' } } },
-    });
-    if (!task) return res.status(404).json({ error: 'Not found' });
     res.json({ task });
   } catch (e) {
     console.error(e);
@@ -101,32 +67,79 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.put('/:id', async (req, res) => {
+router.post('/:id/complete', authMiddleware, async (req, res) => {
   try {
-    const task = await prisma.task.findFirst({
-      where: { id: req.params.id, userId: req.userId },
+    const { id } = req.params;
+    const { note } = req.body;
+
+    const task = await prisma.task.findUnique({ where: { id } });
+    if (!task || task.userId !== req.userId) return res.status(404).json({ error: 'Not found' });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const existing = await prisma.taskLog.findFirst({
+      where: {
+        taskId: id,
+        userId: req.userId,
+        completedAt: today,
+      },
     });
-    if (!task) return res.status(404).json({ error: 'Not found' });
+    if (existing) return res.status(400).json({ error: 'Already completed today' });
 
-    const { title, description, dueDate, completed, finishNote } = req.body;
+    const log = await prisma.taskLog.create({
+      data: {
+        taskId: id,
+        userId: req.userId,
+        note: note || '',
+        completedAt: today,
+      },
+    });
 
-    const data = {};
-    if (title !== undefined) data.title = title;
-    if (description !== undefined) data.description = description;
-    if (dueDate !== undefined) data.dueDate = dueDate ? new Date(dueDate) : null;
-    if (finishNote !== undefined) data.finishNote = finishNote;
-    if (completed !== undefined) {
-      data.completed = completed;
-      if (completed && !task.completed) {
-        data.completedAt = new Date();
-      } else if (!completed) {
-        data.completedAt = null;
-      }
-    }
+    res.json({ log });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.get('/completed', authMiddleware, async (req, res) => {
+  try {
+    const { date } = req.query;
+    const d = date ? new Date(date) : new Date();
+    d.setHours(0, 0, 0, 0);
+
+    const logs = await prisma.taskLog.findMany({
+      where: { userId: req.userId, completedAt: d },
+      include: { task: { select: { id: true, title: true, emoji: true } } },
+    });
+
+    res.json({ logs });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.put('/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const task = await prisma.task.findUnique({ where: { id } });
+    if (!task || task.userId !== req.userId) return res.status(404).json({ error: 'Not found' });
+
+    const { title, description, emoji, dueDate, isActive, isScheduled, isEveryday } = req.body;
 
     const updated = await prisma.task.update({
-      where: { id: req.params.id },
-      data,
+      where: { id },
+      data: {
+        title: title !== undefined ? title.trim() : undefined,
+        description: description !== undefined ? description : undefined,
+        emoji: emoji !== undefined ? emoji : undefined,
+        dueDate: dueDate !== undefined ? (dueDate ? new Date(dueDate) : null) : undefined,
+        isActive: isActive !== undefined ? isActive : undefined,
+        isScheduled: isScheduled !== undefined ? isScheduled : undefined,
+        isEveryday: isEveryday !== undefined ? isEveryday : undefined,
+      },
     });
 
     res.json({ task: updated });
@@ -136,15 +149,14 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authMiddleware, async (req, res) => {
   try {
-    const task = await prisma.task.findFirst({
-      where: { id: req.params.id, userId: req.userId },
-    });
-    if (!task) return res.status(404).json({ error: 'Not found' });
+    const { id } = req.params;
+    const task = await prisma.task.findUnique({ where: { id } });
+    if (!task || task.userId !== req.userId) return res.status(404).json({ error: 'Not found' });
 
-    await prisma.taskLog.deleteMany({ where: { taskId: req.params.id } });
-    await prisma.task.delete({ where: { id: req.params.id } });
+    await prisma.taskLog.deleteMany({ where: { taskId: id } });
+    await prisma.task.delete({ where: { id } });
 
     res.json({ ok: true });
   } catch (e) {
@@ -153,33 +165,20 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-router.post('/:id/complete', async (req, res) => {
+router.delete('/:id/uncomplete', authMiddleware, async (req, res) => {
   try {
-    const task = await prisma.task.findFirst({
-      where: { id: req.params.id, userId: req.userId },
+    const { id } = req.params;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const log = await prisma.taskLog.findFirst({
+      where: { taskId: id, userId: req.userId, completedAt: today },
     });
-    if (!task) return res.status(404).json({ error: 'Not found' });
+    if (!log) return res.status(404).json({ error: 'No completion found' });
 
-    const { note, proofUrl } = req.body;
+    await prisma.taskLog.delete({ where: { id: log.id } });
 
-    const log = await prisma.taskLog.create({
-      data: {
-        taskId: req.params.id,
-        userId: req.userId,
-        note: note || null,
-        proofUrl: proofUrl || null,
-      },
-    });
-
-    const updated = await prisma.task.update({
-      where: { id: req.params.id },
-      data: {
-        completed: true,
-        completedAt: new Date(),
-      },
-    });
-
-    res.status(201).json({ task: updated, log });
+    res.json({ ok: true });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Server error' });
