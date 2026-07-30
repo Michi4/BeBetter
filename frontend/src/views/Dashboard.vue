@@ -14,6 +14,17 @@
       </div>
     </div>
 
+    <!-- Desktop quick input -->
+    <div class="hidden md:block card">
+      <div class="flex gap-2">
+        <input v-model="quickTaskTitle" @keydown.enter="createQuickTask"
+          class="input flex-1" placeholder="Add a quick task..." />
+        <button @click="createQuickTask" class="btn px-4" :disabled="!quickTaskTitle.trim()">
+          <Plus :size="16" /> Add
+        </button>
+      </div>
+    </div>
+
     <!-- Stats Row -->
     <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
       <div class="card text-center py-3">
@@ -121,6 +132,7 @@ const selectedDay = ref(null)
 const camHabit = ref(null)
 const isOnVacation = ref(false)
 const showCreateModal = ref(false)
+const quickTaskTitle = ref('')
 
 const stats = ref({})
 const todayTasks = ref([])
@@ -134,6 +146,18 @@ const visibleTasks = computed(() => {
   if (showAllTasks.value || todayTasks.value.length <= 5) return todayTasks.value
   return todayTasks.value.slice(0, 5)
 })
+
+async function createQuickTask() {
+  if (!quickTaskTitle.value.trim()) return
+  try {
+    const res = await api.post('/tasks', { title: quickTaskTitle.value.trim() })
+    todayTasks.value.unshift(res.data.task || res.data)
+    quickTaskTitle.value = ''
+    toast.success('Task created')
+  } catch {
+    toast.error('Failed to create task')
+  }
+}
 
 async function loadStats() {
   try {

@@ -74,18 +74,19 @@
 
       <!-- Create as Public Preset -->
       <div v-if="showPresetOption">
-        <div class="flex items-center gap-3 p-3 rounded-lg bg-gray-800/50 border border-gray-700">
-          <button type="button" @click="form.createPreset = !form.createPreset"
-            class="shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all"
+        <button type="button" @click="form.createPreset = !form.createPreset"
+          class="w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left"
+          :class="form.createPreset ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-gray-800/50 border-gray-700 hover:border-gray-600'">
+          <div class="shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all"
             :class="form.createPreset ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-600'">
             <Check v-if="form.createPreset" :size="12" :stroke-width="3" />
-          </button>
+          </div>
           <div class="flex-1 min-w-0">
-            <div class="text-xs font-medium text-gray-300">Publish as public preset</div>
+            <div class="text-xs font-medium" :class="form.createPreset ? 'text-emerald-300' : 'text-gray-300'">Publish as public preset</div>
             <div class="text-[10px] text-gray-500">Others can discover and use this habit template</div>
           </div>
-          <Globe :size="16" class="text-gray-600 shrink-0" />
-        </div>
+          <Globe :size="16" :class="form.createPreset ? 'text-emerald-400' : 'text-gray-600'" class="shrink-0" />
+        </button>
         <div v-if="form.createPreset" class="mt-2 pl-8">
           <label class="text-xs font-medium text-gray-400 mb-1 block">Category</label>
           <select v-model="form.presetCategory" class="input text-xs">

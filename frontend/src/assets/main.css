@@ -64,21 +64,20 @@
   .touch-target { min-width: 44px; min-height: 44px; }
 }
 
-/* Custom scrollbar for ContributionGrid on mobile */
+/* Styled scrollbar for ContributionGrid */
 .grid-scroll::-webkit-scrollbar {
-  height: 4px;
+  height: 6px;
 }
 .grid-scroll::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(255,255,255,0.04);
+  border-radius: 3px;
 }
 .grid-scroll::-webkit-scrollbar-thumb {
-  background: rgba(16, 185, 129, 0.3);
-  border-radius: 4px;
+  background: rgba(16, 185, 129, 0.35);
+  border-radius: 3px;
 }
-@media (min-width: 768px) {
-  .grid-scroll::-webkit-scrollbar {
-    height: 6px;
-  }
+.grid-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.55);
 }
 
 /* ============================================

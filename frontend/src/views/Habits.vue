@@ -1,5 +1,16 @@
 <template>
   <div class="page pb-32 md:pb-24">
+    <!-- Desktop quick input -->
+    <div class="hidden md:block card">
+      <div class="flex gap-2">
+        <input v-model="quickTaskTitle" @keydown.enter="createQuickTask"
+          class="input flex-1" placeholder="Add a quick task..." />
+        <button @click="createQuickTask" class="btn px-4" :disabled="!quickTaskTitle.trim()">
+          <Plus :size="16" /> Add
+        </button>
+      </div>
+    </div>
+
     <!-- Tasks Section -->
     <section class="space-y-3">
       <div class="flex items-center gap-2">
@@ -166,6 +177,7 @@ const selectedDate = ref(new Date().toISOString().slice(0, 10))
 const scheduledForDay = ref([])
 const historyTasks = ref([])
 const showCreateModal = ref(false)
+const quickTaskTitle = ref('')
 
 const completingTaskId = ref(null)
 const completingHabitId = ref(null)
@@ -293,6 +305,18 @@ async function convertTask(task) {
     toast.info('Task removed. Create a habit instead!')
     showCreateModal.value = true
   } catch {}
+}
+
+async function createQuickTask() {
+  if (!quickTaskTitle.value.trim()) return
+  try {
+    const res = await api.post('/tasks', { title: quickTaskTitle.value.trim() })
+    incompleteTasks.value.unshift(res.data.task || res.data)
+    quickTaskTitle.value = ''
+    toast.success('Task created')
+  } catch {
+    toast.error('Failed to create task')
+  }
 }
 
 async function loadAll() {

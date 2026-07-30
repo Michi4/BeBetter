@@ -25,24 +25,26 @@
       <div v-if="searching" class="text-center py-4">
         <Loader2 :size="18" class="animate-spin mx-auto text-gray-500" />
       </div>
-      <div v-else-if="searchResults.length" class="space-y-1">
-        <router-link
-          v-for="u in searchResults"
-          :key="u.id"
-          :to="`/profile/${u.username || u.id}`"
-          class="flex items-center gap-3 p-2 min-h-[44px] rounded-lg hover:bg-gray-800 transition-colors"
-        >
+      <div v-else-if="filteredResults.length" class="space-y-1">
+        <div v-for="u in filteredResults" :key="u.id"
+          class="flex items-center gap-3 p-2 min-h-[44px] rounded-lg hover:bg-gray-800 transition-colors">
           <div v-if="u.avatar" class="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
             <img :src="u.avatar" :alt="u.username" class="w-full h-full object-cover" />
           </div>
           <div v-else class="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-xs font-bold flex-shrink-0">
             {{ (u.username || 'U')[0].toUpperCase() }}
           </div>
-          <div class="min-w-0">
+          <div class="min-w-0 flex-1">
             <div class="text-sm font-medium truncate">@{{ u.username }}</div>
             <div v-if="u.bio" class="text-xs text-gray-500 truncate">{{ u.bio }}</div>
           </div>
-        </router-link>
+          <button v-if="!u.isFriend && !u.hasPendingRequest" @click="sendRequest(u)"
+            class="btn text-xs px-3 py-1.5 min-h-[36px] shrink-0">
+            <UserPlus :size="14" /> Add
+          </button>
+          <span v-else-if="u.hasPendingRequest" class="text-xs text-gray-500 shrink-0">Requested</span>
+          <span v-else class="text-xs text-emerald-400 shrink-0">Friend</span>
+        </div>
       </div>
       <p v-else-if="searchQuery.length >= 2" class="text-sm text-gray-500 text-center py-2">No users found</p>
     </div>
@@ -99,11 +101,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import api from '../api'
-import { useAuthStore } from '../stores/auth'
 import { useToast } from 'vue-toastification'
 import { Copy, Check, Loader2, UserPlus } from 'lucide-vue-next'
 
-const auth = useAuthStore()
 const toast = useToast()
 
 const searchQuery = ref('')
@@ -112,12 +112,22 @@ const searching = ref(false)
 const pendingRequests = ref([])
 const friends = ref([])
 const friendToken = ref('')
+const friendIds = ref(new Set())
+const pendingRequestIds = ref(new Set())
 
 const inviteLink = computed(() => {
   if (friendToken.value) {
     return `${window.location.origin}/friend/accept/${friendToken.value}`
   }
   return 'Generating link...'
+})
+
+const filteredResults = computed(() => {
+  return searchResults.value.map(u => ({
+    ...u,
+    isFriend: friendIds.value.has(u.id),
+    hasPendingRequest: pendingRequestIds.value.has(u.id),
+  }))
 })
 
 function copyInvite() {
@@ -136,12 +146,22 @@ function searchUsers() {
   searchTimeout = setTimeout(async () => {
     try {
       const res = await api.get('/friends/search', { params: { q: searchQuery.value } })
-      searchResults.value = (res.data.users || []).slice(0, 5)
+      searchResults.value = (res.data.users || []).slice(0, 10)
     } catch {
       searchResults.value = []
     }
     searching.value = false
   }, 300)
+}
+
+async function sendRequest(user) {
+  try {
+    await api.post('/friends/request', { userId: user.id })
+    pendingRequestIds.value.add(user.id)
+    toast.success(`Request sent to @${user.username}`)
+  } catch (e) {
+    toast.error(e.response?.data?.error || 'Failed to send request')
+  }
 }
 
 async function acceptRequest(requestId) {
@@ -172,7 +192,9 @@ async function loadAll() {
       api.post('/friends/link'),
     ])
     friends.value = friendsRes.data.friends || []
+    friendIds.value = new Set(friends.value.map(f => f.id))
     pendingRequests.value = requestsRes.data.requests || []
+    pendingRequestIds.value = new Set(pendingRequests.value.map(r => r.requesterId))
     friendToken.value = linkRes.data.token || ''
   } catch {
     toast.error('Failed to load friends')
