@@ -1,6 +1,6 @@
 <template>
   <Teleport to="body">
-    <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60" @click.self="$emit('close')">
+    <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60" @click.self="$emit('close')" @keydown.escape="$emit('close')" tabindex="-1" ref="modalEl">
       <div class="card w-full max-w-md mx-4 max-h-[80vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-4">
           <h3 class="font-semibold">{{ formatDate(day?.date) }}</h3>
@@ -47,9 +47,16 @@
 
 <script setup>
 import { X, CheckCircle2, Circle } from 'lucide-vue-next'
+import { ref, watch, nextTick } from 'vue'
 
-defineProps({ show: Boolean, day: Object })
+const props = defineProps({ show: Boolean, day: Object })
 defineEmits(['close'])
+
+const modalEl = ref(null)
+
+watch(() => props.show, (val) => {
+  if (val) nextTick(() => modalEl.value?.focus())
+})
 
 function formatDate(d) {
   if (!d) return ''

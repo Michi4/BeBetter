@@ -1,8 +1,8 @@
 <template>
   <div class="select-none" ref="container">
     <div v-if="weeks.length">
-      <!-- Scroll wrapper for mobile -->
-      <div class="overflow-x-auto no-scrollbar -mx-1 px-1" ref="scrollRef" @scroll="onScroll">
+      <!-- Scroll wrapper -->
+      <div class="overflow-x-auto -mx-1 px-1 grid-scroll" ref="scrollRef" @scroll="onScroll" @wheel="onWheel">
         <div :style="{ width: gridWidth + 'px', minWidth: '100%' }">
           <!-- Month labels row -->
           <div class="relative h-[18px] mb-[3px]">
@@ -43,7 +43,7 @@
         </div>
       </div>
 
-      <!-- Scroll indicator (mobile only) -->
+      <!-- Scroll indicator -->
       <div v-if="isScrollable" class="relative mt-2 h-[3px] rounded-full bg-gray-800/60 mx-1">
         <div
           class="absolute top-0 left-0 h-full rounded-full bg-emerald-500/70 transition-all duration-75"
@@ -107,10 +107,8 @@ const isMobile = computed(() => containerW.value < 500)
 
 const cell = computed(() => {
   if (isMobile.value) return MIN_CELL
-  const wks = weeks.value.length || 53
-  const avail = containerW.value - DAY_LABEL_W - GAP
-  const c = Math.floor((avail + GAP) / wks - GAP)
-  return Math.min(Math.max(c, MIN_CELL), MAX_CELL)
+  // On desktop, keep a good cell size (12px) so grid overflows and is scrollable
+  return 12
 })
 
 const dayLabelW = DAY_LABEL_W
@@ -260,6 +258,20 @@ function onCellLeave() {
 
 function onScroll() {
   if (scrollRef.value) scrollLeft.value = scrollRef.value.scrollLeft
+}
+
+function onWheel(e) {
+  if (!scrollRef.value) return
+  const el = scrollRef.value
+  const maxScroll = el.scrollWidth - el.clientWidth
+  if (maxScroll <= 0) return
+  if (!e.shiftKey) {
+    // Don't prevent default if at left edge scrolling left, or right edge scrolling right
+    if (e.deltaY < 0 && el.scrollLeft <= 0) return
+    if (e.deltaY > 0 && el.scrollLeft >= maxScroll - 1) return
+    e.preventDefault()
+    el.scrollLeft += e.deltaY
+  }
 }
 
 function getCellClass(day) {

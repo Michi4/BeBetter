@@ -1,7 +1,12 @@
 <template>
   <Teleport to="body">
-    <div v-if="show" class="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60" @click.self="$emit('close')">
-      <div class="card w-full max-w-md mx-0 sm:mx-4 max-h-[85vh] overflow-y-auto rounded-b-none sm:rounded-xl safe-bottom">
+    <div v-if="show" class="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60" @click.self="$emit('close')" @keydown.escape="$emit('close')" ref="modalEl" tabindex="-1">
+      <div class="card w-full max-w-md mx-0 sm:mx-4 max-h-[85vh] overflow-y-auto rounded-b-none sm:rounded-xl safe-bottom relative">
+        <!-- Close button -->
+        <button @click="$emit('close')" class="absolute top-3 right-3 z-10 p-1.5 rounded-lg text-gray-400 hover:text-gray-200 hover:bg-gray-700/50 transition-colors touch-target">
+          <X :size="18" />
+        </button>
+
         <!-- Tabs -->
         <div class="flex gap-1 p-1 bg-gray-800/50 rounded-xl mb-4">
           <button @click="mode = 'task'" class="flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors"
@@ -115,7 +120,7 @@
                 <button type="button" @click="habitForm.makePublic = !habitForm.makePublic"
                   class="shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all"
                   :class="habitForm.makePublic ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-600'">
-                  <Check :size="12" :stroke-width="3" />
+                  <Check v-if="habitForm.makePublic" :size="12" :stroke-width="3" />
                 </button>
                 <div class="flex-1 min-w-0">
                   <div class="text-xs font-medium text-gray-300">Publish as public preset</div>
@@ -130,11 +135,6 @@
             <Target :size="16" /> Create Habit
           </button>
         </div>
-
-        <!-- Close button -->
-        <button @click="$emit('close')" class="absolute top-3 right-3 text-gray-400 hover:text-gray-200 transition-colors">
-          <X :size="18" />
-        </button>
       </div>
     </div>
   </Teleport>
@@ -151,6 +151,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'created', 'convertToHabit'])
 
+const modalEl = ref(null)
 const mode = ref(props.initialMode)
 const showAdvanced = ref(false)
 
@@ -186,6 +187,7 @@ watch(() => props.show, (val) => {
     habitForm.makePublic = false
     scheduleType.value = 'daily'
     nextTick(() => {
+      modalEl.value?.focus()
       if (mode.value === 'task') {
         document.querySelector('[ref="taskInput"]')?.focus()
       }

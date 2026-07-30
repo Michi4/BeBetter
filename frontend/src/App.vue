@@ -3,10 +3,23 @@
     <!-- Top bar -->
     <nav class="border-b border-gray-800/60 bg-gray-900/80 backdrop-blur-xl sticky top-0 z-50 safe-top">
       <div class="max-w-3xl mx-auto px-4 h-12 flex items-center justify-between">
-        <router-link to="/dashboard" class="flex items-center gap-2 font-bold text-lg shrink-0">
-          <Logo :size="28" />
-          <span class="bg-gradient-to-r from-emerald-400 to-emerald-300 bg-clip-text text-transparent">BeBetter</span>
-        </router-link>
+        <div class="flex items-center gap-2 shrink-0">
+          <router-link to="/dashboard" class="flex items-center gap-2 font-bold text-lg">
+            <Logo :size="28" />
+            <span class="bg-gradient-to-r from-emerald-400 to-emerald-300 bg-clip-text text-transparent">BeBetter</span>
+          </router-link>
+          <!-- Desktop nav links -->
+          <template v-if="auth.user">
+            <div class="hidden md:flex items-center gap-1 ml-4">
+              <router-link v-for="item in desktopNavItems" :key="item.to" :to="item.to"
+                class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                :class="isActive(item.to) ? 'text-emerald-400 bg-emerald-500/10' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'">
+                <component :is="item.icon" :size="14" />
+                {{ item.label }}
+              </router-link>
+            </div>
+          </template>
+        </div>
         <div class="flex items-center gap-1 shrink-0">
           <button @click="toggleTheme" class="p-2.5 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition-colors touch-target">
             <Sun v-if="isDark" :size="18" />
@@ -49,13 +62,28 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
-import { LogOut, LayoutDashboard, ListTodo, Users, Trophy, BookOpen, Shield, Sun, Moon } from 'lucide-vue-next'
+import { LogOut, LayoutDashboard, ListTodo, Users, Trophy, BookOpen, Shield, Sun, Moon, Bell } from 'lucide-vue-next'
 import Logo from './components/Logo.vue'
 
 const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
 const isDark = ref(true)
+
+const desktopNavItems = computed(() => {
+  const items = [
+    { to: '/dashboard', label: 'Home', icon: LayoutDashboard },
+    { to: '/habits', label: 'Habits', icon: ListTodo },
+    { to: '/friends', label: 'Friends', icon: Users },
+    { to: '/leaderboard', label: 'Ranks', icon: Trophy },
+    { to: '/presets', label: 'Presets', icon: BookOpen },
+    { to: '/notifications', label: 'Alerts', icon: Bell },
+  ]
+  if (auth.user?.role === 'admin') {
+    items.push({ to: '/admin', label: 'Admin', icon: Shield })
+  }
+  return items
+})
 
 const bottomNavItems = computed(() => {
   const items = [

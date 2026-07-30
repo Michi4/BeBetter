@@ -78,7 +78,7 @@
           <button type="button" @click="form.createPreset = !form.createPreset"
             class="shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all"
             :class="form.createPreset ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-600'">
-            <Check :size="12" :stroke-width="3" />
+            <Check v-if="form.createPreset" :size="12" :stroke-width="3" />
           </button>
           <div class="flex-1 min-w-0">
             <div class="text-xs font-medium text-gray-300">Publish as public preset</div>

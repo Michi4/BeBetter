@@ -64,6 +64,23 @@
   .touch-target { min-width: 44px; min-height: 44px; }
 }
 
+/* Custom scrollbar for ContributionGrid on mobile */
+.grid-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+.grid-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.grid-scroll::-webkit-scrollbar-thumb {
+  background: rgba(16, 185, 129, 0.3);
+  border-radius: 4px;
+}
+@media (min-width: 768px) {
+  .grid-scroll::-webkit-scrollbar {
+    height: 6px;
+  }
+}
+
 /* ============================================
    Toast — small, top-center, clickable feel
    ============================================ */

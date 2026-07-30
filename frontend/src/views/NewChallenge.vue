@@ -6,15 +6,29 @@
     </div>
 
     <div class="card space-y-4">
+      <!-- Habit picker -->
+      <div>
+        <label class="text-xs font-medium text-gray-400 mb-1 block">Habit to challenge on</label>
+        <div v-if="habits.length" class="space-y-1">
+          <button v-for="h in habits" :key="h.id" @click="form.habitId = h.id"
+            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-left"
+            :class="form.habitId === h.id ? 'bg-emerald-600/20 border border-emerald-500/40' : 'hover:bg-gray-800 border border-transparent'">
+            <span class="text-lg">{{ h.emoji || '🎯' }}</span>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-medium truncate">{{ h.title }}</div>
+              <div class="text-xs text-gray-500">{{ h.frequencyType || 'daily' }}</div>
+            </div>
+            <Check v-if="form.habitId === h.id" :size="16" class="text-emerald-400 shrink-0" />
+          </button>
+        </div>
+        <p v-else class="text-sm text-gray-500">No active habits to challenge on.</p>
+      </div>
+
+      <!-- Opponent -->
       <div>
         <label class="text-xs font-medium text-gray-400 mb-1 block">Opponent</label>
-        <input
-          v-model="searchQuery"
-          @input="debouncedSearch"
-          type="text"
-          placeholder="Search friends..."
-          class="input"
-        />
+        <input v-model="searchQuery" @input="debouncedSearch" type="text"
+          placeholder="Search friends..." class="input" />
         <div v-if="form.opponentId" class="mt-2 flex items-center gap-2">
           <div class="w-7 h-7 rounded-full bg-emerald-600 flex items-center justify-center text-xs font-bold shrink-0">
             {{ (form.opponentName || 'U')[0].toUpperCase() }}
@@ -25,18 +39,13 @@
           </button>
         </div>
         <div v-else-if="searchResults.length" class="mt-2 space-y-1">
-          <button
-            v-for="u in searchResults"
-            :key="u.id"
-            @click="selectOpponent(u)"
-            class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-800 transition-colors duration-150 text-left"
-          >
+          <button v-for="u in searchResults" :key="u.id" @click="selectOpponent(u)"
+            class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-800 transition-colors text-left">
             <div class="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold shrink-0">
-              {{ (u.name || 'U')[0].toUpperCase() }}
+              {{ (u.username || 'U')[0].toUpperCase() }}
             </div>
             <div class="min-w-0">
-              <div class="text-sm truncate">{{ u.name }}</div>
-              <div class="text-xs text-gray-500 truncate">@{{ u.username }}</div>
+              <div class="text-sm truncate">{{ u.username }}</div>
             </div>
           </button>
         </div>
@@ -45,25 +54,10 @@
         </p>
       </div>
 
+      <!-- End date -->
       <div>
-        <label class="text-xs font-medium text-gray-400 mb-1 block">Title</label>
-        <input v-model="form.title" class="input" placeholder="e.g. 30-Day Pushup Challenge" />
-      </div>
-
-      <div>
-        <label class="text-xs font-medium text-gray-400 mb-1 block">Stake</label>
-        <input v-model="form.stake" class="input" placeholder="e.g. Loser buys coffee" />
-      </div>
-
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="text-xs font-medium text-gray-400 mb-1 block">Start date</label>
-          <input v-model="form.startDate" type="date" class="input" />
-        </div>
-        <div>
-          <label class="text-xs font-medium text-gray-400 mb-1 block">End date</label>
-          <input v-model="form.endDate" type="date" class="input" />
-        </div>
+        <label class="text-xs font-medium text-gray-400 mb-1 block">End date (optional, defaults to 30 days)</label>
+        <input v-model="form.endDate" type="date" class="input" />
       </div>
 
       <button @click="createChallenge" class="btn w-full" :disabled="!isValid">
@@ -74,27 +68,26 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api'
 import { useToast } from 'vue-toastification'
-import { ArrowLeft, X, Trophy } from 'lucide-vue-next'
+import { ArrowLeft, X, Trophy, Check } from 'lucide-vue-next'
 
 const router = useRouter()
 const toast = useToast()
 
+const habits = ref([])
 const searchQuery = ref('')
 const searchResults = ref([])
 const form = reactive({
+  habitId: '',
   opponentId: '',
   opponentName: '',
-  title: '',
-  stake: '',
-  startDate: '',
   endDate: ''
 })
 
-const isValid = computed(() => form.opponentId && form.title && form.startDate && form.endDate)
+const isValid = computed(() => form.habitId && form.opponentId)
 
 let debounceTimer = null
 function debouncedSearch() {
@@ -103,21 +96,16 @@ function debouncedSearch() {
 }
 
 async function searchUsers() {
-  if (searchQuery.value.length < 2) {
-    searchResults.value = []
-    return
-  }
+  if (searchQuery.value.length < 2) { searchResults.value = []; return }
   try {
     const res = await api.get('/friends/search', { params: { q: searchQuery.value } })
     searchResults.value = (res.data.users || res.data || []).slice(0, 5)
-  } catch {
-    searchResults.value = []
-  }
+  } catch { searchResults.value = [] }
 }
 
 function selectOpponent(u) {
   form.opponentId = u.id
-  form.opponentName = u.name || u.username
+  form.opponentName = u.username || u.name
   searchResults.value = []
   searchQuery.value = ''
 }
@@ -130,17 +118,20 @@ function clearOpponent() {
 async function createChallenge() {
   if (!isValid.value) return
   try {
-    await api.post('/challenges', {
-      opponentId: form.opponentId,
-      title: form.title,
-      stake: form.stake,
-      startDate: form.startDate,
-      endDate: form.endDate
-    })
+    const payload = { habitId: form.habitId, opponentId: form.opponentId }
+    if (form.endDate) payload.endDate = form.endDate
+    await api.post('/challenges', payload)
     toast.success('Challenge created!')
     router.push('/leaderboard')
-  } catch {
-    toast.error('Failed to create challenge')
+  } catch (e) {
+    toast.error(e.response?.data?.error || 'Failed to create challenge')
   }
 }
+
+onMounted(async () => {
+  try {
+    const res = await api.get('/habits')
+    habits.value = (res.data.habits || []).filter(h => h.active !== false)
+  } catch {}
+})
 </script>

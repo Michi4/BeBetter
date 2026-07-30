@@ -1,6 +1,6 @@
 <template>
   <Teleport to="body">
-    <div v-if="show" class="fixed inset-0 z-[70] bg-black flex flex-col">
+    <div v-if="show" class="fixed inset-0 z-[70] bg-black flex flex-col" @keydown.escape="close" tabindex="-1" ref="camEl">
       <div class="flex items-center justify-between p-4 safe-top">
         <h3 class="text-white font-medium">BeBetter Cam</h3>
         <button @click="close" class="text-white/70 hover:text-white"><X :size="24" /></button>
@@ -40,11 +40,13 @@
 </template>
 
 <script setup>
-import { ref, watch, onUnmounted } from 'vue'
+import { ref, watch, onUnmounted, nextTick } from 'vue'
 import { X, Camera, RefreshCw, Check } from 'lucide-vue-next'
 
 const props = defineProps({ show: Boolean })
 const emit = defineEmits(['close', 'capture'])
+
+const camEl = ref(null)
 
 const videoEl = ref(null)
 const canvasEl = ref(null)
@@ -127,6 +129,7 @@ function close() {
 
 watch(() => props.show, (val) => {
   if (val) {
+    nextTick(() => camEl.value?.focus())
     startCamera()
   } else {
     stopCamera()
