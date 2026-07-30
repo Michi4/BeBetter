@@ -34,7 +34,7 @@
                     @mouseenter="day ? onCellEnter(day, $event) : null"
                     @mousemove="onCellMove($event)"
                     @mouseleave="onCellLeave"
-                    @click="day && (day.scheduled > 0 || (day.tasks && day.tasks.length > 0)) && $emit('select', day)">
+                    @click="day && (day.scheduled > 0 || day.completed > 0) && $emit('select', day)">
                   </div>
                 </div>
               </div>
@@ -53,26 +53,18 @@
     </div>
 
     <!-- Tooltip -->
-    <div v-if="hoveredDay" class="fixed z-50 bg-gray-800 border border-gray-700 rounded-xl p-3 shadow-xl text-xs max-w-[220px] pointer-events-none"
-      :style="{ left: tipX + 'px', top: tipY + 'px' }">
+    <div v-if="hoveredDay" ref="tipRef" class="fixed z-50 bg-gray-800 border border-gray-700 rounded-xl p-3 shadow-xl text-xs max-w-[220px] pointer-events-none">
       <div class="font-medium mb-1">{{ formatTipDate(hoveredDay.date) }}</div>
       <div v-if="hoveredDay.scheduled > 0" class="text-gray-400 mb-1">
         {{ hoveredDay.completed }}/{{ hoveredDay.scheduled }} habits done
       </div>
-      <div v-if="hoveredDay.habits && hoveredDay.habits.length" class="space-y-0.5 mb-1">
-        <div v-for="h in hoveredDay.habits" :key="h.id" class="flex items-center gap-1.5">
-          <span :class="h.logged ? 'text-emerald-400' : 'text-gray-600'">{{ h.logged ? '\u2713' : '\u25CB' }}</span>
-          <span :class="h.logged ? 'text-gray-500 line-through' : ''">{{ h.title }}</span>
+      <div v-if="hoveredDay.items && hoveredDay.items.length" class="space-y-0.5">
+        <div v-for="(item, idx) in hoveredDay.items" :key="idx" class="flex items-center gap-1.5">
+          <span class="text-emerald-400">&#10003;</span>
+          <span class="text-gray-400">{{ item.emoji || '' }} {{ item.title }}</span>
         </div>
       </div>
-      <div v-if="hoveredDay.tasks && hoveredDay.tasks.length" class="space-y-0.5 border-t border-gray-700 pt-1 mt-1">
-        <div class="text-gray-500 text-[10px] uppercase font-medium">Tasks</div>
-        <div v-for="t in hoveredDay.tasks" :key="t.id" class="flex items-center gap-1.5">
-          <span :class="t.completed ? 'text-emerald-400' : 'text-gray-600'">{{ t.completed ? '\u2713' : '\u25CB' }}</span>
-          <span :class="t.completed ? 'text-gray-500 line-through' : ''">{{ t.title }}</span>
-        </div>
-      </div>
-      <div v-if="hoveredDay.scheduled === 0 && (!hoveredDay.tasks || hoveredDay.tasks.length === 0)" class="text-gray-500 text-[10px]">No activity</div>
+      <div v-if="hoveredDay.scheduled === 0 && hoveredDay.completed === 0" class="text-gray-500 text-[10px]">No activity</div>
     </div>
 
     <!-- Legend -->
@@ -88,7 +80,7 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted, nextTick } from 'vue'
 
 const props = defineProps({
   grid: { type: Array, default: () => [] },
@@ -98,6 +90,7 @@ const props = defineProps({
 defineEmits(['select'])
 
 const hoveredDay = ref(null)
+const tipRef = ref(null)
 const tipX = ref(0)
 const tipY = ref(0)
 const container = ref(null)
@@ -186,7 +179,24 @@ const weeks = computed(() => {
     for (let d = 0; d < 7; d++) {
       const dateStr = cursor.toISOString().slice(0, 10)
       const inYear = cursor.getUTCFullYear() === year
-      week.push(inYear ? (dayMap[dateStr] || { date: dateStr, scheduled: 0, completed: 0, ratio: null, habits: [], tasks: [] }) : null)
+      if (inYear) {
+        const data = dayMap[dateStr]
+        if (data) {
+          week.push({
+            date: dateStr,
+            scheduled: data.scheduled || 0,
+            completed: data.completed || 0,
+            ratio: data.scheduled > 0 ? data.completed / data.scheduled : (data.completed > 0 ? 1 : null),
+            items: data.items || [],
+            habits: data.habits || 0,
+            tasks: data.tasks || 0,
+          })
+        } else {
+          week.push({ date: dateStr, scheduled: 0, completed: 0, ratio: null, items: [] })
+        }
+      } else {
+        week.push(null)
+      }
       cursor.setUTCDate(cursor.getUTCDate() + 1)
     }
     result.push(week)
@@ -225,15 +235,23 @@ function onCellMove(e) {
 }
 
 function positionTooltip(e) {
-  const pad = 12
-  const tipW = 220
-  const tipH = 120
-  let x = e.clientX + pad
-  let y = e.clientY + pad
-  if (x + tipW > window.innerWidth) x = e.clientX - tipW - pad
-  if (y + tipH > window.innerHeight) y = e.clientY - tipH - pad
-  tipX.value = x
-  tipY.value = y
+  nextTick(() => {
+    const tip = tipRef.value
+    if (!tip) return
+    const pad = 12
+    const tipW = tip.offsetWidth || 220
+    const tipH = tip.offsetHeight || 120
+    let x = e.clientX + pad
+    let y = e.clientY + pad
+    if (x + tipW > window.innerWidth) x = e.clientX - tipW - pad
+    if (y + tipH > window.innerHeight) y = e.clientY - tipH - pad
+    if (x < 0) x = pad
+    if (y < 0) y = pad
+    tipX.value = x
+    tipY.value = y
+    tip.style.left = x + 'px'
+    tip.style.top = y + 'px'
+  })
 }
 
 function onCellLeave() {
@@ -246,8 +264,8 @@ function onScroll() {
 
 function getCellClass(day) {
   if (!day) return 'bg-transparent'
-  if (day.scheduled === 0 && (!day.tasks || day.tasks.length === 0)) return 'bg-gray-800/40 hover:bg-gray-700/40 cursor-default'
-  if (!day.ratio || day.ratio === 0) return 'bg-gray-800/80 hover:bg-gray-700/60 cursor-pointer'
+  if (day.scheduled === 0 && day.completed === 0) return 'bg-gray-800/40 hover:bg-gray-700/40 cursor-default'
+  if (day.ratio === null || day.ratio === 0) return 'bg-gray-800/80 hover:bg-gray-700/60 cursor-pointer'
   if (day.ratio <= 0.33) return 'bg-emerald-950 hover:brightness-110 cursor-pointer'
   if (day.ratio <= 0.66) return 'bg-emerald-700 hover:brightness-110 cursor-pointer'
   if (day.ratio < 1.0) return 'bg-emerald-500 hover:brightness-110 cursor-pointer'

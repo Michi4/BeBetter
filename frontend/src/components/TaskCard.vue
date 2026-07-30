@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="flex items-center gap-3 group">
+    <div class="flex items-center gap-3 group" @contextmenu.prevent="showMenu = !showMenu" @touchstart="startLongPress" @touchend="cancelLongPress" @touchmove="cancelLongPress">
       <!-- Checkbox -->
       <button @click="$emit('complete', task)"
         class="shrink-0 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all duration-200"
@@ -25,16 +25,53 @@
         class="delete-btn shrink-0 p-1 rounded text-gray-600 hover:text-red-400 transition-all duration-150">
         <X :size="14" />
       </button>
+
+      <!-- Context menu -->
+      <Teleport to="body">
+        <div v-if="showMenu" class="fixed inset-0 z-50" @click="showMenu = false">
+          <div class="absolute bg-gray-800 border border-gray-700 rounded-xl shadow-xl overflow-hidden min-w-[180px] py-1"
+            :style="menuPos">
+            <button @click.stop="$emit('edit', task); showMenu = false"
+              class="w-full px-4 py-3 text-left text-sm text-gray-300 hover:bg-gray-700 flex items-center gap-3 transition-colors">
+              <Pencil :size="14" /> Edit
+            </button>
+            <button @click.stop="$emit('convert', task); showMenu = false"
+              class="w-full px-4 py-3 text-left text-sm text-gray-300 hover:bg-gray-700 flex items-center gap-3 transition-colors">
+              <ArrowRightLeft :size="14" /> Convert to Habit
+            </button>
+            <button @click.stop="$emit('delete', task); showMenu = false"
+              class="w-full px-4 py-3 text-left text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-3 transition-colors">
+              <Trash2 :size="14" /> Delete
+            </button>
+          </div>
+        </div>
+      </Teleport>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { Check, X } from 'lucide-vue-next'
+import { ref, computed } from 'vue'
+import { Check, X, Pencil, ArrowRightLeft, Trash2 } from 'lucide-vue-next'
 
 const props = defineProps({ task: { type: Object, required: true } })
-defineEmits(['complete', 'delete', 'edit'])
+defineEmits(['complete', 'delete', 'edit', 'convert'])
+
+const showMenu = ref(false)
+const menuPos = ref({ top: '50%', left: '50%' })
+let longPressTimer = null
+
+function startLongPress(e) {
+  longPressTimer = setTimeout(() => {
+    const touch = e.touches[0]
+    menuPos.value = { top: touch.clientY + 'px', left: Math.min(touch.clientX, window.innerWidth - 200) + 'px' }
+    showMenu.value = true
+  }, 500)
+}
+
+function cancelLongPress() {
+  if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null }
+}
 
 const dueDateClass = computed(() => {
   if (!props.task.dueDate) return ''

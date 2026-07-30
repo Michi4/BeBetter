@@ -48,14 +48,12 @@ router.get('/overview', authMiddleware, async (req, res) => {
       }
     }
 
-    const activeStreak = bestStreak;
-
     res.json({
       activeHabits,
       todayLogs,
       totalLogs,
       bestStreak,
-      activeStreak,
+      activeStreak: bestStreak,
       consistency,
       isOnVacation: !!todayVacation,
     });
@@ -68,36 +66,80 @@ router.get('/overview', authMiddleware, async (req, res) => {
 router.get('/streak', authMiddleware, async (req, res) => {
   try {
     const { habitId } = req.query;
-    const where = { userId: req.userId };
-    if (habitId) where.habitId = habitId;
 
-    const logs = await prisma.habitLog.findMany({
-      where,
-      orderBy: { completedAt: 'asc' },
-    });
+    if (habitId) {
+      const habit = await prisma.habit.findUnique({
+        where: { id: habitId },
+        select: { daysPerWeek: true, frequencyType: true, bestStreak: true },
+      });
+      if (!habit) return res.status(404).json({ error: 'Not found' });
 
-    let bestStreak = 0;
-    let currentStreak = 0;
-    let lastDate = null;
+      const logs = await prisma.habitLog.findMany({
+        where: { userId: req.userId, habitId },
+        orderBy: { completedAt: 'asc' },
+      });
 
-    for (const log of logs) {
-      const d = new Date(log.completedAt);
-      d.setHours(0, 0, 0, 0);
-      if (lastDate) {
-        const diff = (d - lastDate) / (1000 * 60 * 60 * 24);
-        if (diff === 1) {
-          currentStreak++;
-        } else if (diff > 1) {
-          currentStreak = 1;
+      const sched = JSON.parse(typeof habit.daysPerWeek === 'string' ? habit.daysPerWeek : JSON.stringify(habit.daysPerWeek || '[]'));
+      const isDaily = habit.frequencyType === 'daily' || habit.frequencyType === 'always';
+
+      let bestStreak = 0;
+      let currentStreak = 0;
+      let lastScheduledDate = null;
+
+      const logDates = new Set(logs.map(l => {
+        const d = new Date(l.completedAt);
+        d.setHours(0, 0, 0, 0);
+        return d.getTime();
+      }));
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      for (let i = 0; i < 365 * 3; i++) {
+        const checkDate = new Date(today);
+        checkDate.setDate(checkDate.getDate() - i);
+        const dow = checkDate.getDay();
+        const isScheduled = isDaily || sched.includes(dow);
+        if (!isScheduled) continue;
+
+        const ts = checkDate.getTime();
+        if (logDates.has(ts)) {
+          if (lastScheduledDate) {
+            const diff = (lastScheduledDate - ts) / (1000 * 60 * 60 * 24);
+            if (diff <= 1.5) {
+              currentStreak++;
+            } else {
+              currentStreak = 1;
+            }
+          } else {
+            currentStreak = 1;
+          }
+          if (currentStreak > bestStreak) bestStreak = currentStreak;
+          lastScheduledDate = ts;
+        } else {
+          if (i === 0) {
+            currentStreak = 0;
+            lastScheduledDate = null;
+          } else {
+            break;
+          }
         }
-      } else {
-        currentStreak = 1;
       }
-      if (currentStreak > bestStreak) bestStreak = currentStreak;
-      lastDate = d;
+
+      return res.json({ bestStreak: Math.max(bestStreak, habit.bestStreak || 0), currentStreak });
     }
 
-    res.json({ bestStreak, currentStreak });
+    const habits = await prisma.habit.findMany({
+      where: { userId: req.userId, active: true },
+      select: { id: true, bestStreak: true },
+    });
+
+    let maxBest = 0;
+    for (const h of habits) {
+      if ((h.bestStreak || 0) > maxBest) maxBest = h.bestStreak;
+    }
+
+    res.json({ bestStreak: maxBest, currentStreak: 0 });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Server error' });

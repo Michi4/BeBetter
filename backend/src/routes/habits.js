@@ -258,6 +258,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
       include: {
         ...habitInclude,
         logs: { orderBy: { completedAt: 'desc' }, take: 100 },
+        buddies: { include: { friend: { select: { id: true, username: true, avatar: true } } } },
       },
     });
     if (!habit) return res.status(404).json({ error: 'Not found' });
@@ -265,6 +266,58 @@ router.get('/:id', authMiddleware, async (req, res) => {
     res.json({ habit });
   } catch (e) {
     console.error('habit GET :id error:', e.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.post('/:id/buddy', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { friendId } = req.body;
+    if (!friendId) return res.status(400).json({ error: 'friendId required' });
+
+    const habit = await prisma.habit.findUnique({ where: { id } });
+    if (!habit || habit.userId !== req.userId) return res.status(404).json({ error: 'Not found' });
+
+    const existing = await prisma.habitBuddy.findUnique({ where: { habitId_friendId: { habitId: id, friendId } } });
+    if (existing) return res.status(400).json({ error: 'Already a buddy' });
+
+    const buddy = await prisma.habitBuddy.create({
+      data: { habitId: id, friendId },
+      include: { friend: { select: { id: true, username: true, avatar: true } } },
+    });
+
+    await prisma.notification.create({
+      data: {
+        userId: friendId,
+        type: 'buddy_request',
+        message: `You've been invited as an accountability buddy for "${habit.title}"`,
+        data: { habitId: id, habitTitle: habit.title },
+      },
+    }).catch(() => {});
+
+    res.json({ buddy });
+  } catch (e) {
+    console.error('buddy POST error:', e.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.delete('/:id/buddy/:buddyId', authMiddleware, async (req, res) => {
+  try {
+    const { buddyId } = req.params;
+    const buddy = await prisma.habitBuddy.findUnique({ where: { id: buddyId } });
+    if (!buddy) return res.status(404).json({ error: 'Not found' });
+
+    const habit = await prisma.habit.findUnique({ where: { id: buddy.habitId } });
+    if (!habit || (habit.userId !== req.userId && buddy.friendId !== req.userId)) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    await prisma.habitBuddy.delete({ where: { id: buddyId } });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('buddy DELETE error:', e.message);
     res.status(500).json({ error: 'Server error' });
   }
 });

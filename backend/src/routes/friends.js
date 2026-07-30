@@ -250,7 +250,7 @@ router.get('/feed', authMiddleware, async (req, res) => {
   }
 });
 
-router.get('/profile/:userIdOrUsername', authMiddleware, async (req, res) => {
+router.get('/profile/:userIdOrUsername', async (req, res) => {
   try {
     const { userIdOrUsername } = req.params;
 
@@ -266,18 +266,42 @@ router.get('/profile/:userIdOrUsername', authMiddleware, async (req, res) => {
 
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    const isOwn = user.id === req.userId;
+    let currentUserId = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET || 'bebetter-secret-key');
+        currentUserId = decoded.userId;
+      } catch {}
+    }
+
+    const isOwn = currentUserId && user.id === currentUserId;
 
     if (!isOwn && !user.isPublic) {
+      if (!currentUserId) return res.status(403).json({ error: 'Profile is private' });
       const friendship = await prisma.friendship.findFirst({
         where: {
           OR: [
-            { user1Id: req.userId, user2Id: user.id },
-            { user1Id: user.id, user2Id: req.userId },
+            { user1Id: currentUserId, user2Id: user.id },
+            { user1Id: user.id, user2Id: currentUserId },
           ],
         },
       });
       if (!friendship) return res.status(403).json({ error: 'Profile is private' });
+    }
+
+    let isFriend = false;
+    if (currentUserId && !isOwn) {
+      const friendship = await prisma.friendship.findFirst({
+        where: {
+          OR: [
+            { user1Id: currentUserId, user2Id: user.id },
+            { user1Id: user.id, user2Id: currentUserId },
+          ],
+        },
+      });
+      isFriend = !!friendship;
     }
 
     const habits = await prisma.habit.findMany({
@@ -297,7 +321,7 @@ router.get('/profile/:userIdOrUsername', authMiddleware, async (req, res) => {
       bestStreak: habits.reduce((max, h) => Math.max(max, h.bestStreak || 0), 0),
     };
 
-    res.json({ user, habits, recentLogs, stats });
+    res.json({ user, habits, recentLogs, stats, isFriend });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Server error' });

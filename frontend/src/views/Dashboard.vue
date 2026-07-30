@@ -1,5 +1,5 @@
 <template>
-  <div class="page">
+  <div class="page pb-32 md:pb-24">
     <!-- Vacation Banner -->
     <div v-if="isOnVacation" class="card bg-amber-500/10 border border-amber-500/20">
       <div class="flex items-center justify-between">
@@ -39,19 +39,13 @@
       <div class="flex items-center justify-between mb-3">
         <h2 class="section-title">Year in Review</h2>
         <div v-if="yearRange.lastYear > yearRange.firstYear" class="flex items-center gap-1">
-          <button
-            @click="selectedYear--"
-            :disabled="selectedYear <= yearRange.firstYear"
-            class="touch-target p-2 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          >
+          <button @click="selectedYear--" :disabled="selectedYear <= yearRange.firstYear"
+            class="touch-target p-2 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
             <ChevronLeft :size="16" />
           </button>
           <span class="text-xs font-medium text-gray-400 min-w-[36px] text-center">{{ selectedYear }}</span>
-          <button
-            @click="selectedYear++"
-            :disabled="selectedYear >= yearRange.lastYear"
-            class="touch-target p-2 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          >
+          <button @click="selectedYear++" :disabled="selectedYear >= yearRange.lastYear"
+            class="touch-target p-2 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
             <ChevronRight :size="16" />
           </button>
         </div>
@@ -60,71 +54,19 @@
       <ContributionGrid :grid="gridDays" :year="selectedYear" @select="selectDay" />
     </div>
 
-    <!-- Quick Add -->
-    <form @submit.prevent="handleInput" class="flex items-center gap-2">
-      <button
-        type="submit"
-        class="touch-target shrink-0 flex items-center justify-center w-11 h-11 rounded-xl bg-gray-800 text-gray-400 hover:bg-emerald-500/10 hover:text-emerald-400 transition-colors"
-        title="New habit or task"
-      >
-        <Plus :size="20" />
-      </button>
-      <input
-        v-model="quickTaskInput"
-        type="text"
-        placeholder="Add a task..."
-        class="input flex-1 text-sm"
-      />
-    </form>
-
-    <!-- New Habit Form -->
-    <div v-if="showNewHabitForm" class="card space-y-4">
-      <div class="flex items-center justify-between">
-        <h3 class="text-sm font-medium">New Habit</h3>
-        <button
-          @click="showNewHabitForm = false"
-          class="touch-target flex items-center justify-center text-gray-400 hover:text-gray-200 transition-colors"
-        >
-          <X :size="18" />
-        </button>
-      </div>
-      <HabitForm v-model="newHabit" />
-      <div class="flex justify-end gap-2 pt-1">
-        <button @click="showNewHabitForm = false" class="btn-secondary btn-sm">Cancel</button>
-        <button @click="createHabit" class="btn-sm" :disabled="!newHabit.title.trim()">Create</button>
-      </div>
-    </div>
-
-    <!-- DayDetail Modal -->
-    <DayDetail :show="!!selectedDay" :day="selectedDay" @close="selectedDay = null" />
-
     <!-- Today's Tasks -->
     <div class="space-y-2">
       <h3 class="section-title">Today's Tasks</h3>
       <div v-if="visibleTasks.length === 0" class="text-sm text-gray-500 py-2">No tasks for today</div>
-      <TaskCard
-        v-for="t in visibleTasks"
-        :key="t.id"
-        :task="t"
-        @complete="completeTask"
-        @delete="deleteTask"
-        @edit="editTask"
-      />
-      <button
-        v-if="todayTasks.length > 5 && !showAllTasks"
-        @click="showAllTasks = true"
-        class="touch-target text-xs text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1"
-      >
-        <ChevronDown :size="14" />
-        Show more ({{ todayTasks.length - 5 }} remaining)
+      <TaskCard v-for="t in visibleTasks" :key="t.id" :task="t"
+        @complete="completeTask" @delete="deleteTask" @edit="editTask" @convert="convertTask" />
+      <button v-if="todayTasks.length > 5 && !showAllTasks" @click="showAllTasks = true"
+        class="touch-target text-xs text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1">
+        <ChevronDown :size="14" /> Show more ({{ todayTasks.length - 5 }} remaining)
       </button>
-      <button
-        v-if="showAllTasks && todayTasks.length > 5"
-        @click="showAllTasks = false"
-        class="touch-target text-xs text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1"
-      >
-        <ChevronUp :size="14" />
-        Show less
+      <button v-if="showAllTasks && todayTasks.length > 5" @click="showAllTasks = false"
+        class="touch-target text-xs text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1">
+        <ChevronUp :size="14" /> Show less
       </button>
     </div>
 
@@ -132,17 +74,31 @@
     <div class="space-y-2">
       <h3 class="section-title">Today's Habits</h3>
       <div v-if="todayHabits.length === 0" class="text-sm text-gray-500 py-2">No habits for today</div>
-      <HabitCard
-        v-for="h in todayHabits"
-        :key="h.id"
-        :habit="h"
-        @finish="logHabit"
-        @cam="openCam"
-      />
+      <HabitCard v-for="h in todayHabits" :key="h.id" :habit="h"
+        @finish="logHabit" @cam="openCam" />
     </div>
 
-    <!-- BeBetterCam -->
+    <!-- DayDetail Modal -->
+    <DayDetail :show="!!selectedDay" :day="selectedDay" @close="selectedDay = null" />
     <BeBetterCam :show="!!camHabit" @close="camHabit = null" @capture="submitCamProof" />
+
+    <!-- Mobile floating add button (above bottom nav) -->
+    <div class="fixed bottom-20 left-0 right-0 z-40 flex justify-center md:hidden pointer-events-none">
+      <button @click="showCreateModal = true"
+        class="pointer-events-auto touch-target shrink-0 flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-500/25 hover:bg-emerald-500 transition-colors active:scale-95">
+        <Plus :size="24" />
+      </button>
+    </div>
+
+    <!-- Desktop add button -->
+    <button @click="showCreateModal = true"
+      class="hidden md:flex fixed bottom-6 right-6 z-40 touch-target items-center justify-center w-14 h-14 rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-500/25 hover:bg-emerald-500 transition-colors active:scale-95">
+      <Plus :size="24" />
+    </button>
+
+    <!-- Create Modal -->
+    <CreateModal :show="showCreateModal" initial-mode="task"
+      @close="showCreateModal = false" @created="handleCreated" @convertToHabit="handleConvertToHabit" />
   </div>
 </template>
 
@@ -150,22 +106,21 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import api from '../api'
 import { useToast } from 'vue-toastification'
-import { Plus, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { Plus, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import ContributionGrid from '../components/ContributionGrid.vue'
 import DayDetail from '../components/DayDetail.vue'
 import HabitCard from '../components/HabitCard.vue'
 import TaskCard from '../components/TaskCard.vue'
 import BeBetterCam from '../components/BeBetterCam.vue'
-import HabitForm from '../components/HabitForm.vue'
+import CreateModal from '../components/CreateModal.vue'
 
 const toast = useToast()
 
-const quickTaskInput = ref('')
-const showNewHabitForm = ref(false)
 const showAllTasks = ref(false)
 const selectedDay = ref(null)
 const camHabit = ref(null)
 const isOnVacation = ref(false)
+const showCreateModal = ref(false)
 
 const stats = ref({})
 const todayTasks = ref([])
@@ -175,19 +130,6 @@ const gridDays = ref([])
 const selectedYear = ref(new Date().getFullYear())
 const yearRange = ref({ firstYear: new Date().getFullYear(), lastYear: new Date().getFullYear() })
 
-const newHabit = reactive({
-  title: '',
-  description: '',
-  emoji: '🎯',
-  schedule: [1, 2, 3, 4, 5, 6, 7],
-  verificationType: 'honor',
-  wagerDays: 0,
-  wagerAmount: 0,
-  makePublic: false,
-  createPreset: false,
-  presetCategory: 'Other',
-})
-
 const visibleTasks = computed(() => {
   if (showAllTasks.value || todayTasks.value.length <= 5) return todayTasks.value
   return todayTasks.value.slice(0, 5)
@@ -195,19 +137,20 @@ const visibleTasks = computed(() => {
 
 async function loadStats() {
   try {
-    const [statsRes, overviewRes, habitsRes] = await Promise.all([
-      api.get('/logs/with-scheduled'),
+    const [overviewRes, habitsRes] = await Promise.all([
       api.get('/stats/overview'),
-      api.get('/habits'),
+      api.get('/habits/scheduled'),
     ])
     stats.value = overviewRes.data
     isOnVacation.value = overviewRes.data.isOnVacation || false
+    todayHabits.value = (habitsRes.data.habits || []).map(h => ({
+      ...h, completedToday: false, hasBreak: !!h.breaks?.find(b => !b.endDate),
+    }))
 
-    const today = new Date().toISOString().split('T')[0]
-    const dayData = statsRes.data
-    todayHabits.value = (dayData.scheduled || []).map(h => ({
-      ...h,
-      completedToday: h.logged || false,
+    const todayLogsRes = await api.get('/logs/today').catch(() => ({ data: { logs: [] } }))
+    const loggedIds = new Set((todayLogsRes.data.logs || []).map(l => l.habitId))
+    todayHabits.value = todayHabits.value.map(h => ({
+      ...h, completedToday: loggedIds.has(h.id),
     }))
   } catch {
     toast.error('Failed to load data')
@@ -218,19 +161,14 @@ async function loadTasks() {
   try {
     const res = await api.get('/tasks')
     todayTasks.value = (res.data.tasks || []).filter(t => !t.isCompletedToday)
-  } catch {
-    // silent
-  }
+  } catch {}
 }
 
 async function loadYearRange() {
   try {
     const res = await api.get('/grid/years')
     const years = res.data.years || [new Date().getFullYear()]
-    yearRange.value = {
-      firstYear: Math.min(...years),
-      lastYear: Math.max(...years),
-    }
+    yearRange.value = { firstYear: Math.min(...years), lastYear: Math.max(...years) }
     if (selectedYear.value < yearRange.value.firstYear) selectedYear.value = yearRange.value.firstYear
     if (selectedYear.value > yearRange.value.lastYear) selectedYear.value = yearRange.value.lastYear
   } catch {
@@ -254,9 +192,9 @@ async function loadGrid() {
       const data = gridRaw[ds]
       const isVacation = vacationDays.includes(ds)
       if (data) {
-        days.push({ date: ds, count: (data.habits || 0) + (data.tasks || 0), items: data.items || [], isVacation })
+        days.push({ date: ds, count: (data.completed || 0), items: data.items || [], isVacation, scheduled: data.scheduled || 0, completed: data.completed || 0 })
       } else {
-        days.push({ date: ds, count: 0, items: [], isVacation })
+        days.push({ date: ds, count: 0, items: [], isVacation, scheduled: 0, completed: 0 })
       }
       cur.setDate(cur.getDate() + 1)
     }
@@ -268,76 +206,43 @@ async function loadGrid() {
 
 watch(selectedYear, loadGrid)
 
-function handleInput() {
-  if (quickTaskInput.value.trim()) {
-    createQuickTask()
+async function handleCreated(type, data) {
+  if (type === 'task') {
+    try {
+      const res = await api.post('/tasks', { title: data.title, description: data.description, emoji: data.emoji, dueDate: data.dueDate || undefined })
+      todayTasks.value.unshift(res.data.task || res.data)
+      toast.success('Task created')
+    } catch {
+      toast.error('Failed to create task')
+    }
   } else {
-    showNewHabitForm.value = !showNewHabitForm.value
-  }
-}
-
-async function createQuickTask() {
-  if (!quickTaskInput.value.trim()) return
-  try {
-    const res = await api.post('/tasks', { title: quickTaskInput.value.trim(), isScheduled: false })
-    todayTasks.value.unshift(res.data.task || res.data)
-    quickTaskInput.value = ''
-    toast.success('Task created')
-  } catch {
-    toast.error('Failed to create task')
-  }
-}
-
-async function createHabit() {
-  if (!newHabit.title.trim()) return
-  try {
-    const payload = {
-      title: newHabit.title,
-      description: newHabit.description || undefined,
-      emoji: newHabit.emoji,
-      frequencyType: 'daily',
-      daysPerWeek: newHabit.schedule,
-      schedule: newHabit.schedule,
-      verificationType: newHabit.verificationType,
-      makePublic: newHabit.makePublic,
-    }
-    if (newHabit.wagerDays > 0 && newHabit.wagerAmount > 0) {
-      payload.wagerDays = newHabit.wagerDays
-      payload.wagerAmount = newHabit.wagerAmount
-    }
-    const res = await api.post('/habits', payload)
-
-    if (newHabit.createPreset && newHabit.title.trim()) {
-      try {
-        await api.post('/presets', {
-          title: newHabit.title,
-          description: newHabit.description || '',
-          category: newHabit.presetCategory,
-          emoji: newHabit.emoji,
-          frequencyType: 'daily',
-          daysPerWeek: JSON.stringify(newHabit.schedule),
-          verificationType: newHabit.verificationType,
-        })
-        toast.success('Habit & preset created')
-      } catch {
-        toast.success('Habit created (preset failed)')
+    try {
+      const payload = {
+        title: data.title, description: data.description || undefined, emoji: data.emoji,
+        frequencyType: 'daily', schedule: data.schedule, verificationType: data.verificationType,
+        makePublic: data.makePublic,
       }
-    } else {
+      await api.post('/habits', payload)
       toast.success('Habit created')
+      loadStats()
+    } catch {
+      toast.error('Failed to create habit')
     }
-
-    showNewHabitForm.value = false
-    Object.assign(newHabit, {
-      title: '', description: '', emoji: '🎯',
-      schedule: [1, 2, 3, 4, 5, 6, 7],
-      verificationType: 'honor', wagerDays: 0, wagerAmount: 0,
-      makePublic: false, createPreset: false, presetCategory: 'Other',
-    })
-    loadStats()
-    loadGrid()
-  } catch {
-    toast.error('Failed to create habit')
   }
+  showCreateModal.value = false
+}
+
+function handleConvertToHabit() {
+  showCreateModal.value = false
+}
+
+async function convertTask(task) {
+  try {
+    await api.delete(`/tasks/${task.id}`)
+    todayTasks.value = todayTasks.value.filter(t => t.id !== task.id)
+    showCreateModal.value = true
+    toast.info('Task removed. Create a habit instead!')
+  } catch {}
 }
 
 async function completeTask(task) {
@@ -385,11 +290,11 @@ async function logHabit(habit) {
   }
 }
 
-async function submitCamProof(blob) {
+async function submitCamProof(dataUrl) {
   if (!camHabit.value) return
   try {
     const form = new FormData()
-    form.append('photo', blob, 'proof.jpg')
+    form.append('photo', dataUrl, 'proof.jpg')
     const { data } = await api.post('/upload', form)
     await api.post('/logs', { habitId: camHabit.value.id, photo: data.url })
     todayHabits.value = todayHabits.value.map(h =>
@@ -408,10 +313,7 @@ async function selectDay(day) {
   try {
     const res = await api.get('/grid/day', { params: { date: day.date } })
     selectedDay.value = {
-      ...day,
-      habits: res.data.habits || [],
-      tasks: res.data.tasks || [],
-      isOnVacation: res.data.isOnVacation || false,
+      ...day, habits: res.data.habits || [], tasks: res.data.tasks || [], isOnVacation: res.data.isOnVacation || false,
     }
   } catch {
     selectedDay.value = day

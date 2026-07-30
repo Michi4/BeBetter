@@ -1,29 +1,24 @@
 <template>
   <div class="page pb-32 md:pb-24">
-    <!-- Tasks Section (input at top) -->
+    <!-- Tasks Section -->
     <section class="space-y-3">
       <div class="flex items-center gap-2">
         <h2 class="section-title">Tasks</h2>
         <span v-if="incompleteTasks.length" class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-medium">{{ incompleteTasks.length }}</span>
       </div>
-
-      <!-- Incomplete Tasks -->
       <div v-if="incompleteTasks.length === 0" class="text-sm text-gray-500 py-2">No incomplete tasks</div>
       <div v-for="task in incompleteTasks" :key="task.id" class="space-y-1" :class="{ 'animate-celebrate': completingTaskId === task.id }">
-        <TaskCard :task="task" @complete="completeTask" @delete="deleteTask" @edit="openEditTask" />
-
+        <TaskCard :task="task" @complete="completeTask" @delete="deleteTask" @edit="openEditTask" @convert="convertTask" />
         <div v-if="expandedTask === task.id" class="rounded-xl border border-gray-700 bg-gray-800/50 p-4 space-y-3 ml-9">
-          <input v-model="editTaskForm.title" class="min-h-[44px] w-full rounded-lg border border-gray-700 bg-gray-900/50 px-3 py-2 text-sm text-gray-200 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500" placeholder="Title" />
-          <textarea v-model="editTaskForm.description" class="min-h-[44px] w-full rounded-lg border border-gray-700 bg-gray-900/50 px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none" placeholder="Description" rows="2"></textarea>
-          <input v-model="editTaskForm.dueDate" type="date" class="min-h-[44px] w-full rounded-lg border border-gray-700 bg-gray-900/50 px-3 py-2 text-sm text-gray-200 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+          <input v-model="editTaskForm.title" class="input" placeholder="Title" />
+          <textarea v-model="editTaskForm.description" class="input min-h-[60px]" placeholder="Description" rows="2"></textarea>
+          <input v-model="editTaskForm.dueDate" type="date" class="input" />
           <div class="flex justify-end gap-2">
-            <button @click="expandedTask = null" class="min-h-[44px] rounded-lg bg-gray-800 px-4 py-2 text-xs font-medium text-gray-300 hover:bg-gray-700 transition-colors">Cancel</button>
-            <button @click="updateTask(task)" class="min-h-[44px] rounded-lg bg-emerald-600 px-4 py-2 text-xs font-medium text-white hover:bg-emerald-500 transition-colors">Save</button>
+            <button @click="expandedTask = null" class="btn-secondary btn-sm">Cancel</button>
+            <button @click="updateTask(task)" class="btn-sm">Save</button>
           </div>
         </div>
       </div>
-
-      <!-- Completed Tasks (collapsible) -->
       <div v-if="completedTasks.length > 0" class="rounded-xl border border-gray-800 bg-gray-900/50 overflow-hidden">
         <button @click="showCompletedTasks = !showCompletedTasks" class="min-h-[44px] w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-400 hover:bg-gray-800/50 transition-colors">
           <div class="flex items-center gap-2">
@@ -49,8 +44,7 @@
             </button>
           </div>
           <button v-if="completedTasks.length > visibleCompletedTasks.length" @click="loadMoreCompletedTasks" class="min-h-[44px] w-full flex items-center justify-center gap-1 px-4 py-3 text-xs text-emerald-400 hover:bg-gray-800/50 transition-colors">
-            <ChevronDown :size="12" />
-            Load more ({{ completedTasks.length - visibleCompletedTasks.length }} remaining)
+            <ChevronDown :size="12" /> Load more ({{ completedTasks.length - visibleCompletedTasks.length }} remaining)
           </button>
         </div>
       </div>
@@ -63,8 +57,6 @@
       <div v-for="h in activeHabits" :key="h.id" class="rounded-xl border border-gray-800 bg-gray-900/50" :class="{ 'animate-celebrate': completingHabitId === h.id }">
         <HabitCard :habit="h" @finish="completeHabit" @cam="openCamHabit" />
       </div>
-
-      <!-- Completed Habits (collapsible) -->
       <div v-if="completedHabits.length > 0" class="rounded-xl border border-gray-800 bg-gray-900/50 overflow-hidden">
         <button @click="showCompletedHabits = !showCompletedHabits" class="min-h-[44px] w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-400 hover:bg-gray-800/50 transition-colors">
           <div class="flex items-center gap-2">
@@ -90,8 +82,7 @@
             </button>
           </div>
           <button v-if="completedHabits.length > visibleCompletedHabits.length" @click="loadMoreCompletedHabits" class="min-h-[44px] w-full flex items-center justify-center gap-1 px-4 py-3 text-xs text-emerald-400 hover:bg-gray-800/50 transition-colors">
-            <ChevronDown :size="12" />
-            Load more ({{ completedHabits.length - visibleCompletedHabits.length }} remaining)
+            <ChevronDown :size="12" /> Load more ({{ completedHabits.length - visibleCompletedHabits.length }} remaining)
           </button>
         </div>
       </div>
@@ -100,7 +91,6 @@
     <!-- History Section -->
     <section class="space-y-3">
       <h2 class="section-title">History</h2>
-
       <div class="flex flex-wrap items-center gap-2">
         <button @click="prevDay" class="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg p-2 text-gray-400 hover:bg-gray-800 transition-colors">
           <ChevronLeft :size="18" />
@@ -113,8 +103,6 @@
           Today
         </button>
       </div>
-
-      <!-- Scheduled habits for the day -->
       <div v-if="scheduledForDay.length" class="space-y-2">
         <h3 class="text-xs font-medium text-gray-500">Scheduled</h3>
         <div v-for="h in scheduledForDay" :key="h.id" class="card flex items-center gap-3">
@@ -130,8 +118,6 @@
           <span v-else class="text-[10px] text-gray-600 shrink-0">missed</span>
         </div>
       </div>
-
-      <!-- Task completions for the day -->
       <div v-if="historyTasks.length" class="space-y-2">
         <h3 class="text-xs font-medium text-gray-500">Tasks</h3>
         <div v-for="t in historyTasks" :key="t.id" class="card flex items-center gap-3">
@@ -141,60 +127,25 @@
           <span class="text-sm text-gray-300 truncate">{{ t.emoji || '📝' }} {{ t.title }}</span>
         </div>
       </div>
-
       <div v-if="!scheduledForDay.length && !historyTasks.length" class="text-sm text-gray-500 py-2">No data for this day</div>
     </section>
 
-    <!-- Mobile floating add button (above bottom nav) -->
+    <!-- Mobile floating add button -->
     <div class="fixed bottom-20 left-0 right-0 z-40 flex justify-center md:hidden pointer-events-none">
-      <form @submit.prevent="handleInput" class="flex items-center gap-2 pointer-events-auto w-full max-w-md px-4">
-        <button
-          type="submit"
-          class="touch-target shrink-0 flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-500/25 hover:bg-emerald-500 transition-colors active:scale-95"
-        >
-          <Plus :size="22" />
-        </button>
-        <input
-          v-model="quickTaskInput"
-          type="text"
-          placeholder="Add a task..."
-          class="flex-1 h-12 rounded-2xl border border-gray-700 bg-gray-900/95 backdrop-blur-xl px-4 text-sm text-gray-200 placeholder-gray-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 shadow-lg"
-        />
-      </form>
-    </div>
-
-    <!-- Desktop add task form -->
-    <form @submit.prevent="handleInput" class="hidden md:flex items-center gap-2">
-      <button
-        type="submit"
-        class="touch-target shrink-0 flex items-center justify-center w-11 h-11 rounded-xl bg-gray-800 text-gray-400 hover:bg-emerald-500/10 hover:text-emerald-400 transition-colors"
-        title="New habit or task"
-      >
-        <Plus :size="20" />
+      <button @click="showCreateModal = true"
+        class="pointer-events-auto touch-target shrink-0 flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-500/25 hover:bg-emerald-500 transition-colors active:scale-95">
+        <Plus :size="24" />
       </button>
-      <input
-        v-model="quickTaskInput"
-        type="text"
-        placeholder="Add a task..."
-        class="input flex-1 text-sm"
-      />
-    </form>
-
-    <!-- New Habit Form -->
-    <div v-if="showNewHabitForm" class="card space-y-4">
-      <div class="flex items-center justify-between">
-        <h3 class="text-sm font-medium">New Habit</h3>
-        <button @click="showNewHabitForm = false" class="touch-target flex items-center justify-center text-gray-400 hover:text-gray-200 transition-colors">
-          <X :size="18" />
-        </button>
-      </div>
-      <HabitForm v-model="newHabit" />
-      <div class="flex justify-end gap-2 pt-1">
-        <button @click="showNewHabitForm = false" class="btn-secondary btn-sm">Cancel</button>
-        <button @click="createHabit" class="btn-sm" :disabled="!newHabit.title.trim()">Create</button>
-      </div>
     </div>
 
+    <!-- Desktop add button -->
+    <button @click="showCreateModal = true"
+      class="hidden md:flex fixed bottom-6 right-6 z-40 touch-target items-center justify-center w-14 h-14 rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-500/25 hover:bg-emerald-500 transition-colors active:scale-95">
+      <Plus :size="24" />
+    </button>
+
+    <CreateModal :show="showCreateModal" initial-mode="task"
+      @close="showCreateModal = false" @created="handleCreated" @convertToHabit="handleConvertToHabit" />
     <BeBetterCam :show="!!camHabit" @close="camHabit = null" @capture="submitHabitProof" />
   </div>
 </template>
@@ -203,31 +154,24 @@
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import api from '../api'
 import { useToast } from 'vue-toastification'
-import { Plus, X, ChevronDown, ChevronLeft, ChevronRight, CheckCircle2, Circle, Check, Trash2 } from 'lucide-vue-next'
+import { Plus, ChevronDown, ChevronLeft, ChevronRight, CheckCircle2, Circle, Check, Trash2 } from 'lucide-vue-next'
 import HabitCard from '../components/HabitCard.vue'
 import TaskCard from '../components/TaskCard.vue'
 import BeBetterCam from '../components/BeBetterCam.vue'
-import HabitForm from '../components/HabitForm.vue'
+import CreateModal from '../components/CreateModal.vue'
 
 const toast = useToast()
 
 const selectedDate = ref(new Date().toISOString().slice(0, 10))
 const scheduledForDay = ref([])
 const historyTasks = ref([])
-const quickTaskInput = ref('')
-const showNewHabitForm = ref(false)
+const showCreateModal = ref(false)
 
 const completingTaskId = ref(null)
 const completingHabitId = ref(null)
 const camHabit = ref(null)
 
 const todayStr = () => new Date().toISOString().slice(0, 10)
-
-const newHabit = reactive({
-  title: '', description: '', emoji: '🎯',
-  schedule: [1, 2, 3, 4, 5, 6, 7],
-  verificationType: 'honor', makePublic: false,
-})
 
 function prevDay() {
   const d = new Date(selectedDate.value)
@@ -243,14 +187,12 @@ function nextDay() {
 
 async function loadHistory() {
   try {
-    const dayOfWeek = new Date(selectedDate.value).getDay()
-    const [habitsRes, dayRes, tasksRes] = await Promise.all([
-      api.get('/habits/scheduled', { params: { date: selectedDate.value } }).catch(() => ({ data: { habits: [] } })),
+    const [dayRes, tasksRes] = await Promise.all([
       api.get('/logs/with-scheduled', { params: { date: selectedDate.value } }).catch(() => ({ data: { scheduled: [] } })),
       api.get('/tasks/completed', { params: { date: selectedDate.value } }).catch(() => ({ data: { logs: [] } })),
     ])
 
-    const scheduledHabits = dayRes.data.scheduled || habitsRes.data.habits || []
+    const scheduledHabits = dayRes.data.scheduled || []
     const loggedIds = new Set()
 
     try {
@@ -314,12 +256,43 @@ function openEditTask(task) {
   editTaskForm.dueDate = task.dueDate ? task.dueDate.slice(0, 10) : ''
 }
 
-function handleInput() {
-  if (quickTaskInput.value.trim()) {
-    addTask()
+async function handleCreated(type, data) {
+  if (type === 'task') {
+    try {
+      const res = await api.post('/tasks', { title: data.title, description: data.description, emoji: data.emoji, dueDate: data.dueDate || undefined })
+      incompleteTasks.value.unshift(res.data.task || res.data)
+      toast.success('Task created')
+    } catch {
+      toast.error('Failed to create task')
+    }
   } else {
-    showNewHabitForm.value = !showNewHabitForm.value
+    try {
+      const payload = {
+        title: data.title, description: data.description || undefined, emoji: data.emoji,
+        frequencyType: 'daily', schedule: data.schedule, verificationType: data.verificationType,
+        makePublic: data.makePublic,
+      }
+      await api.post('/habits', payload)
+      toast.success('Habit created')
+      loadAll()
+    } catch {
+      toast.error('Failed to create habit')
+    }
   }
+  showCreateModal.value = false
+}
+
+function handleConvertToHabit() {
+  showCreateModal.value = false
+}
+
+async function convertTask(task) {
+  try {
+    await api.delete(`/tasks/${task.id}`)
+    incompleteTasks.value = incompleteTasks.value.filter(t => t.id !== task.id)
+    toast.info('Task removed. Create a habit instead!')
+    showCreateModal.value = true
+  } catch {}
 }
 
 async function loadAll() {
@@ -334,25 +307,11 @@ async function loadAll() {
 
     const allHabits = habitsRes.data.habits || []
     activeHabits.value = allHabits.filter(h => h.active !== false).map(h => ({
-      ...h,
-      completedToday: false,
-      hasBreak: !!h.breaks?.find(b => !b.endDate),
+      ...h, completedToday: false, hasBreak: !!h.breaks?.find(b => !b.endDate),
     }))
     completedHabits.value = allHabits.filter(h => h.active === false)
   } catch {
     toast.error('Failed to load data')
-  }
-}
-
-async function addTask() {
-  if (!quickTaskInput.value.trim()) return
-  try {
-    const res = await api.post('/tasks', { title: quickTaskInput.value.trim() })
-    incompleteTasks.value.unshift(res.data.task || res.data)
-    quickTaskInput.value = ''
-    toast.success('Task created')
-  } catch {
-    toast.error('Failed to create task')
   }
 }
 
@@ -418,9 +377,7 @@ async function confirmDeleteAllTasks() {
   }
 }
 
-function openCamHabit(habit) {
-  camHabit.value = habit
-}
+function openCamHabit(habit) { camHabit.value = habit }
 
 async function completeHabit(habit) {
   try {
@@ -454,32 +411,6 @@ async function submitHabitProof(dataUrl) {
   }
 }
 
-async function createHabit() {
-  if (!newHabit.title.trim()) return
-  try {
-    const payload = {
-      title: newHabit.title,
-      description: newHabit.description || undefined,
-      emoji: newHabit.emoji,
-      frequencyType: 'daily',
-      schedule: newHabit.schedule,
-      verificationType: newHabit.verificationType,
-      makePublic: newHabit.makePublic,
-    }
-    await api.post('/habits', payload)
-    toast.success('Habit created')
-    showNewHabitForm.value = false
-    Object.assign(newHabit, {
-      title: '', description: '', emoji: '🎯',
-      schedule: [1, 2, 3, 4, 5, 6, 7],
-      verificationType: 'honor', makePublic: false,
-    })
-    loadAll()
-  } catch {
-    toast.error('Failed to create habit')
-  }
-}
-
 async function deleteCompletedHabit(habit) {
   if (!confirm(`Delete "${habit.title}" and ALL its data? This cannot be undone.`)) return
   try {
@@ -500,7 +431,7 @@ async function confirmDeleteAllHabits() {
     showCompletedHabits.value = false
     toast.success('All completed habits deleted')
   } catch {
-    toast.error('Failed')
+    toast.error('Failed to delete some habits')
   }
 }
 

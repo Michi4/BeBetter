@@ -43,6 +43,7 @@ model User {
   notificationPrefs  NotificationPreference?
   friendLinksSent    FriendLink[] @relation("FriendLinkSender")
   passwordResets     PasswordReset[]
+  habitBuddies       HabitBuddy[] @relation("HabitBuddyFriend")
 }
 
 model Habit {
@@ -71,6 +72,7 @@ model Habit {
   challenges       Challenge[]
   breaks           HabitBreak[]
   tags             HabitTag[]
+  buddies          HabitBuddy[] @relation("HabitBuddyHabit")
 }
 
 model HabitTag {
@@ -79,6 +81,17 @@ model HabitTag {
   habit    Habit  @relation(fields: [habitId], references: [id], onDelete: Cascade)
   name     String
   color    String?
+}
+
+model HabitBuddy {
+  id        String   @id @default(uuid())
+  habitId   String
+  habit     Habit    @relation("HabitBuddyHabit", fields: [habitId], references: [id], onDelete: Cascade)
+  friendId  String
+  friend    User     @relation("HabitBuddyFriend", fields: [friendId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([habitId, friendId])
 }
 
 model Wager {

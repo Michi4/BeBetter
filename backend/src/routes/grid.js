@@ -32,14 +32,18 @@ router.get('/', authMiddleware, async (req, res) => {
       }
     }
 
-    const [logs, tasks] = await Promise.all([
+    const [logs, tasks, activeHabits] = await Promise.all([
       prisma.habitLog.findMany({
         where: { userId: req.userId, completedAt: { gte: start, lte: end } },
-        select: { completedAt: true, habit: { select: { title: true, emoji: true } } },
+        select: { completedAt: true, habitId: true, habit: { select: { title: true, emoji: true } } },
       }),
       prisma.taskLog.findMany({
         where: { userId: req.userId, completedAt: { gte: start, lte: end } },
         select: { completedAt: true, task: { select: { title: true, emoji: true } } },
+      }),
+      prisma.habit.findMany({
+        where: { userId: req.userId, active: true },
+        select: { id: true, daysPerWeek: true, frequencyType: true, breaks: { where: { endDate: null }, select: { startDate: true } } },
       }),
     ]);
 
@@ -47,16 +51,35 @@ router.get('/', authMiddleware, async (req, res) => {
     for (const l of logs) {
       const day = new Date(l.completedAt).toISOString().split('T')[0];
       if (vacationSet.has(day)) continue;
-      if (!grid[day]) grid[day] = { habits: 0, tasks: 0, items: [] };
+      if (!grid[day]) grid[day] = { scheduled: 0, completed: 0, habits: 0, tasks: 0, items: [] };
+      grid[day].completed++;
       grid[day].habits++;
       grid[day].items.push({ type: 'habit', title: l.habit.title, emoji: l.habit.emoji });
     }
     for (const t of tasks) {
       const day = new Date(t.completedAt).toISOString().split('T')[0];
       if (vacationSet.has(day)) continue;
-      if (!grid[day]) grid[day] = { habits: 0, tasks: 0, items: [] };
+      if (!grid[day]) grid[day] = { scheduled: 0, completed: 0, habits: 0, tasks: 0, items: [] };
+      grid[day].completed++;
       grid[day].tasks++;
       grid[day].items.push({ type: 'task', title: t.task.title, emoji: t.task.emoji });
+    }
+
+    const cur = new Date(start);
+    while (cur <= end) {
+      const ds = cur.toISOString().split('T')[0];
+      if (!vacationSet.has(ds)) {
+        const dow = cur.getDay();
+        for (const h of activeHabits) {
+          if (h.breaks.length > 0) continue;
+          const sched = JSON.parse(typeof h.daysPerWeek === 'string' ? h.daysPerWeek : JSON.stringify(h.daysPerWeek || '[]'));
+          if (h.frequencyType === 'daily' || h.frequencyType === 'always' || (Array.isArray(sched) && sched.includes(dow))) {
+            if (!grid[ds]) grid[ds] = { scheduled: 0, completed: 0, habits: 0, tasks: 0, items: [] };
+            grid[ds].scheduled++;
+          }
+        }
+      }
+      cur.setDate(cur.getDate() + 1);
     }
 
     res.json({ grid, vacationDays: Array.from(vacationSet) });

@@ -84,6 +84,38 @@
           <button @click="showFinishForm = false" class="btn-secondary flex-1">Cancel</button>
         </div>
       </div>
+
+      <!-- Accountability Buddy -->
+      <div class="card space-y-3">
+        <div class="flex items-center justify-between">
+          <p class="section-title">Accountability Buddy</p>
+          <button @click="showBuddyForm = !showBuddyForm" class="text-xs text-emerald-400 hover:text-emerald-300">
+            {{ showBuddyForm ? 'Cancel' : '+ Add' }}
+          </button>
+        </div>
+        <div v-if="buddies.length" class="space-y-2">
+          <div v-for="b in buddies" :key="b.id" class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-xs font-bold">
+              {{ (b.friend?.username || 'U')[0].toUpperCase() }}
+            </div>
+            <span class="text-sm flex-1">@{{ b.friend?.username }}</span>
+            <button @click="removeBuddy(b)" class="text-xs text-red-400 hover:text-red-300">Remove</button>
+          </div>
+        </div>
+        <p v-else class="text-xs text-gray-500">No accountability partners yet. Add a friend to keep you on track!</p>
+        <div v-if="showBuddyForm" class="space-y-2 pt-2 border-t border-gray-800">
+          <input v-model="buddySearch" @input="searchBuddies" class="input text-xs" placeholder="Search friends..." />
+          <div v-if="buddyResults.length" class="space-y-1">
+            <button v-for="f in buddyResults" :key="f.id" @click="addBuddy(f)"
+              class="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-800 transition-colors text-left">
+              <div class="w-7 h-7 rounded-full bg-emerald-600 flex items-center justify-center text-[10px] font-bold">
+                {{ (f.username || 'U')[0].toUpperCase() }}
+              </div>
+              <span class="text-sm">@{{ f.username }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div v-else class="card space-y-4">
@@ -150,6 +182,10 @@ const showFinishForm = ref(false)
 const finishNote = ref('')
 const confirmDelete = ref(false)
 const breakReason = ref('')
+const showBuddyForm = ref(false)
+const buddySearch = ref('')
+const buddyResults = ref([])
+const buddies = ref([])
 
 const activeBreak = computed(() => {
   return habit.value.breaks?.find(b => !b.endDate) || null
@@ -178,6 +214,7 @@ async function loadHabit() {
     editForm.schedule = Array.isArray(sched) ? sched : [1, 2, 3, 4, 5, 6, 7]
 
     logs.value = habit.value.logs || []
+    buddies.value = habit.value.buddies || []
   } catch {
     toast.error('Failed to load habit')
   }
@@ -266,6 +303,41 @@ function formatRecurrence(h) {
 function formatDate(d) {
   if (!d) return ''
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+let buddyTimeout = null
+function searchBuddies() {
+  clearTimeout(buddyTimeout)
+  if (buddySearch.value.length < 2) { buddyResults.value = []; return }
+  buddyTimeout = setTimeout(async () => {
+    try {
+      const res = await api.get('/friends/search', { params: { q: buddySearch.value } })
+      buddyResults.value = (res.data.users || []).slice(0, 5)
+    } catch { buddyResults.value = [] }
+  }, 300)
+}
+
+async function addBuddy(friend) {
+  try {
+    const res = await api.post(`/habits/${route.params.id}/buddy`, { friendId: friend.id })
+    buddies.value.push(res.data.buddy)
+    buddySearch.value = ''
+    buddyResults.value = []
+    showBuddyForm.value = false
+    toast.success(`${friend.username} added as buddy`)
+  } catch (e) {
+    toast.error(e.response?.data?.error || 'Failed to add buddy')
+  }
+}
+
+async function removeBuddy(buddy) {
+  try {
+    await api.delete(`/habits/${route.params.id}/buddy/${buddy.id}`)
+    buddies.value = buddies.value.filter(b => b.id !== buddy.id)
+    toast.success('Buddy removed')
+  } catch {
+    toast.error('Failed to remove buddy')
+  }
 }
 
 onMounted(loadHabit)
