@@ -223,6 +223,12 @@ const camHabit = ref(null)
 
 const todayStr = () => new Date().toISOString().slice(0, 10)
 
+const newHabit = reactive({
+  title: '', description: '', emoji: '🎯',
+  schedule: [1, 2, 3, 4, 5, 6, 7],
+  verificationType: 'honor', makePublic: false,
+})
+
 function prevDay() {
   const d = new Date(selectedDate.value)
   d.setDate(d.getDate() - 1)
@@ -500,12 +506,6 @@ async function confirmDeleteAllHabits() {
 
 function loadMoreCompletedTasks() { completedTasksPage.value++ }
 function loadMoreCompletedHabits() { completedHabitsPage.value++ }
-
-const newHabit = reactive({
-  title: '', description: '', emoji: '🎯',
-  schedule: [1, 2, 3, 4, 5, 6, 7],
-  verificationType: 'honor', makePublic: false,
-})
 
 onMounted(() => { loadAll(); loadHistory() })
 </script>

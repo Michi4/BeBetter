@@ -115,7 +115,7 @@ const friendToken = ref('')
 
 const inviteLink = computed(() => {
   if (friendToken.value) {
-    return `${window.location.origin}/register?friend=${friendToken.value}`
+    return `${window.location.origin}/friend/accept/${friendToken.value}`
   }
   return 'Generating link...'
 })

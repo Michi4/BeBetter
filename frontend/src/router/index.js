@@ -18,6 +18,7 @@ const routes = [
   { path: '/challenges/new', name: 'new-challenge', component: () => import('../views/NewChallenge.vue'), meta: { auth: true } },
   { path: '/admin', name: 'admin', component: () => import('../views/Admin.vue'), meta: { auth: true } },
   { path: '/notifications', name: 'notifications', component: () => import('../views/Notifications.vue'), meta: { auth: true } },
+  { path: '/friend/accept/:token', name: 'friend-accept', component: () => import('../views/FriendAccept.vue'), meta: { auth: true } },
   { path: '/:pathMatch(.*)*', name: 'not-found', redirect: '/dashboard' },
 ]
 
