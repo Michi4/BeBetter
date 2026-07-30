@@ -12,13 +12,19 @@
             <Sun v-if="isDark" :size="18" />
             <Moon v-else :size="18" />
           </button>
-          <router-link v-if="auth.user" :to="`/profile/${auth.user.username || auth.user.id}`"
-            class="w-8 h-8 rounded-full bg-emerald-600/20 flex items-center justify-center text-xs font-bold text-emerald-400 ring-1 ring-emerald-500/30">
-            {{ (auth.user.name || auth.user.username || '?')[0].toUpperCase() }}
-          </router-link>
-          <button v-if="auth.user" @click="handleLogout" class="p-2.5 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition-colors touch-target">
-            <LogOut :size="18" />
-          </button>
+          <template v-if="auth.user">
+            <router-link :to="`/profile/${auth.user.username || auth.user.id}`"
+              class="w-8 h-8 rounded-full bg-emerald-600/20 flex items-center justify-center text-xs font-bold text-emerald-400 ring-1 ring-emerald-500/30">
+              {{ (auth.user.username || '?')[0].toUpperCase() }}
+            </router-link>
+            <button @click="handleLogout" class="p-2.5 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition-colors touch-target">
+              <LogOut :size="18" />
+            </button>
+          </template>
+          <template v-else>
+            <router-link to="/login" class="text-xs font-medium text-emerald-400 hover:text-emerald-300 px-2 py-1 rounded-lg hover:bg-gray-800 transition-colors">Sign In</router-link>
+            <router-link to="/register" class="text-xs font-medium bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-500 transition-colors">Sign Up</router-link>
+          </template>
         </div>
       </div>
     </nav>

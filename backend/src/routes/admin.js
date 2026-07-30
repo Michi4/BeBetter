@@ -52,7 +52,7 @@ router.get('/stats', async (req, res) => {
       newUsersWeek,
     });
   } catch (e) {
-    console.error(e);
+    console.error('admin stats error:', e.message);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -69,7 +69,7 @@ router.get('/users', async (req, res) => {
 
     res.json({ users });
   } catch (e) {
-    console.error(e);
+    console.error('admin users error:', e.message);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -83,7 +83,7 @@ router.post('/users/:id/role', async (req, res) => {
     const user = await prisma.user.update({ where: { id }, data: { role } });
     res.json({ user: { id: user.id, role: user.role } });
   } catch (e) {
-    console.error(e);
+    console.error('admin role error:', e.message);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -107,7 +107,7 @@ router.post('/users/:id/ban', async (req, res) => {
 
     res.json({ user: { id: user.id, bannedUntil: user.bannedUntil, banReason: user.banReason } });
   } catch (e) {
-    console.error(e);
+    console.error('admin ban error:', e.message);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -115,13 +115,13 @@ router.post('/users/:id/ban', async (req, res) => {
 router.post('/users/:id/unban', async (req, res) => {
   try {
     const { id } = req.params;
-    const user = await prisma.user.update({
+    await prisma.user.update({
       where: { id },
       data: { bannedUntil: null, banReason: null },
     });
-    res.json({ user: { id: user.id } });
+    res.json({ ok: true });
   } catch (e) {
-    console.error(e);
+    console.error('admin unban error:', e.message);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -131,13 +131,12 @@ router.get('/reports', async (req, res) => {
     const reports = await prisma.report.findMany({
       include: {
         reporter: { select: { id: true, username: true } },
-        reportedUser: { select: { id: true, username: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
     res.json({ reports });
   } catch (e) {
-    console.error(e);
+    console.error('admin reports error:', e.message);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -148,7 +147,7 @@ router.post('/reports/:id/dismiss', async (req, res) => {
     await prisma.report.update({ where: { id }, data: { status: 'dismissed' } });
     res.json({ ok: true });
   } catch (e) {
-    console.error(e);
+    console.error('admin dismiss error:', e.message);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -156,13 +155,10 @@ router.post('/reports/:id/dismiss', async (req, res) => {
 router.post('/reports/:id/action', async (req, res) => {
   try {
     const { id } = req.params;
-    const report = await prisma.report.findUnique({ where: { id } });
-    if (!report) return res.status(404).json({ error: 'Report not found' });
-
     await prisma.report.update({ where: { id }, data: { status: 'resolved' } });
     res.json({ ok: true });
   } catch (e) {
-    console.error(e);
+    console.error('admin action error:', e.message);
     res.status(500).json({ error: 'Server error' });
   }
 });

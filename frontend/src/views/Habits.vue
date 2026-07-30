@@ -1,28 +1,13 @@
 <template>
-  <div class="page">
-    <!-- Tasks Section (moved above history) -->
+  <div class="page pb-32 md:pb-24">
+    <!-- Tasks Section (input at top) -->
     <section class="space-y-3">
       <div class="flex items-center gap-2">
         <h2 class="section-title">Tasks</h2>
         <span v-if="incompleteTasks.length" class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-medium">{{ incompleteTasks.length }}</span>
       </div>
 
-      <form @submit.prevent="addTask" class="flex gap-2">
-        <input
-          v-model="newTaskTitle"
-          type="text"
-          placeholder="Add a task..."
-          class="min-h-[44px] flex-1 rounded-lg border border-gray-700 bg-gray-800/50 px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-        />
-        <button
-          type="submit"
-          :disabled="!newTaskTitle.trim()"
-          class="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-white transition-colors hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <Plus :size="18" />
-        </button>
-      </form>
-
+      <!-- Incomplete Tasks -->
       <div v-if="incompleteTasks.length === 0" class="text-sm text-gray-500 py-2">No incomplete tasks</div>
       <div v-for="task in incompleteTasks" :key="task.id" class="space-y-1" :class="{ 'animate-celebrate': completingTaskId === task.id }">
         <TaskCard :task="task" @complete="completeTask" @delete="deleteTask" @edit="openEditTask" />
@@ -38,6 +23,7 @@
         </div>
       </div>
 
+      <!-- Completed Tasks (collapsible) -->
       <div v-if="completedTasks.length > 0" class="rounded-xl border border-gray-800 bg-gray-900/50 overflow-hidden">
         <button @click="showCompletedTasks = !showCompletedTasks" class="min-h-[44px] w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-400 hover:bg-gray-800/50 transition-colors">
           <div class="flex items-center gap-2">
@@ -45,7 +31,7 @@
             <span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400">{{ completedTasks.length }}</span>
           </div>
           <div class="flex items-center gap-2">
-            <button @click.stop="confirmDeleteAllTasks" class="text-[10px] px-2 py-1 rounded text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-colors" title="Delete all completed tasks">Clear all</button>
+            <button @click.stop="confirmDeleteAllTasks" class="text-[10px] px-2 py-1 rounded text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-colors">Clear all</button>
             <ChevronDown :size="16" class="transition-transform duration-200" :class="showCompletedTasks ? 'rotate-180' : ''" />
           </div>
         </button>
@@ -78,6 +64,7 @@
         <HabitCard :habit="h" @finish="completeHabit" @cam="openCamHabit" />
       </div>
 
+      <!-- Completed Habits (collapsible) -->
       <div v-if="completedHabits.length > 0" class="rounded-xl border border-gray-800 bg-gray-900/50 overflow-hidden">
         <button @click="showCompletedHabits = !showCompletedHabits" class="min-h-[44px] w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-400 hover:bg-gray-800/50 transition-colors">
           <div class="flex items-center gap-2">
@@ -85,7 +72,7 @@
             <span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400">{{ completedHabits.length }}</span>
           </div>
           <div class="flex items-center gap-2">
-            <button @click.stop="confirmDeleteAllHabits" class="text-[10px] px-2 py-1 rounded text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-colors" title="Delete all completed habits and their stats">Clear all</button>
+            <button @click.stop="confirmDeleteAllHabits" class="text-[10px] px-2 py-1 rounded text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-colors">Clear all</button>
             <ChevronDown :size="16" class="transition-transform duration-200" :class="showCompletedHabits ? 'rotate-180' : ''" />
           </div>
         </button>
@@ -110,7 +97,7 @@
       </div>
     </section>
 
-    <!-- History Section (moved below) -->
+    <!-- History Section -->
     <section class="space-y-3">
       <h2 class="section-title">History</h2>
 
@@ -127,16 +114,86 @@
         </button>
       </div>
 
-      <div class="rounded-xl border border-gray-800 bg-gray-900/50 p-4 space-y-3">
-        <h3 class="text-sm font-medium text-gray-400">Completed that day</h3>
-        <div v-if="historyLogs.length === 0" class="text-xs text-gray-500">No completions</div>
-        <div v-for="log in historyLogs" :key="log.id" class="flex items-center gap-2 text-sm">
-          <CheckCircle2 :size="14" class="text-emerald-400 flex-shrink-0 animate-done" />
-          <span class="text-gray-300 truncate">{{ log.habit?.title || log.title }}</span>
-          <span class="text-xs text-gray-500 ml-auto shrink-0">{{ formatTime(log.completedAt) }}</span>
+      <!-- Scheduled habits for the day -->
+      <div v-if="scheduledForDay.length" class="space-y-2">
+        <h3 class="text-xs font-medium text-gray-500">Scheduled</h3>
+        <div v-for="h in scheduledForDay" :key="h.id" class="card flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+            :class="h.completed ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-800 text-gray-500'">
+            <CheckCircle2 v-if="h.completed" :size="16" class="animate-done" />
+            <Circle v-else :size="16" />
+          </div>
+          <div class="flex-1 min-w-0">
+            <span class="text-sm truncate" :class="h.completed ? 'text-gray-300' : 'text-gray-500'">{{ h.emoji || '' }} {{ h.title }}</span>
+          </div>
+          <span v-if="h.completed" class="text-[10px] text-emerald-400 shrink-0">done</span>
+          <span v-else class="text-[10px] text-gray-600 shrink-0">missed</span>
         </div>
       </div>
+
+      <!-- Task completions for the day -->
+      <div v-if="historyTasks.length" class="space-y-2">
+        <h3 class="text-xs font-medium text-gray-500">Tasks</h3>
+        <div v-for="t in historyTasks" :key="t.id" class="card flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-emerald-500/20 text-emerald-400">
+            <Check :size="16" />
+          </div>
+          <span class="text-sm text-gray-300 truncate">{{ t.emoji || '📝' }} {{ t.title }}</span>
+        </div>
+      </div>
+
+      <div v-if="!scheduledForDay.length && !historyTasks.length" class="text-sm text-gray-500 py-2">No data for this day</div>
     </section>
+
+    <!-- Mobile floating add button (above bottom nav) -->
+    <div class="fixed bottom-20 left-0 right-0 z-40 flex justify-center md:hidden pointer-events-none">
+      <form @submit.prevent="handleInput" class="flex items-center gap-2 pointer-events-auto w-full max-w-md px-4">
+        <button
+          type="submit"
+          class="touch-target shrink-0 flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-500/25 hover:bg-emerald-500 transition-colors active:scale-95"
+        >
+          <Plus :size="22" />
+        </button>
+        <input
+          v-model="quickTaskInput"
+          type="text"
+          placeholder="Add a task..."
+          class="flex-1 h-12 rounded-2xl border border-gray-700 bg-gray-900/95 backdrop-blur-xl px-4 text-sm text-gray-200 placeholder-gray-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 shadow-lg"
+        />
+      </form>
+    </div>
+
+    <!-- Desktop add task form -->
+    <form @submit.prevent="handleInput" class="hidden md:flex items-center gap-2">
+      <button
+        type="submit"
+        class="touch-target shrink-0 flex items-center justify-center w-11 h-11 rounded-xl bg-gray-800 text-gray-400 hover:bg-emerald-500/10 hover:text-emerald-400 transition-colors"
+        title="New habit or task"
+      >
+        <Plus :size="20" />
+      </button>
+      <input
+        v-model="quickTaskInput"
+        type="text"
+        placeholder="Add a task..."
+        class="input flex-1 text-sm"
+      />
+    </form>
+
+    <!-- New Habit Form -->
+    <div v-if="showNewHabitForm" class="card space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-medium">New Habit</h3>
+        <button @click="showNewHabitForm = false" class="touch-target flex items-center justify-center text-gray-400 hover:text-gray-200 transition-colors">
+          <X :size="18" />
+        </button>
+      </div>
+      <HabitForm v-model="newHabit" />
+      <div class="flex justify-end gap-2 pt-1">
+        <button @click="showNewHabitForm = false" class="btn-secondary btn-sm">Cancel</button>
+        <button @click="createHabit" class="btn-sm" :disabled="!newHabit.title.trim()">Create</button>
+      </div>
+    </div>
 
     <BeBetterCam :show="!!camHabit" @close="camHabit = null" @capture="submitHabitProof" />
   </div>
@@ -146,15 +203,19 @@
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import api from '../api'
 import { useToast } from 'vue-toastification'
-import { Plus, Check, ChevronDown, ChevronLeft, ChevronRight, CheckCircle2, Trash2 } from 'lucide-vue-next'
+import { Plus, X, ChevronDown, ChevronLeft, ChevronRight, CheckCircle2, Circle, Check, Trash2 } from 'lucide-vue-next'
 import HabitCard from '../components/HabitCard.vue'
 import TaskCard from '../components/TaskCard.vue'
 import BeBetterCam from '../components/BeBetterCam.vue'
+import HabitForm from '../components/HabitForm.vue'
 
 const toast = useToast()
 
 const selectedDate = ref(new Date().toISOString().slice(0, 10))
-const historyLogs = ref([])
+const scheduledForDay = ref([])
+const historyTasks = ref([])
+const quickTaskInput = ref('')
+const showNewHabitForm = ref(false)
 
 const completingTaskId = ref(null)
 const completingHabitId = ref(null)
@@ -176,10 +237,35 @@ function nextDay() {
 
 async function loadHistory() {
   try {
-    const res = await api.get('/grid/day', { params: { date: selectedDate.value } })
-    historyLogs.value = res.data.habits || []
+    const dayOfWeek = new Date(selectedDate.value).getDay()
+    const [habitsRes, dayRes, tasksRes] = await Promise.all([
+      api.get('/habits/scheduled', { params: { date: selectedDate.value } }).catch(() => ({ data: { habits: [] } })),
+      api.get('/logs/with-scheduled', { params: { date: selectedDate.value } }).catch(() => ({ data: { scheduled: [] } })),
+      api.get('/tasks/completed', { params: { date: selectedDate.value } }).catch(() => ({ data: { logs: [] } })),
+    ])
+
+    const scheduledHabits = dayRes.data.scheduled || habitsRes.data.habits || []
+    const loggedIds = new Set()
+
+    try {
+      const logsForDay = await api.get('/grid/day', { params: { date: selectedDate.value } })
+      const completedHabits = logsForDay.data.habits || []
+      completedHabits.forEach(h => loggedIds.add(h.habitId || h.id))
+    } catch {}
+
+    scheduledForDay.value = scheduledHabits.map(h => ({
+      ...h,
+      completed: loggedIds.has(h.id),
+    }))
+
+    historyTasks.value = (tasksRes.data.logs || []).map(l => ({
+      ...l,
+      title: l.task?.title || 'Task',
+      emoji: l.task?.emoji || '📝',
+    }))
   } catch {
-    historyLogs.value = []
+    scheduledForDay.value = []
+    historyTasks.value = []
   }
 }
 
@@ -189,7 +275,7 @@ const incompleteTasks = ref([])
 const completedTasks = ref([])
 const activeHabits = ref([])
 const completedHabits = ref([])
-const newTaskTitle = ref('')
+
 const expandedTask = ref(null)
 const showCompletedTasks = ref(false)
 const showCompletedHabits = ref(false)
@@ -215,17 +301,19 @@ function formatDate(dateStr) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-function formatTime(dateStr) {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
-}
-
 function openEditTask(task) {
   expandedTask.value = task.id
   editTaskForm.title = task.title
   editTaskForm.description = task.description || ''
   editTaskForm.dueDate = task.dueDate ? task.dueDate.slice(0, 10) : ''
+}
+
+function handleInput() {
+  if (quickTaskInput.value.trim()) {
+    addTask()
+  } else {
+    showNewHabitForm.value = !showNewHabitForm.value
+  }
 }
 
 async function loadAll() {
@@ -251,11 +339,11 @@ async function loadAll() {
 }
 
 async function addTask() {
-  if (!newTaskTitle.value.trim()) return
+  if (!quickTaskInput.value.trim()) return
   try {
-    const res = await api.post('/tasks', { title: newTaskTitle.value.trim() })
+    const res = await api.post('/tasks', { title: quickTaskInput.value.trim() })
     incompleteTasks.value.unshift(res.data.task || res.data)
-    newTaskTitle.value = ''
+    quickTaskInput.value = ''
     toast.success('Task created')
   } catch {
     toast.error('Failed to create task')
@@ -279,10 +367,7 @@ async function completeTask(task) {
 
 async function updateTask(task) {
   try {
-    const payload = {
-      title: editTaskForm.title,
-      description: editTaskForm.description || undefined,
-    }
+    const payload = { title: editTaskForm.title, description: editTaskForm.description || undefined }
     if (editTaskForm.dueDate) payload.dueDate = editTaskForm.dueDate
     await api.put(`/tasks/${task.id}`, payload)
     task.title = editTaskForm.title
@@ -363,12 +448,38 @@ async function submitHabitProof(dataUrl) {
   }
 }
 
+async function createHabit() {
+  if (!newHabit.title.trim()) return
+  try {
+    const payload = {
+      title: newHabit.title,
+      description: newHabit.description || undefined,
+      emoji: newHabit.emoji,
+      frequencyType: 'daily',
+      schedule: newHabit.schedule,
+      verificationType: newHabit.verificationType,
+      makePublic: newHabit.makePublic,
+    }
+    await api.post('/habits', payload)
+    toast.success('Habit created')
+    showNewHabitForm.value = false
+    Object.assign(newHabit, {
+      title: '', description: '', emoji: '🎯',
+      schedule: [1, 2, 3, 4, 5, 6, 7],
+      verificationType: 'honor', makePublic: false,
+    })
+    loadAll()
+  } catch {
+    toast.error('Failed to create habit')
+  }
+}
+
 async function deleteCompletedHabit(habit) {
-  if (!confirm(`Delete "${habit.title}" and ALL its data (stats, logs, streaks, pauses)? This cannot be undone.`)) return
+  if (!confirm(`Delete "${habit.title}" and ALL its data? This cannot be undone.`)) return
   try {
     await api.delete(`/habits/${habit.id}`)
     completedHabits.value = completedHabits.value.filter(h => h.id !== habit.id)
-    toast.success(`"${habit.title}" deleted with all data`)
+    toast.success(`"${habit.title}" deleted`)
   } catch {
     toast.error('Failed')
   }
@@ -376,19 +487,25 @@ async function deleteCompletedHabit(habit) {
 
 async function confirmDeleteAllHabits() {
   const count = completedHabits.value.length
-  if (!confirm(`Delete ALL ${count} completed habits and ALL their data? This cannot be undone.`)) return
+  if (!confirm(`Delete ALL ${count} completed habits? This cannot be undone.`)) return
   try {
     await Promise.all(completedHabits.value.map(h => api.delete(`/habits/${h.id}`)))
     completedHabits.value = []
     showCompletedHabits.value = false
     toast.success('All completed habits deleted')
   } catch {
-    toast.error('Failed to delete some habits')
+    toast.error('Failed')
   }
 }
 
 function loadMoreCompletedTasks() { completedTasksPage.value++ }
 function loadMoreCompletedHabits() { completedHabitsPage.value++ }
+
+const newHabit = reactive({
+  title: '', description: '', emoji: '🎯',
+  schedule: [1, 2, 3, 4, 5, 6, 7],
+  verificationType: 'honor', makePublic: false,
+})
 
 onMounted(() => { loadAll(); loadHistory() })
 </script>

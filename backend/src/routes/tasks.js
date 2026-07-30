@@ -22,7 +22,6 @@ router.get('/', authMiddleware, async (req, res) => {
     const tasks = await prisma.task.findMany({
       where: { userId: req.userId, isActive: true },
       orderBy: [{ dueDate: 'asc' }, { createdAt: 'desc' }],
-      include: { tags: true },
     });
 
     const completedToday = await prisma.taskLog.findMany({

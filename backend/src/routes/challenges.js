@@ -5,6 +5,31 @@ const { authMiddleware } = require('../middleware/auth');
 const router = Router();
 const prisma = new PrismaClient();
 
+router.get('/leaderboard/friends', authMiddleware, async (req, res) => {
+  try {
+    const friendships = await prisma.friendship.findMany({
+      where: { OR: [{ user1Id: req.userId }, { user2Id: req.userId }] },
+    });
+    const friendIds = friendships.map(f => f.user1Id === req.userId ? f.user2Id : f.user1Id);
+    const allIds = [req.userId, ...friendIds];
+
+    const leaderboard = [];
+    for (const uid of allIds) {
+      const user = await prisma.user.findUnique({ where: { id: uid }, select: { id: true, username: true, avatar: true } });
+      if (!user) continue;
+      const totalLogs = await prisma.habitLog.count({ where: { userId: uid } });
+      const wins = await prisma.challenge.count({ where: { OR: [{ creatorId: uid }, { opponentId: uid }], status: 'resolved', winnerId: uid } });
+      leaderboard.push({ ...user, score: totalLogs, wins });
+    }
+
+    leaderboard.sort((a, b) => b.score - a.score);
+    res.json({ leaderboard });
+  } catch (e) {
+    console.error('leaderboard friends error:', e.message);
+    res.json({ leaderboard: [] });
+  }
+});
+
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const challenges = await prisma.challenge.findMany({
@@ -15,24 +40,19 @@ router.get('/', authMiddleware, async (req, res) => {
         habit: { select: { id: true, title: true, emoji: true } },
         creator: { select: { id: true, username: true, avatar: true } },
         opponent: { select: { id: true, username: true, avatar: true } },
-        habitLogs: { select: { completedAt: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    const enriched = challenges.map((c) => {
-      const creatorLogs = c.habitLogs.filter((l) => l.userId === c.creatorId);
-      const opponentLogs = c.habitLogs.filter((l) => l.userId === c.opponentId);
-      return {
-        ...c,
-        creatorProgress: creatorLogs.length,
-        opponentProgress: opponentLogs.length,
-      };
-    });
+    const enriched = await Promise.all(challenges.map(async (c) => {
+      const creatorLogs = await prisma.habitLog.count({ where: { habitId: c.habitId, userId: c.creatorId } });
+      const opponentLogs = await prisma.habitLog.count({ where: { habitId: c.habitId, userId: c.opponentId } });
+      return { ...c, creatorProgress: creatorLogs, opponentProgress: opponentLogs };
+    }));
 
     res.json({ challenges: enriched });
   } catch (e) {
-    console.error(e);
+    console.error('challenges GET error:', e.message);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -65,8 +85,9 @@ router.post('/', authMiddleware, async (req, res) => {
         creatorId: req.userId,
         opponentId,
         habitId,
+        title: `${habit.title} challenge`,
         startDate: new Date(),
-        endDate: endDate ? new Date(endDate) : undefined,
+        endDate: endDate ? new Date(endDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         status: 'active',
       },
       include: {
@@ -83,11 +104,11 @@ router.post('/', authMiddleware, async (req, res) => {
         payload: { challengeId: challenge.id, opponentId },
         visibility: 'friends',
       },
-    });
+    }).catch(() => {});
 
     res.json({ challenge });
   } catch (e) {
-    console.error(e);
+    console.error('challenges POST error:', e.message);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -101,28 +122,22 @@ router.get('/:id', authMiddleware, async (req, res) => {
         habit: { select: { id: true, title: true, emoji: true } },
         creator: { select: { id: true, username: true, avatar: true } },
         opponent: { select: { id: true, username: true, avatar: true } },
-        habitLogs: { select: { completedAt: true, userId: true } },
       },
     });
 
     if (!challenge) return res.status(404).json({ error: 'Not found' });
-
     if (challenge.creatorId !== req.userId && challenge.opponentId !== req.userId) {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
-    const creatorLogs = challenge.habitLogs.filter((l) => l.userId === challenge.creatorId);
-    const opponentLogs = challenge.habitLogs.filter((l) => l.userId === challenge.opponentId);
+    const creatorLogs = await prisma.habitLog.count({ where: { habitId: challenge.habitId, userId: challenge.creatorId } });
+    const opponentLogs = await prisma.habitLog.count({ where: { habitId: challenge.habitId, userId: challenge.opponentId } });
 
     res.json({
-      challenge: {
-        ...challenge,
-        creatorProgress: creatorLogs.length,
-        opponentProgress: opponentLogs.length,
-      },
+      challenge: { ...challenge, creatorProgress: creatorLogs, opponentProgress: opponentLogs },
     });
   } catch (e) {
-    console.error(e);
+    console.error('challenges GET :id error:', e.message);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -132,28 +147,19 @@ router.get('/:id/progress', authMiddleware, async (req, res) => {
     const { id } = req.params;
     const challenge = await prisma.challenge.findUnique({ where: { id } });
     if (!challenge) return res.status(404).json({ error: 'Not found' });
-
     if (challenge.creatorId !== req.userId && challenge.opponentId !== req.userId) {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
-    const logs = await prisma.habitLog.findMany({
-      where: { habitId: challenge.habitId },
-      select: { completedAt: true, userId: true },
-      orderBy: { completedAt: 'asc' },
-    });
-
-    const creatorLogs = logs.filter((l) => l.userId === challenge.creatorId);
-    const opponentLogs = logs.filter((l) => l.userId === challenge.opponentId);
+    const creatorCount = await prisma.habitLog.count({ where: { habitId: challenge.habitId, userId: challenge.creatorId } });
+    const opponentCount = await prisma.habitLog.count({ where: { habitId: challenge.habitId, userId: challenge.opponentId } });
 
     res.json({
-      creatorProgress: creatorLogs.length,
-      opponentProgress: opponentLogs.length,
-      creatorLogs: creatorLogs.map((l) => l.completedAt),
-      opponentLogs: opponentLogs.map((l) => l.completedAt),
+      creatorProgress: creatorCount,
+      opponentProgress: opponentCount,
     });
   } catch (e) {
-    console.error(e);
+    console.error('challenge progress error:', e.message);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -165,28 +171,19 @@ router.post('/:id/resolve', authMiddleware, async (req, res) => {
 
     const challenge = await prisma.challenge.findUnique({ where: { id } });
     if (!challenge) return res.status(404).json({ error: 'Not found' });
-
     if (challenge.creatorId !== req.userId && challenge.opponentId !== req.userId) {
       return res.status(403).json({ error: 'Not authorized' });
     }
-
     if (challenge.status === 'resolved') {
       return res.status(400).json({ error: 'Challenge already resolved' });
     }
-
-    if (winnerId) {
-      if (winnerId !== challenge.creatorId && winnerId !== challenge.opponentId) {
-        return res.status(400).json({ error: 'Winner must be creator or opponent' });
-      }
+    if (winnerId && winnerId !== challenge.creatorId && winnerId !== challenge.opponentId) {
+      return res.status(400).json({ error: 'Winner must be creator or opponent' });
     }
 
     const resolved = await prisma.challenge.update({
       where: { id },
-      data: {
-        status: 'resolved',
-        winnerId: winnerId || null,
-        resolvedAt: new Date(),
-      },
+      data: { status: 'resolved', winnerId: winnerId || null },
     });
 
     await prisma.activity.create({
@@ -196,11 +193,11 @@ router.post('/:id/resolve', authMiddleware, async (req, res) => {
         payload: { challengeId: id, winnerId: winnerId || null },
         visibility: 'friends',
       },
-    });
+    }).catch(() => {});
 
     res.json({ challenge: resolved });
   } catch (e) {
-    console.error(e);
+    console.error('challenges resolve error:', e.message);
     res.status(500).json({ error: 'Server error' });
   }
 });
