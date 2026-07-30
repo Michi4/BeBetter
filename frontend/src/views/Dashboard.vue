@@ -17,10 +17,13 @@
     <!-- Desktop quick input -->
     <div class="hidden md:block card">
       <div class="flex gap-2">
+        <button @click="showCreateModal = true" class="btn-secondary px-3 shrink-0" title="Create habit or detailed task">
+          <Target :size="18" />
+        </button>
         <input v-model="quickTaskTitle" @keydown.enter="createQuickTask"
           class="input flex-1" placeholder="Add a quick task..." />
         <button @click="createQuickTask" class="btn px-4" :disabled="!quickTaskTitle.trim()">
-          <Plus :size="16" /> Add
+          Add
         </button>
       </div>
     </div>
@@ -101,12 +104,6 @@
       </button>
     </div>
 
-    <!-- Desktop add button -->
-    <button @click="showCreateModal = true"
-      class="hidden md:flex fixed bottom-6 right-6 z-40 touch-target items-center justify-center w-14 h-14 rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-500/25 hover:bg-emerald-500 transition-colors active:scale-95">
-      <Plus :size="24" />
-    </button>
-
     <!-- Create Modal -->
     <CreateModal :show="showCreateModal" initial-mode="task"
       @close="showCreateModal = false" @created="handleCreated" @convertToHabit="handleConvertToHabit" />
@@ -117,7 +114,7 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import api from '../api'
 import { useToast } from 'vue-toastification'
-import { Plus, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { Plus, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Target } from 'lucide-vue-next'
 import ContributionGrid from '../components/ContributionGrid.vue'
 import DayDetail from '../components/DayDetail.vue'
 import HabitCard from '../components/HabitCard.vue'
@@ -291,8 +288,14 @@ async function deleteTask(task) {
   }
 }
 
-function editTask(task) {
-  todayTasks.value = todayTasks.value.map(t => t.id === task.id ? task : t)
+async function editTask(task) {
+  try {
+    await api.put(`/tasks/${task.id}`, { title: task.title, description: task.description || undefined, dueDate: task.dueDate || undefined })
+    todayTasks.value = todayTasks.value.map(t => t.id === task.id ? { ...t, title: task.title, description: task.description, dueDate: task.dueDate } : t)
+    toast.success('Task updated')
+  } catch {
+    toast.error('Failed to update')
+  }
 }
 
 function openCam(habit) {

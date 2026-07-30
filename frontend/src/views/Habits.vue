@@ -3,10 +3,13 @@
     <!-- Desktop quick input -->
     <div class="hidden md:block card">
       <div class="flex gap-2">
+        <button @click="showCreateModal = true" class="btn-secondary px-3 shrink-0" title="Create habit or detailed task">
+          <Target :size="18" />
+        </button>
         <input v-model="quickTaskTitle" @keydown.enter="createQuickTask"
           class="input flex-1" placeholder="Add a quick task..." />
         <button @click="createQuickTask" class="btn px-4" :disabled="!quickTaskTitle.trim()">
-          <Plus :size="16" /> Add
+          Add
         </button>
       </div>
     </div>
@@ -19,16 +22,7 @@
       </div>
       <div v-if="incompleteTasks.length === 0" class="text-sm text-gray-500 py-2">No incomplete tasks</div>
       <div v-for="task in incompleteTasks" :key="task.id" class="space-y-1" :class="{ 'animate-celebrate': completingTaskId === task.id }">
-        <TaskCard :task="task" @complete="completeTask" @delete="deleteTask" @edit="openEditTask" @convert="convertTask" />
-        <div v-if="expandedTask === task.id" class="rounded-xl border border-gray-700 bg-gray-800/50 p-4 space-y-3 ml-9">
-          <input v-model="editTaskForm.title" class="input" placeholder="Title" />
-          <textarea v-model="editTaskForm.description" class="input min-h-[60px]" placeholder="Description" rows="2"></textarea>
-          <input v-model="editTaskForm.dueDate" type="date" class="input" />
-          <div class="flex justify-end gap-2">
-            <button @click="expandedTask = null" class="btn-secondary btn-sm">Cancel</button>
-            <button @click="updateTask(task)" class="btn-sm">Save</button>
-          </div>
-        </div>
+        <TaskCard :task="task" @complete="completeTask" @delete="deleteTask" @edit="updateTaskFromCard" @convert="convertTask" />
       </div>
       <div v-if="completedTasks.length > 0" class="rounded-xl border border-gray-800 bg-gray-900/50 overflow-hidden">
         <button @click="showCompletedTasks = !showCompletedTasks" class="min-h-[44px] w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-400 hover:bg-gray-800/50 transition-colors">
@@ -149,12 +143,6 @@
       </button>
     </div>
 
-    <!-- Desktop add button -->
-    <button @click="showCreateModal = true"
-      class="hidden md:flex fixed bottom-6 right-6 z-40 touch-target items-center justify-center w-14 h-14 rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-500/25 hover:bg-emerald-500 transition-colors active:scale-95">
-      <Plus :size="24" />
-    </button>
-
     <CreateModal :show="showCreateModal" initial-mode="task"
       @close="showCreateModal = false" @created="handleCreated" @convertToHabit="handleConvertToHabit" />
     <BeBetterCam :show="!!camHabit" @close="camHabit = null" @capture="submitHabitProof" />
@@ -165,7 +153,7 @@
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import api from '../api'
 import { useToast } from 'vue-toastification'
-import { Plus, ChevronDown, ChevronLeft, ChevronRight, CheckCircle2, Circle, Check, Trash2 } from 'lucide-vue-next'
+import { Plus, ChevronDown, ChevronLeft, ChevronRight, CheckCircle2, Circle, Check, Trash2, Target } from 'lucide-vue-next'
 import HabitCard from '../components/HabitCard.vue'
 import TaskCard from '../components/TaskCard.vue'
 import BeBetterCam from '../components/BeBetterCam.vue'
@@ -236,11 +224,8 @@ const completedTasks = ref([])
 const activeHabits = ref([])
 const completedHabits = ref([])
 
-const expandedTask = ref(null)
 const showCompletedTasks = ref(false)
 const showCompletedHabits = ref(false)
-
-const editTaskForm = reactive({ title: '', description: '', dueDate: '' })
 
 const completedTasksPage = ref(0)
 const completedHabitsPage = ref(0)
@@ -261,11 +246,14 @@ function formatDate(dateStr) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-function openEditTask(task) {
-  expandedTask.value = task.id
-  editTaskForm.title = task.title
-  editTaskForm.description = task.description || ''
-  editTaskForm.dueDate = task.dueDate ? task.dueDate.slice(0, 10) : ''
+async function updateTaskFromCard(task) {
+  try {
+    await api.put(`/tasks/${task.id}`, { title: task.title, description: task.description || undefined, dueDate: task.dueDate || undefined })
+    incompleteTasks.value = incompleteTasks.value.map(t => t.id === task.id ? { ...t, title: task.title, description: task.description, dueDate: task.dueDate } : t)
+    toast.success('Task updated')
+  } catch {
+    toast.error('Failed to update task')
+  }
 }
 
 async function handleCreated(type, data) {
@@ -351,21 +339,6 @@ async function completeTask(task) {
     }, 600)
   } catch {
     toast.error('Failed')
-  }
-}
-
-async function updateTask(task) {
-  try {
-    const payload = { title: editTaskForm.title, description: editTaskForm.description || undefined }
-    if (editTaskForm.dueDate) payload.dueDate = editTaskForm.dueDate
-    await api.put(`/tasks/${task.id}`, payload)
-    task.title = editTaskForm.title
-    task.description = editTaskForm.description
-    task.dueDate = editTaskForm.dueDate || null
-    expandedTask.value = null
-    toast.success('Task updated')
-  } catch {
-    toast.error('Failed to update task')
   }
 }
 

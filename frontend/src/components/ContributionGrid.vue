@@ -2,7 +2,7 @@
   <div class="select-none" ref="container">
     <div v-if="weeks.length">
       <!-- Scroll wrapper -->
-      <div class="overflow-x-auto -mx-1 px-1 grid-scroll" ref="scrollRef" @scroll="onScroll" @wheel="onWheel">
+      <div class="overflow-x-auto -mx-1 px-1 pb-1 grid-scroll" ref="scrollRef" @scroll="onScroll" @wheel="onWheel">
         <div :style="{ width: gridWidth + 'px', minWidth: '100%' }">
           <!-- Month labels row -->
           <div class="relative h-[18px] mb-[3px]">
@@ -41,14 +41,6 @@
             </div>
           </div>
         </div>
-      </div>
-
-      <!-- Scroll indicator -->
-      <div v-if="isScrollable" class="relative mt-2 h-[3px] rounded-full bg-gray-800/60 mx-1">
-        <div
-          class="absolute top-0 left-0 h-full rounded-full bg-emerald-500/70 transition-all duration-75"
-          :style="{ width: indicatorW + 'px', left: indicatorLeft + 'px' }"
-        ></div>
       </div>
     </div>
 
@@ -265,13 +257,22 @@ function onWheel(e) {
   const el = scrollRef.value
   const maxScroll = el.scrollWidth - el.clientWidth
   if (maxScroll <= 0) return
-  if (!e.shiftKey) {
-    // Don't prevent default if at left edge scrolling left, or right edge scrolling right
-    if (e.deltaY < 0 && el.scrollLeft <= 0) return
-    if (e.deltaY > 0 && el.scrollLeft >= maxScroll - 1) return
+
+  const atLeft = el.scrollLeft <= 0
+  const atRight = el.scrollLeft >= maxScroll - 1
+
+  // If shift is held, let browser handle horizontal scroll natively
+  if (e.shiftKey) return
+
+  // If we can scroll in the direction of the wheel, consume it
+  if (e.deltaY < 0 && !atLeft) {
+    e.preventDefault()
+    el.scrollLeft += e.deltaY
+  } else if (e.deltaY > 0 && !atRight) {
     e.preventDefault()
     el.scrollLeft += e.deltaY
   }
+  // Otherwise let the page scroll normally
 }
 
 function getCellClass(day) {
