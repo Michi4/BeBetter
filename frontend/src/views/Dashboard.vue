@@ -108,7 +108,7 @@
     </div>
 
     <!-- Create Modal -->
-    <CreateModal :show="showCreateModal" initial-mode="task" :convert-data="convertData"
+    <CreateModal :show="showCreateModal" initial-mode="habit" :convert-data="convertData"
       @close="showCreateModal = false; convertData = null" @created="handleCreated" @convertToHabit="handleConvertToHabit" />
   </div>
 </template>
