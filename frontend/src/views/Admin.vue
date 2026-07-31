@@ -23,6 +23,7 @@
       </button>
     </div>
 
+    <!-- REPORTS TAB -->
     <div v-if="activeTab === 'Reports'" class="space-y-2">
       <div v-if="loadingReports" class="text-center py-8">
         <Loader2 :size="20" class="animate-spin text-gray-500 mx-auto" />
@@ -33,14 +34,18 @@
             <div class="flex-1 min-w-0">
               <div class="text-xs text-gray-500 mb-1">
                 Reported by <span class="text-gray-300">{{ r.reporter?.username || 'Unknown' }}</span>
+                <span class="text-gray-600 ml-1">{{ formatDate(r.createdAt) }}</span>
               </div>
+
               <div class="flex items-center gap-2 mb-1">
                 <span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400">{{ r.targetType }}</span>
                 <router-link v-if="r.targetLink" :to="r.targetLink" class="text-xs font-medium text-emerald-400 hover:text-emerald-300 underline-offset-2 hover:underline">
                   {{ r.targetTitle || '' }}
                 </router-link>
-                <span v-else class="text-xs font-medium text-gray-400">{{ r.targetTitle || '' }}</span>
+                <span v-else class="text-xs font-medium text-gray-400">{{ r.targetTitle || 'Unknown' }}</span>
+                <span v-if="!r.targetLink" class="text-[10px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-400">deleted</span>
               </div>
+
               <div v-if="r.targetUser" class="flex items-center gap-2 mt-1 p-2 rounded-lg bg-gray-800/50">
                 <div class="w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-[10px] font-bold shrink-0">
                   {{ (r.targetUser.username || '?')[0].toUpperCase() }}
@@ -49,31 +54,40 @@
                   <div class="text-xs text-gray-300">{{ r.targetUser.username }}</div>
                   <div class="text-[10px] text-gray-500">{{ r.targetUser.email }}</div>
                 </div>
-                <span v-if="r.targetUser.bannedUntil" class="text-[10px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-400">Banned</span>
+                <span v-if="r.targetUser.bannedUntil" class="text-[10px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-400">
+                  Banned {{ formatDate(r.targetUser.bannedUntil) }}
+                </span>
               </div>
+
               <p class="text-sm text-gray-300 mt-1">{{ r.reason }}</p>
               <p v-if="r.description" class="text-xs text-gray-500 mt-1">{{ r.description }}</p>
             </div>
-            <span class="text-[10px] text-gray-600 shrink-0">{{ formatDate(r.createdAt) }}</span>
           </div>
-          <div v-if="r.status === 'pending' && r.targetUser" class="flex gap-2 pt-1">
-            <button @click="banUser(r.targetUser)" class="btn-danger text-xs flex-1">
-              <Ban :size="12" /> Ban User
-            </button>
-            <button @click="dismissReport(r)" class="btn-secondary text-xs flex-1">
-              <X :size="12" /> Dismiss
-            </button>
-            <button @click="deleteReport(r)" class="btn-ghost text-red-400 text-xs shrink-0 px-2">
+
+          <!-- Actions -->
+          <div class="flex gap-2 pt-1 border-t border-gray-800/50">
+            <template v-if="r.status === 'pending'">
+              <button v-if="r.targetUser && !r.targetUser.bannedUntil" @click="banUser(r.targetUser)" class="btn-danger text-xs flex-1 min-h-[36px]">
+                <Ban :size="12" /> Ban User
+              </button>
+              <button v-if="r.targetUser && r.targetUser.bannedUntil" @click="unbanUser(r.targetUser)" class="btn-secondary text-xs flex-1 min-h-[36px]">
+                <ShieldCheck :size="12" /> Unban
+              </button>
+              <button @click="dismissReport(r)" class="btn-secondary text-xs flex-1 min-h-[36px]">
+                <EyeOff :size="12" /> Dismiss
+              </button>
+              <button @click="resolveReport(r)" class="btn text-xs flex-1 min-h-[36px]">
+                <CheckCircle :size="12" /> Resolve
+              </button>
+            </template>
+            <template v-else>
+              <span class="text-[10px] px-1.5 py-0.5 rounded"
+                :class="r.status === 'dismissed' ? 'bg-gray-700 text-gray-400' : 'bg-emerald-500/10 text-emerald-400'">
+                {{ r.status }}
+              </span>
+            </template>
+            <button @click="deleteReport(r)" class="btn-ghost text-red-400/70 hover:text-red-400 text-xs shrink-0 px-2 min-h-[36px]">
               <Trash2 :size="12" />
-            </button>
-          </div>
-          <div v-else-if="r.status !== 'pending'" class="flex gap-2 pt-1 items-center">
-            <span class="text-[10px] px-1.5 py-0.5 rounded"
-              :class="r.status === 'dismissed' ? 'bg-gray-700 text-gray-400' : 'bg-emerald-500/10 text-emerald-400'">
-              {{ r.status }}
-            </span>
-            <button @click="deleteReport(r)" class="text-[10px] text-red-400/70 hover:text-red-400 ml-auto">
-              <Trash2 :size="10" /> Delete
             </button>
           </div>
         </div>
@@ -84,6 +98,7 @@
       </div>
     </div>
 
+    <!-- USERS TAB -->
     <div v-if="activeTab === 'Users'" class="space-y-3">
       <input
         v-model="userSearch"
@@ -109,7 +124,7 @@
             <div class="text-xs text-gray-500 truncate">{{ u.email }}</div>
             <div v-if="u.bannedUntil" class="text-[10px] text-red-400">Banned until {{ formatDate(u.bannedUntil) }}</div>
           </div>
-          <div class="flex gap-1">
+          <div class="flex gap-1 items-center">
             <button @click="toggleAdmin(u)" class="shrink-0">
               <span
                 class="text-[10px] px-1.5 py-0.5 rounded font-medium"
@@ -120,13 +135,13 @@
                 {{ u.role }}
               </span>
             </button>
-            <button v-if="!u.bannedUntil" @click="banUserFromList(u)"
-              class="text-gray-600 hover:text-red-400 transition-colors p-1">
-              <Ban :size="12" />
+            <button v-if="!u.bannedUntil" @click="banUser(u)"
+              class="text-gray-600 hover:text-red-400 transition-colors p-1.5 rounded hover:bg-red-500/10">
+              <Ban :size="14" />
             </button>
             <button v-else @click="unbanUser(u)"
-              class="text-gray-600 hover:text-emerald-400 transition-colors p-1">
-              <ShieldCheck :size="12" />
+              class="text-gray-600 hover:text-emerald-400 transition-colors p-1.5 rounded hover:bg-emerald-500/10">
+              <ShieldCheck :size="14" />
             </button>
           </div>
         </div>
@@ -165,7 +180,7 @@
 import { ref, computed, onMounted } from 'vue'
 import api from '../api'
 import { useToast } from 'vue-toastification'
-import { Inbox, Loader2, Ban, X, ShieldCheck, Trash2 } from 'lucide-vue-next'
+import { Inbox, Loader2, Ban, X, ShieldCheck, Trash2, EyeOff, CheckCircle } from 'lucide-vue-next'
 
 const toast = useToast()
 
@@ -249,13 +264,6 @@ function banUser(user) {
   showBanDialog.value = true
 }
 
-function banUserFromList(u) {
-  banTarget.value = u
-  banDays.value = 7
-  banReason.value = ''
-  showBanDialog.value = true
-}
-
 async function confirmBan() {
   if (!banTarget.value || !banDays.value) return
   try {
@@ -265,8 +273,8 @@ async function confirmBan() {
     })
     toast.success(`${banTarget.value.username} banned for ${banDays.value} days`)
     showBanDialog.value = false
+    banTarget.value.bannedUntil = new Date(Date.now() + banDays.value * 86400000).toISOString()
     loadReports()
-    searchUsers()
   } catch {
     toast.error('Failed to ban user')
   }
@@ -289,6 +297,16 @@ async function dismissReport(r) {
     toast.success('Report dismissed')
   } catch {
     toast.error('Failed to dismiss')
+  }
+}
+
+async function resolveReport(r) {
+  try {
+    await api.post(`/admin/reports/${r.id}/action`)
+    r.status = 'resolved'
+    toast.success('Report resolved')
+  } catch {
+    toast.error('Failed to resolve')
   }
 }
 

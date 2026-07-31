@@ -138,25 +138,43 @@ router.get('/reports', async (req, res) => {
     const enriched = await Promise.all(reports.map(async (r) => {
       let targetUser = null;
       let targetLink = null;
+      let targetTitle = r.targetTitle || null;
+      const snap = r.targetData || null;
+
       if (r.targetType === 'preset') {
         const preset = await prisma.preset.findUnique({ where: { id: r.targetId }, select: { id: true, title: true, authorId: true, authorName: true } });
         if (preset) {
           targetUser = await prisma.user.findUnique({ where: { id: preset.authorId }, select: { id: true, username: true, email: true, bannedUntil: true } });
-          r.targetTitle = preset.title;
+          targetTitle = preset.title;
           targetLink = `/presets/${preset.id}`;
+        } else if (snap) {
+          targetTitle = snap.title || 'Deleted preset';
+          targetLink = null;
+          if (snap.authorId) {
+            targetUser = await prisma.user.findUnique({ where: { id: snap.authorId }, select: { id: true, username: true, email: true, bannedUntil: true } });
+            if (!targetUser && snap.authorUsername) {
+              targetUser = { id: snap.authorId, username: snap.authorUsername, email: snap.authorEmail || 'Unknown', bannedUntil: null };
+            }
+          }
         }
       } else if (r.targetType === 'habit') {
         const habit = await prisma.habit.findUnique({ where: { id: r.targetId }, select: { id: true, title: true, userId: true } });
         if (habit) {
           targetUser = await prisma.user.findUnique({ where: { id: habit.userId }, select: { id: true, username: true, email: true, bannedUntil: true } });
-          r.targetTitle = habit.title;
+          targetTitle = habit.title;
           targetLink = `/habits/${habit.id}`;
+        } else if (snap) {
+          targetTitle = snap.title || 'Deleted habit';
+          targetLink = null;
+          if (snap.userId) {
+            targetUser = await prisma.user.findUnique({ where: { id: snap.userId }, select: { id: true, username: true, email: true, bannedUntil: true } });
+          }
         }
       } else if (r.targetType === 'user') {
         targetUser = await prisma.user.findUnique({ where: { id: r.targetId }, select: { id: true, username: true, email: true, bannedUntil: true } });
         if (targetUser) targetLink = `/profile/${targetUser.username}`;
       }
-      return { ...r, targetUser, targetLink };
+      return { ...r, targetUser, targetLink, targetTitle };
     }));
 
     res.json({ reports: enriched });

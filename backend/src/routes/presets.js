@@ -282,11 +282,21 @@ router.post('/:id/report', async (req, res) => {
     const preset = await prisma.preset.findUnique({ where: { id: req.params.id } });
     if (!preset) return res.status(404).json({ error: 'Preset not found' });
 
+    const author = await prisma.user.findUnique({ where: { id: preset.authorId }, select: { id: true, username: true, email: true } });
+
     const report = await prisma.report.create({
       data: {
         reporterId: req.userId,
         targetType: 'preset',
         targetId: req.params.id,
+        targetData: {
+          title: preset.title,
+          description: preset.description,
+          category: preset.category,
+          authorId: preset.authorId,
+          authorUsername: author?.username || preset.authorName || 'Unknown',
+          authorEmail: author?.email || null,
+        },
         reason,
         description: description || null,
       },

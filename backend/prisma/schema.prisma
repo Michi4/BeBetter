@@ -245,6 +245,7 @@ model Report {
   reporter     User     @relation(fields: [reporterId], references: [id])
   targetType   String
   targetId     String
+  targetData   Json?
   reason       String
   description  String?
   status       String   @default("pending")
