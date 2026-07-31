@@ -30,6 +30,23 @@ function verifyFriendLinkToken(token) {
   }
 }
 
+router.get('/list', authMiddleware, async (req, res) => {
+  try {
+    const friendships = await prisma.friendship.findMany({
+      where: { OR: [{ user1Id: req.userId }, { user2Id: req.userId }] },
+      include: {
+        user1: { select: { id: true, username: true, avatar: true } },
+        user2: { select: { id: true, username: true, avatar: true } },
+      },
+    });
+    const friends = friendships.map(f => f.user1Id === req.userId ? f.user2 : f.user1);
+    res.json({ friends });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 router.get('/search', authMiddleware, async (req, res) => {
   try {
     const { q } = req.query;

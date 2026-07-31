@@ -50,7 +50,11 @@
         <router-link v-for="item in bottomNavItems" :key="item.to" :to="item.to"
           class="flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-colors min-w-[56px]"
           :class="isActive(item.to) ? 'text-emerald-400' : 'text-gray-500'">
-          <component :is="item.icon" :size="22" :stroke-width="isActive(item.to) ? 2.5 : 1.5" />
+          <div class="relative">
+            <component :is="item.icon" :size="22" :stroke-width="isActive(item.to) ? 2.5 : 1.5" />
+            <span v-if="item.to === '/notifications' && unreadCount > 0"
+              class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 ring-1 ring-gray-900"></span>
+          </div>
           <span class="text-[10px] font-medium">{{ item.label }}</span>
         </router-link>
       </div>
@@ -59,16 +63,27 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
 import { LogOut, LayoutDashboard, ListTodo, Users, Trophy, BookOpen, Shield, Sun, Moon, Bell } from 'lucide-vue-next'
 import Logo from './components/Logo.vue'
+import api from './api'
 
 const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
 const isDark = ref(true)
+const unreadCount = ref(0)
+let unreadInterval = null
+
+async function fetchUnread() {
+  if (!auth.user) return
+  try {
+    const res = await api.get('/notifications')
+    unreadCount.value = res.data.unread || 0
+  } catch {}
+}
 
 const desktopNavItems = computed(() => {
   const items = [
@@ -91,6 +106,7 @@ const bottomNavItems = computed(() => {
     { to: '/habits', label: 'Habits', icon: ListTodo },
     { to: '/friends', label: 'Friends', icon: Users },
     { to: '/leaderboard', label: 'Ranks', icon: Trophy },
+    { to: '/notifications', label: 'Alerts', icon: Bell },
     { to: '/presets', label: 'Presets', icon: BookOpen },
   ]
   if (auth.user?.role === 'admin') {
@@ -123,5 +139,11 @@ onMounted(() => {
     isDark.value = false
     document.documentElement.classList.add('light')
   }
+  fetchUnread()
+  unreadInterval = setInterval(fetchUnread, 30000)
+})
+
+onUnmounted(() => {
+  if (unreadInterval) clearInterval(unreadInterval)
 })
 </script>

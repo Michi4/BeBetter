@@ -331,6 +331,12 @@ async function loadAll() {
       ...h, completedToday: false, hasBreak: !!h.breaks?.find(b => !b.endDate),
     }))
     completedHabits.value = allHabits.filter(h => h.active === false)
+
+    const todayLogsRes = await api.get('/logs/today').catch(() => ({ data: { logs: [] } }))
+    const loggedIds = new Set((todayLogsRes.data.logs || []).map(l => l.habitId))
+    activeHabits.value = activeHabits.value.map(h => ({
+      ...h, completedToday: loggedIds.has(h.id),
+    }))
   } catch {
     toast.error('Failed to load data')
   }

@@ -42,9 +42,8 @@ router.get('/scheduled', authMiddleware, async (req, res) => {
     const d = date ? new Date(date) : new Date();
     const dayOfWeek = d.getDay();
 
-    const now = new Date();
     const isOnVacation = await prisma.vacation.findFirst({
-      where: { userId: req.userId, startDate: { lte: now }, OR: [{ endDate: null }, { endDate: { gte: now } }] },
+      where: { userId: req.userId, startDate: { lte: d }, OR: [{ endDate: null }, { endDate: { gte: d } }] },
     });
 
     const habits = await prisma.habit.findMany({
@@ -343,17 +342,24 @@ router.get('/:id', authMiddleware, async (req, res) => {
         });
 
         let currentStreak = 0;
-        let streakDate = new Date();
-        streakDate.setHours(0, 0, 0, 0);
-        for (const log of recentLogs) {
-          const logDate = new Date(log.completedAt);
-          logDate.setHours(0, 0, 0, 0);
-          const diff = Math.round((streakDate - logDate) / (1000 * 60 * 60 * 24));
-          if (diff <= 1) {
-            currentStreak++;
-            streakDate = logDate;
-          } else {
-            break;
+        if (recentLogs.length > 0) {
+          const sortedLogs = recentLogs.map(l => {
+            const d = new Date(l.completedAt);
+            d.setHours(0, 0, 0, 0);
+            return d.getTime();
+          }).filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => b - a);
+
+          let streakDate = new Date();
+          streakDate.setHours(0, 0, 0, 0);
+
+          for (const logTs of sortedLogs) {
+            const diff = Math.round((streakDate.getTime() - logTs) / (1000 * 60 * 60 * 24));
+            if (diff <= 1) {
+              currentStreak++;
+              streakDate = new Date(logTs);
+            } else {
+              break;
+            }
           }
         }
 

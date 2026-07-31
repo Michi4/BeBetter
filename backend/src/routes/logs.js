@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { habitId, note, photo, proofUrl, date } = req.body;
+    const { habitId, photo, proofUrl, date } = req.body;
     if (!habitId) return res.status(400).json({ error: 'habitId required' });
 
     const habit = await prisma.habit.findUnique({ where: { id: habitId }, include: { breaks: true } });
@@ -26,7 +26,7 @@ router.post('/', authMiddleware, async (req, res) => {
         OR: [{ endDate: null }, { endDate: { gte: logDate } }],
       },
     });
-    if (vacation) return res.status(400).json({ error: 'You are on vacation' });
+    if (vacation) return res.status(400).json({ error: 'On vacation this day' });
 
     const dayOfWeek = logDate.getDay();
     const sched = JSON.parse(typeof habit.daysPerWeek === 'string' ? habit.daysPerWeek : JSON.stringify(habit.daysPerWeek || '[]'));
@@ -135,10 +135,11 @@ router.get('/with-scheduled', authMiddleware, async (req, res) => {
     d.setHours(0, 0, 0, 0);
     const dayOfWeek = d.getDay();
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(d);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
     const isOnVacation = await prisma.vacation.findFirst({
-      where: { userId: req.userId, startDate: { lte: today }, OR: [{ endDate: null }, { endDate: { gte: today } }] },
+      where: { userId: req.userId, startDate: { lte: d }, OR: [{ endDate: null }, { endDate: { gte: d } }] },
     });
 
     const habits = await prisma.habit.findMany({
@@ -152,7 +153,7 @@ router.get('/with-scheduled', authMiddleware, async (req, res) => {
     const dayLogs = await prisma.habitLog.findMany({
       where: {
         userId: req.userId,
-        completedAt: d,
+        completedAt: { gte: d, lt: tomorrow },
       },
     });
     const loggedIds = new Set(dayLogs.map((l) => l.habitId));

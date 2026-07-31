@@ -43,7 +43,7 @@ router.get('/', authMiddleware, async (req, res) => {
       }),
       prisma.habit.findMany({
         where: { userId: req.userId, active: true },
-        select: { id: true, daysPerWeek: true, frequencyType: true, breaks: { where: { endDate: null }, select: { startDate: true } } },
+        select: { id: true, daysPerWeek: true, frequencyType: true, createdAt: true, breaks: { where: { endDate: null }, select: { startDate: true } } },
       }),
     ]);
 
@@ -71,6 +71,7 @@ router.get('/', authMiddleware, async (req, res) => {
         const dow = cur.getDay();
         for (const h of activeHabits) {
           if (h.breaks.length > 0) continue;
+          if (h.createdAt && cur < new Date(h.createdAt)) continue;
           const sched = JSON.parse(typeof h.daysPerWeek === 'string' ? h.daysPerWeek : JSON.stringify(h.daysPerWeek || '[]'));
           if (h.frequencyType === 'daily' || h.frequencyType === 'always' || (Array.isArray(sched) && sched.includes(dow))) {
             if (!grid[ds]) grid[ds] = { scheduled: 0, completed: 0, habits: 0, tasks: 0, items: [] };

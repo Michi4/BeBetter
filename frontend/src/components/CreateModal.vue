@@ -287,9 +287,13 @@ function searchBuddies() {
   if (buddySearch.value.length < 2) { buddyResults.value = []; return }
   buddyTimeout = setTimeout(async () => {
     try {
-      const res = await api.get('/friends/search', { params: { q: buddySearch.value } })
-      const existing = new Set(selectedBuddies.value.map(b => b.id))
-      buddyResults.value = (res.data.users || []).filter(u => !existing.has(u.id)).slice(0, 5)
+      const res = await api.get('/friends/list')
+      const allFriends = res.data.friends || []
+      const query = buddySearch.value.toLowerCase()
+      const existingIds = new Set(selectedBuddies.value.map(b => b.id))
+      buddyResults.value = allFriends
+        .filter(f => !existingIds.has(f.id) && f.username?.toLowerCase().includes(query))
+        .slice(0, 5)
     } catch { buddyResults.value = [] }
   }, 300)
 }
@@ -310,9 +314,13 @@ function searchChallengers() {
   if (challengerSearch.value.length < 2) { challengerResults.value = []; return }
   challengerTimeout = setTimeout(async () => {
     try {
-      const res = await api.get('/friends/search', { params: { q: challengerSearch.value } })
-      const existing = new Set(selectedChallengers.value.map(c => c.id))
-      challengerResults.value = (res.data.users || []).filter(u => !existing.has(u.id)).slice(0, 5)
+      const res = await api.get('/friends/list')
+      const allFriends = res.data.friends || []
+      const query = challengerSearch.value.toLowerCase()
+      const existingIds = new Set(selectedChallengers.value.map(c => c.id))
+      challengerResults.value = allFriends
+        .filter(f => !existingIds.has(f.id) && f.username?.toLowerCase().includes(query))
+        .slice(0, 5)
     } catch { challengerResults.value = [] }
   }, 300)
 }

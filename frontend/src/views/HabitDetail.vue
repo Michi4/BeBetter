@@ -11,7 +11,7 @@
 
         <div class="grid grid-cols-2 gap-3">
           <div class="text-center p-2 rounded-lg bg-gray-800/50">
-            <div class="text-lg font-bold text-emerald-400">{{ habit._count?.logs || habit.totalCompletions || 0 }}</div>
+            <div class="text-lg font-bold text-emerald-400">{{ habit._count?.logs || logs.length || habit.totalCompletions || 0 }}</div>
             <div class="text-[10px] text-gray-500">Total Done</div>
           </div>
           <div class="text-center p-2 rounded-lg bg-gray-800/50">
@@ -321,8 +321,13 @@ function searchBuddies() {
   if (buddySearch.value.length < 2) { buddyResults.value = []; return }
   buddyTimeout = setTimeout(async () => {
     try {
-      const res = await api.get('/friends/search', { params: { q: buddySearch.value } })
-      buddyResults.value = (res.data.users || []).slice(0, 5)
+      const res = await api.get('/friends/list')
+      const allFriends = res.data.friends || []
+      const query = buddySearch.value.toLowerCase()
+      const existingIds = new Set(buddyProgress.value.map(b => b.friend?.id))
+      buddyResults.value = allFriends
+        .filter(f => !existingIds.has(f.id) && f.username?.toLowerCase().includes(query))
+        .slice(0, 5)
     } catch { buddyResults.value = [] }
   }, 300)
 }

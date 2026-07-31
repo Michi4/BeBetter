@@ -112,12 +112,13 @@ router.post('/', authMiddleware, async (req, res) => {
       },
     });
 
+    const creatorUser = await prisma.user.findUnique({ where: { id: req.userId }, select: { username: true } });
     await prisma.notification.create({
       data: {
         userId: opponentId,
         type: 'challenge_invite',
-        message: `${req.userId} challenged you to "${habit.title}"!`,
-        data: { challengeId: challenge.id, habitTitle: habit.title, creatorName: req.userId },
+        message: `${creatorUser?.username || 'Someone'} challenged you to "${habit.title}"!`,
+        data: { challengeId: challenge.id, habitTitle: habit.title, creatorName: creatorUser?.username },
       },
     }).catch(() => {});
 
@@ -215,11 +216,12 @@ router.post('/invite/:token/accept', authMiddleware, async (req, res) => {
       },
     });
 
+    const invAcceptUser = await prisma.user.findUnique({ where: { id: req.userId }, select: { username: true } });
     await prisma.notification.create({
       data: {
         userId: challenge.creatorId,
         type: 'challenge_accepted',
-        message: `${req.userId} accepted your challenge!`,
+        message: `${invAcceptUser?.username || 'Someone'} accepted your challenge!`,
         data: { challengeId: challenge.id },
       },
     }).catch(() => {});
@@ -249,11 +251,12 @@ router.post('/:id/accept', authMiddleware, async (req, res) => {
       },
     });
 
+    const acceptUser = await prisma.user.findUnique({ where: { id: req.userId }, select: { username: true } });
     await prisma.notification.create({
       data: {
         userId: challenge.creatorId,
         type: 'challenge_accepted',
-        message: `${req.userId} accepted your challenge "${challenge.title}"!`,
+        message: `${acceptUser?.username || 'Someone'} accepted your challenge "${challenge.title}"!`,
         data: { challengeId: id },
       },
     }).catch(() => {});
@@ -274,11 +277,12 @@ router.post('/:id/decline', authMiddleware, async (req, res) => {
 
     await prisma.challenge.update({ where: { id }, data: { status: 'declined' } });
 
+    const declineUser = await prisma.user.findUnique({ where: { id: req.userId }, select: { username: true } });
     await prisma.notification.create({
       data: {
         userId: challenge.creatorId,
         type: 'challenge_declined',
-        message: `${req.userId} declined your challenge "${challenge.title}".`,
+        message: `${declineUser?.username || 'Someone'} declined your challenge "${challenge.title}".`,
         data: { challengeId: id },
       },
     }).catch(() => {});

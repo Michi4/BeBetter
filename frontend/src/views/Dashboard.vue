@@ -214,9 +214,9 @@ async function loadGrid() {
       const data = gridRaw[ds]
       const isVacation = vacationDays.includes(ds)
       if (data) {
-        days.push({ date: ds, count: (data.completed || 0), items: data.items || [], isVacation, scheduled: data.scheduled || 0, completed: data.completed || 0 })
+        days.push({ date: ds, count: (data.completed || 0), items: data.items || [], isVacation, scheduled: data.scheduled || 0, completed: data.completed || 0, habits: data.habits || 0, tasks: data.tasks || 0 })
       } else {
-        days.push({ date: ds, count: 0, items: [], isVacation, scheduled: 0, completed: 0 })
+        days.push({ date: ds, count: 0, items: [], isVacation, scheduled: 0, completed: 0, habits: 0, tasks: 0 })
       }
       cur.setDate(cur.getDate() + 1)
     }
