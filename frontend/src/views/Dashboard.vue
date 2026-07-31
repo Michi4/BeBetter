@@ -1,5 +1,8 @@
 <template>
   <div class="page pb-32 md:pb-24">
+    <!-- Inline Notifications -->
+    <NotificationAlerts />
+
     <!-- Vacation Banner -->
     <div v-if="isOnVacation" class="card bg-amber-500/10 border border-amber-500/20">
       <div class="flex items-center justify-between">
@@ -121,6 +124,7 @@ import HabitCard from '../components/HabitCard.vue'
 import TaskCard from '../components/TaskCard.vue'
 import BeBetterCam from '../components/BeBetterCam.vue'
 import CreateModal from '../components/CreateModal.vue'
+import NotificationAlerts from '../components/NotificationAlerts.vue'
 
 const toast = useToast()
 
@@ -327,8 +331,10 @@ async function logHabit(habit) {
 async function submitCamProof(dataUrl) {
   if (!camHabit.value) return
   try {
+    const res = await fetch(dataUrl)
+    const blob = await res.blob()
     const form = new FormData()
-    form.append('photo', dataUrl, 'proof.jpg')
+    form.append('photo', blob, 'proof.jpg')
     const { data } = await api.post('/upload', form)
     await api.post('/logs', { habitId: camHabit.value.id, photo: data.url })
     todayHabits.value = todayHabits.value.map(h =>

@@ -1,5 +1,8 @@
 <template>
   <div class="page pb-32 md:pb-24">
+    <!-- Inline Notifications -->
+    <NotificationAlerts />
+
     <!-- Desktop quick input -->
     <div class="hidden md:block card">
       <div class="flex gap-2">
@@ -158,6 +161,7 @@ import HabitCard from '../components/HabitCard.vue'
 import TaskCard from '../components/TaskCard.vue'
 import BeBetterCam from '../components/BeBetterCam.vue'
 import CreateModal from '../components/CreateModal.vue'
+import NotificationAlerts from '../components/NotificationAlerts.vue'
 
 const toast = useToast()
 
@@ -409,8 +413,10 @@ async function completeHabit(habit) {
 async function submitHabitProof(dataUrl) {
   if (!camHabit.value) return
   try {
+    const res = await fetch(dataUrl)
+    const blob = await res.blob()
     const form = new FormData()
-    form.append('photo', dataUrl, 'proof.jpg')
+    form.append('photo', blob, 'proof.jpg')
     const { data } = await api.post('/upload', form)
     await api.post('/logs', { habitId: camHabit.value.id, photo: data.url })
     activeHabits.value = activeHabits.value.map(h =>

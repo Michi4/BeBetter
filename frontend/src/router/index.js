@@ -19,7 +19,6 @@ const routes = [
   { path: '/challenges/:id', name: 'challenge-detail', component: () => import('../views/ChallengeDetail.vue'), meta: { auth: true } },
   { path: '/challenges/invite/:token', name: 'challenge-invite', component: () => import('../views/ChallengeInvite.vue'), meta: { auth: true } },
   { path: '/admin', name: 'admin', component: () => import('../views/Admin.vue'), meta: { auth: true } },
-  { path: '/notifications', name: 'notifications', component: () => import('../views/Notifications.vue'), meta: { auth: true } },
   { path: '/friend/accept/:token', name: 'friend-accept', component: () => import('../views/FriendAccept.vue'), meta: { auth: true } },
   { path: '/:pathMatch(.*)*', name: 'not-found', redirect: '/dashboard' },
 ]

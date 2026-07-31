@@ -2,6 +2,9 @@
   <div class="page">
     <h1 class="text-xl font-bold">Friends</h1>
 
+    <!-- Inline Notifications -->
+    <NotificationAlerts />
+
     <div class="card space-y-3">
       <h3 class="section-title">Invite Friends</h3>
       <div class="flex gap-2">
@@ -103,6 +106,7 @@ import { ref, computed, onMounted } from 'vue'
 import api from '../api'
 import { useToast } from 'vue-toastification'
 import { Copy, Check, Loader2, UserPlus } from 'lucide-vue-next'
+import NotificationAlerts from '../components/NotificationAlerts.vue'
 
 const toast = useToast()
 
