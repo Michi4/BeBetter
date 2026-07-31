@@ -11,10 +11,22 @@ router.post('/', authMiddleware, async (req, res) => {
     if (!habitId) return res.status(400).json({ error: 'habitId required' });
 
     const habit = await prisma.habit.findUnique({ where: { id: habitId }, include: { breaks: true } });
-    if (!habit || habit.userId !== req.userId) return res.status(404).json({ error: 'Not found' });
+    if (!habit) return res.status(404).json({ error: 'Not found' });
 
-    const activeBreak = habit.breaks.find((b) => !b.endDate);
-    if (activeBreak) return res.status(400).json({ error: 'Habit is on break' });
+    const isOwner = habit.userId === req.userId;
+    let isChallengeOpponent = false;
+    if (!isOwner) {
+      const challenge = await prisma.challenge.findFirst({
+        where: { habitId, opponentId: req.userId, status: 'active' },
+      });
+      isChallengeOpponent = !!challenge;
+    }
+    if (!isOwner && !isChallengeOpponent) return res.status(404).json({ error: 'Not found' });
+
+    if (isOwner) {
+      const activeBreak = habit.breaks.find((b) => !b.endDate);
+      if (activeBreak) return res.status(400).json({ error: 'Habit is on break' });
+    }
 
     const logDate = date ? new Date(date) : new Date();
     logDate.setHours(0, 0, 0, 0);

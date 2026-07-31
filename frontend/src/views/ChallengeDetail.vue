@@ -28,6 +28,24 @@
         </div>
       </div>
 
+      <!-- Challenge Habit -->
+      <div v-if="challenge.status === 'active' && challenge.habit" class="card">
+        <div class="flex items-center gap-3">
+          <button @click="logChallengeHabit" class="w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-150"
+            :class="iLoggedToday ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-800 text-gray-400 hover:bg-emerald-500/10 hover:text-emerald-400'">
+            <Camera v-if="challenge.habit.verificationType === 'photo' || challenge.habit.verificationType === 'be_better_cam'" :size="18" />
+            <CheckCircle2 v-else :size="18" />
+          </button>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <h4 class="font-medium text-sm">{{ challenge.habit.emoji || '' }} {{ challenge.habit.title }}</h4>
+              <span v-if="iLoggedToday" class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-medium">Done</span>
+            </div>
+            <p v-if="challenge.habit.description" class="text-xs text-gray-500 truncate mt-0.5">{{ challenge.habit.description }}</p>
+          </div>
+        </div>
+      </div>
+
       <!-- Participants -->
       <div class="grid grid-cols-2 gap-3">
         <div class="card text-center space-y-2">
@@ -70,14 +88,10 @@
           <div v-for="day in recentGrid" :key="day.date" class="flex items-center gap-3 text-xs">
             <span class="text-gray-500 w-20 shrink-0">{{ formatGridDate(day.date) }}</span>
             <div class="flex-1 flex gap-1">
-              <div v-for="n in Math.max(day.creator, day.opponent, 1)" :key="n" class="flex gap-0.5 flex-1">
-                <div class="h-3 rounded-sm transition-all"
-                  :class="n <= day.creator ? 'bg-emerald-500' : 'bg-gray-800'"
-                  :style="{ width: '50%' }"></div>
-                <div class="h-3 rounded-sm transition-all"
-                  :class="n <= day.opponent ? 'bg-amber-500' : 'bg-gray-800'"
-                  :style="{ width: '50%' }"></div>
-              </div>
+              <div class="h-3 rounded-sm flex-1 transition-all"
+                :class="day.creator > 0 ? 'bg-emerald-500' : 'bg-gray-800'"></div>
+              <div class="h-3 rounded-sm flex-1 transition-all"
+                :class="day.opponent > 0 ? 'bg-amber-500' : 'bg-gray-800'"></div>
             </div>
           </div>
         </div>
@@ -120,7 +134,7 @@ import { useRoute, useRouter } from 'vue-router'
 import api from '../api'
 import { useToast } from 'vue-toastification'
 import { useAuthStore } from '../stores/auth'
-import { ArrowLeft, Loader2, Check, X, Trophy, Handshake } from 'lucide-vue-next'
+import { ArrowLeft, Loader2, Check, X, Trophy, Handshake, CheckCircle2, Camera } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
@@ -130,6 +144,7 @@ const auth = useAuthStore()
 const challenge = ref({})
 const gridDays = ref([])
 const loading = ref(true)
+const iLoggedToday = ref(false)
 
 const isOpponent = computed(() => auth.user && challenge.value.opponentId === auth.user.id)
 const creatorPercent = computed(() => {
@@ -157,11 +172,33 @@ async function loadChallenge() {
     ])
     challenge.value = cRes.data.challenge || {}
     gridDays.value = gRes.data.grid || []
+
+    if (challenge.value.status === 'active' && challenge.value.habitId) {
+      try {
+        const todayLogsRes = await api.get('/logs/today').catch(() => ({ data: { logs: [] } }))
+        iLoggedToday.value = (todayLogsRes.data.logs || []).some(l => l.habitId === challenge.value.habitId)
+      } catch {
+        iLoggedToday.value = false
+      }
+    }
   } catch {
     toast.error('Challenge not found')
     router.back()
   } finally {
     loading.value = false
+  }
+}
+
+async function logChallengeHabit() {
+  if (iLoggedToday.value) return
+  try {
+    await api.post('/logs', { habitId: challenge.value.habitId })
+    iLoggedToday.value = true
+    toast.success('Habit completed!')
+    loadChallenge()
+  } catch (e) {
+    if (e.response?.status === 409) toast.info('Already completed today!')
+    else toast.error('Failed')
   }
 }
 

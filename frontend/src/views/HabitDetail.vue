@@ -85,6 +85,68 @@
         </div>
       </div>
 
+      <!-- Challenge Friends -->
+      <div class="card space-y-3">
+        <div class="flex items-center justify-between">
+          <p class="section-title">Challenge Friends</p>
+          <button @click="showChallengeForm = !showChallengeForm" class="text-xs text-emerald-400 hover:text-emerald-300">
+            {{ showChallengeForm ? 'Cancel' : '+ Challenge' }}
+          </button>
+        </div>
+
+        <!-- Active challenges for this habit -->
+        <div v-if="activeChallenges.length" class="space-y-2">
+          <router-link v-for="c in activeChallenges" :key="c.id" :to="`/challenges/${c.id}`"
+            class="flex items-center gap-3 p-2 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-colors">
+            <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+              :class="c.creatorId === auth.user?.id ? 'bg-amber-600' : 'bg-emerald-600'">
+              {{ (c.opponent?.username || c.creator?.username || '?')[0].toUpperCase() }}
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm truncate">
+                vs {{ c.creatorId === auth.user?.id ? c.opponent?.username : c.creator?.username }}
+              </p>
+              <p class="text-[10px] text-gray-500">{{ c.creatorProgress || 0 }} - {{ c.opponentProgress || 0 }} · {{ c.status }}</p>
+            </div>
+            <ChevronRight :size="14" class="text-gray-600 shrink-0" />
+          </router-link>
+        </div>
+
+        <!-- Share invite link -->
+        <div v-if="showChallengeForm" class="space-y-3 pt-2 border-t border-gray-800">
+          <div>
+            <label class="text-xs font-medium text-gray-400 mb-2 block">Challenge a friend</label>
+            <input v-model="challengeSearch" @input="searchChallengers" class="input text-xs" placeholder="Search friends..." />
+            <div v-if="challengeResults.length" class="space-y-1 mt-2">
+              <button v-for="f in challengeResults" :key="f.id" @click="challengeFriend(f)"
+                class="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-800 transition-colors text-left">
+                <div class="w-7 h-7 rounded-full bg-amber-600 flex items-center justify-center text-[10px] font-bold">
+                  {{ (f.username || 'U')[0].toUpperCase() }}
+                </div>
+                <span class="text-sm">@{{ f.username }}</span>
+                <span class="ml-auto text-[10px] text-amber-400">Challenge</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="border-t border-gray-800 pt-3">
+            <label class="text-xs font-medium text-gray-400 mb-2 block">Or share a link — anyone can join</label>
+            <div v-if="inviteLink" class="flex gap-2">
+              <input :value="inviteLink" readonly class="input text-xs flex-1" />
+              <button @click="copyInviteLink" class="btn text-xs whitespace-nowrap">
+                <Copy :size="12" /> {{ copied ? 'Copied!' : 'Copy' }}
+              </button>
+            </div>
+            <button v-else @click="generateInviteLink" class="btn-secondary w-full text-xs" :disabled="generatingLink">
+              <Loader2 v-if="generatingLink" :size="14" class="animate-spin" />
+              <Link v-else :size="14" />
+              {{ generatingLink ? 'Generating...' : 'Generate Invite Link' }}
+            </button>
+            <p v-if="inviteLink" class="text-[10px] text-gray-500 mt-1.5">Link expires in 30 days. Anyone with this link can accept and become your challenge opponent.</p>
+          </div>
+        </div>
+      </div>
+
       <!-- Accountability Buddy -->
       <div class="card space-y-3">
         <div class="flex items-center justify-between">
@@ -175,12 +237,14 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../api'
 import { useToast } from 'vue-toastification'
-import { ArrowLeft, Pencil, Save, Pause, Play, CheckCircle, Trash2 } from 'lucide-vue-next'
+import { useAuthStore } from '../stores/auth'
+import { ArrowLeft, Pencil, Save, Pause, Play, CheckCircle, Trash2, ChevronRight, Copy, Link, Loader2 } from 'lucide-vue-next'
 import HabitForm from '../components/HabitForm.vue'
 
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
+const auth = useAuthStore()
 
 const habit = ref({})
 const logs = ref([])
@@ -195,6 +259,14 @@ const buddySearch = ref('')
 const buddyResults = ref([])
 const buddies = ref([])
 const buddyProgress = ref([])
+
+const showChallengeForm = ref(false)
+const challengeSearch = ref('')
+const challengeResults = ref([])
+const activeChallenges = ref([])
+const inviteLink = ref('')
+const copied = ref(false)
+const generatingLink = ref(false)
 
 const activeBreak = computed(() => {
   return habit.value.breaks?.find(b => !b.endDate) || null
@@ -225,9 +297,20 @@ async function loadHabit() {
     logs.value = habit.value.logs || []
     buddies.value = habit.value.buddies || []
     buddyProgress.value = habit.value.buddyProgress || []
+
+    loadChallenges()
   } catch {
     toast.error('Failed to load habit')
   }
+}
+
+async function loadChallenges() {
+  try {
+    const res = await api.get('/challenges')
+    activeChallenges.value = (res.data.challenges || []).filter(
+      c => c.habitId === route.params.id && (c.status === 'active' || c.status === 'pending')
+    )
+  } catch {}
 }
 
 async function saveEdit() {
@@ -315,6 +398,7 @@ function formatDate(d) {
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
+// Buddy search
 let buddyTimeout = null
 function searchBuddies() {
   clearTimeout(buddyTimeout)
@@ -345,17 +429,6 @@ async function addBuddy(friend) {
   }
 }
 
-async function removeBuddy(buddy) {
-  try {
-    await api.delete(`/habits/${route.params.id}/buddy/${buddy.id}`)
-    buddies.value = buddies.value.filter(b => b.id !== buddy.id)
-    buddyProgress.value = buddyProgress.value.filter(b => b.buddyId !== buddy.id)
-    toast.success('Buddy removed')
-  } catch {
-    toast.error('Failed to remove buddy')
-  }
-}
-
 async function removeBuddyById(buddyId) {
   try {
     await api.delete(`/habits/${route.params.id}/buddy/${buddyId}`)
@@ -365,6 +438,64 @@ async function removeBuddyById(buddyId) {
   } catch {
     toast.error('Failed to remove buddy')
   }
+}
+
+// Challenge search
+let challengeTimeout = null
+function searchChallengers() {
+  clearTimeout(challengeTimeout)
+  if (challengeSearch.value.length < 2) { challengeResults.value = []; return }
+  challengeTimeout = setTimeout(async () => {
+    try {
+      const res = await api.get('/friends/list')
+      const allFriends = res.data.friends || []
+      const query = challengeSearch.value.toLowerCase()
+      const alreadyChallenged = new Set(activeChallenges.value.map(c => c.opponentId))
+      challengeResults.value = allFriends
+        .filter(f => !alreadyChallenged.has(f.id) && f.id !== auth.user?.id && f.username?.toLowerCase().includes(query))
+        .slice(0, 5)
+    } catch { challengeResults.value = [] }
+  }, 300)
+}
+
+async function challengeFriend(friend) {
+  try {
+    await api.post('/challenges', {
+      habitId: route.params.id,
+      opponentId: friend.id,
+    })
+    toast.success(`Challenge sent to ${friend.username}!`)
+    challengeSearch.value = ''
+    challengeResults.value = []
+    showChallengeForm.value = false
+    loadChallenges()
+  } catch (e) {
+    toast.error(e.response?.data?.error || 'Failed to create challenge')
+  }
+}
+
+async function generateInviteLink() {
+  generatingLink.value = true
+  try {
+    const res = await api.post('/challenges/invite-link', { habitId: route.params.id })
+    const token = res.data.token
+    const base = window.location.origin
+    inviteLink.value = `${base}/challenges/invite/${token}`
+  } catch (e) {
+    toast.error('Failed to generate link')
+  } finally {
+    generatingLink.value = false
+  }
+}
+
+function copyInviteLink() {
+  navigator.clipboard.writeText(inviteLink.value).then(() => {
+    copied.value = true
+    toast.success('Link copied!')
+    setTimeout(() => { copied.value = false }, 2000)
+  }).catch(() => {
+    toast.error('Failed to copy')
+  })
 }
 
 onMounted(loadHabit)

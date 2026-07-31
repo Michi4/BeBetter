@@ -14,20 +14,35 @@ const habitInclude = {
 
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    const habits = await prisma.habit.findMany({
-      where: {
-        userId: req.userId,
-      },
-      include: habitInclude,
-      orderBy: [{ active: 'desc' }, { createdAt: 'desc' }],
-    });
+    const [habits, challengeData] = await Promise.all([
+      prisma.habit.findMany({
+        where: { userId: req.userId },
+        include: habitInclude,
+        orderBy: [{ active: 'desc' }, { createdAt: 'desc' }],
+      }),
+      prisma.challenge.findMany({
+        where: { opponentId: req.userId, status: 'active' },
+        include: {
+          habit: { include: habitInclude },
+          creator: { select: { id: true, username: true } },
+        },
+      }),
+    ]);
 
     const enriched = habits.map((h) => {
       const activeBreak = h.breaks.find((b) => !b.endDate);
       const isActive = !activeBreak && h.active;
       const sched = JSON.parse(typeof h.daysPerWeek === 'string' ? h.daysPerWeek : JSON.stringify(h.daysPerWeek || '[]'));
-      return { ...h, scheduledDays: sched, activeBreak, isActive };
+      return { ...h, scheduledDays: sched, activeBreak, isActive, challengeId: null };
     });
+
+    for (const ch of challengeData) {
+      const h = ch.habit;
+      if (!enriched.find(e => e.id === h.id)) {
+        const sched = JSON.parse(typeof h.daysPerWeek === 'string' ? h.daysPerWeek : JSON.stringify(h.daysPerWeek || '[]'));
+        enriched.push({ ...h, scheduledDays: sched, activeBreak: null, isActive: true, challengeId: ch.id, challengeOpponent: ch.creator });
+      }
+    }
 
     res.json({ habits: enriched });
   } catch (e) {
@@ -46,11 +61,20 @@ router.get('/scheduled', authMiddleware, async (req, res) => {
       where: { userId: req.userId, startDate: { lte: d }, OR: [{ endDate: null }, { endDate: { gte: d } }] },
     });
 
-    const habits = await prisma.habit.findMany({
-      where: { userId: req.userId, active: true },
-      include: habitInclude,
-      orderBy: [{ title: 'asc' }],
-    });
+    const [habits, challengeHabits] = await Promise.all([
+      prisma.habit.findMany({
+        where: { userId: req.userId, active: true },
+        include: habitInclude,
+        orderBy: [{ title: 'asc' }],
+      }),
+      prisma.challenge.findMany({
+        where: { opponentId: req.userId, status: 'active' },
+        include: {
+          habit: { include: habitInclude },
+          creator: { select: { id: true, username: true } },
+        },
+      }),
+    ]);
 
     const scheduled = habits.map((h) => {
       const activeBreak = h.breaks.find((b) => !b.endDate);
@@ -61,8 +85,21 @@ router.get('/scheduled', authMiddleware, async (req, res) => {
         if (h.frequencyType === 'daily' || h.frequencyType === 'always') isScheduled = true;
         else if (Array.isArray(sched) && sched.includes(dayOfWeek)) isScheduled = true;
       }
-      return { ...h, scheduled: isScheduled, activeBreak, hasBreak };
+      return { ...h, scheduled: isScheduled, activeBreak, hasBreak, challengeId: null };
     });
+
+    for (const ch of challengeHabits) {
+      const h = ch.habit;
+      const sched = JSON.parse(typeof h.daysPerWeek === 'string' ? h.daysPerWeek : JSON.stringify(h.daysPerWeek || '[]'));
+      let isScheduled = false;
+      if (!isOnVacation) {
+        if (h.frequencyType === 'daily' || h.frequencyType === 'always') isScheduled = true;
+        else if (Array.isArray(sched) && sched.includes(dayOfWeek)) isScheduled = true;
+      }
+      if (isScheduled && !scheduled.find(s => s.id === h.id)) {
+        scheduled.push({ ...h, scheduled: true, activeBreak: null, hasBreak: false, challengeId: ch.id, challengeOpponent: ch.creator });
+      }
+    }
 
     res.json({ habits: scheduled.filter(h => h.scheduled) });
   } catch (e) {
