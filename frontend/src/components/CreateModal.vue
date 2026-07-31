@@ -43,6 +43,38 @@
               <input v-model="taskForm.dueDate" type="date" class="input text-sm" />
             </div>
           </div>
+
+          <!-- Set time toggle for tasks -->
+          <div>
+            <button type="button" @click="taskForm.setScheduledTime = !taskForm.setScheduledTime"
+              class="flex items-center gap-2 text-xs transition-colors"
+              :class="taskForm.setScheduledTime ? 'text-emerald-400' : 'text-gray-500 hover:text-gray-300'">
+              <Clock :size="14" />
+              {{ taskForm.setScheduledTime ? 'Scheduled for ' + (taskForm.scheduledTime || 'selected time') : 'Set a time' }}
+            </button>
+          </div>
+          <div v-if="taskForm.setScheduledTime" class="space-y-2 pl-5 border-l-2 border-gray-700">
+            <input type="time" v-model="taskForm.scheduledTime" class="input text-sm" />
+            <div class="flex gap-1.5">
+              <button v-for="(day, i) in weekDays" :key="i" type="button" @click="toggleTaskDay(i)"
+                class="flex-1 h-8 rounded-lg text-[11px] font-medium transition-colors"
+                :class="taskForm.scheduledDays.includes(i) ? 'bg-emerald-600 text-white' : 'bg-gray-700/50 text-gray-400 hover:bg-gray-700'">
+                {{ day }}
+              </button>
+            </div>
+            <div>
+              <label class="text-[10px] text-gray-500 mb-1 block">Reminder</label>
+              <select v-model="taskForm.reminderMinutes" class="input text-xs">
+                <option :value="null">No reminder</option>
+                <option :value="0">At time</option>
+                <option :value="5">5 min before</option>
+                <option :value="10">10 min before</option>
+                <option :value="15">15 min before</option>
+                <option :value="30">30 min before</option>
+              </select>
+            </div>
+          </div>
+
           <div class="flex gap-2 pt-1">
             <button @click="switchToHabit" class="btn-secondary flex-1 text-xs">
               <ArrowRightLeft :size="14" /> Convert to Habit
@@ -73,23 +105,10 @@
             </div>
           </div>
 
-          <!-- Schedule -->
+          <!-- Schedule (new schedules format) -->
           <div>
             <label class="text-xs font-medium text-gray-400 mb-2 block">Schedule</label>
-            <div class="flex flex-wrap gap-2">
-              <button v-for="p in schedulePresets" :key="p.value" type="button" @click="selectSchedule(p)"
-                class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                :class="scheduleType === p.value ? 'bg-emerald-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'">
-                {{ p.label }}
-              </button>
-            </div>
-            <div v-if="scheduleType === 'weekly'" class="flex gap-2 mt-2">
-              <button v-for="(day, i) in weekDays" :key="i" type="button" @click="toggleDay(i)"
-                class="w-9 h-9 rounded-full text-xs font-medium transition-colors min-h-[36px]"
-                :class="habitForm.schedule.includes(i) ? 'bg-emerald-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'">
-                {{ day }}
-              </button>
-            </div>
+            <RecurrenceBuilder v-model="habitForm.schedules" />
           </div>
 
           <!-- Advanced -->
@@ -116,6 +135,21 @@
                   <div class="flex items-center justify-center gap-1.5"><Camera :size="14" /> Photo</div>
                 </button>
               </div>
+            </div>
+
+            <!-- Reminder -->
+            <div>
+              <label class="text-xs font-medium text-gray-400 mb-1.5 flex items-center gap-1.5">
+                <Bell :size="12" /> Remind me
+              </label>
+              <select v-model="habitForm.reminderMinutes" class="input text-xs">
+                <option :value="null">No reminder</option>
+                <option :value="0">At time</option>
+                <option :value="5">5 minutes before</option>
+                <option :value="10">10 minutes before</option>
+                <option :value="15">15 minutes before</option>
+                <option :value="30">30 minutes before</option>
+              </select>
             </div>
 
             <!-- Publish as preset -->
@@ -195,8 +229,9 @@
 
 <script setup>
 import { ref, reactive, nextTick, watch } from 'vue'
-import { Plus, X, ListTodo, Target, ChevronDown, Shield, Camera, Check, Globe, ArrowRightLeft } from 'lucide-vue-next'
+import { Plus, X, ListTodo, Target, ChevronDown, Shield, Camera, Check, Globe, ArrowRightLeft, Clock, Bell } from 'lucide-vue-next'
 import api from '../api'
+import RecurrenceBuilder from './RecurrenceBuilder.vue'
 
 const props = defineProps({
   show: Boolean,
@@ -210,21 +245,17 @@ const modalEl = ref(null)
 const mode = ref(props.initialMode)
 const showAdvanced = ref(false)
 
-const taskForm = reactive({ title: '', description: '', emoji: '📝', dueDate: '' })
+const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+
+const taskForm = reactive({
+  title: '', description: '', emoji: '📝', dueDate: '',
+  setScheduledTime: false, scheduledTime: '', scheduledDays: [1, 2, 3, 4, 5], reminderMinutes: null,
+})
 const habitForm = reactive({
   title: '', description: '', emoji: '🎯',
-  schedule: [1, 2, 3, 4, 5, 6, 7],
-  verificationType: 'honor', makePublic: false,
+  schedules: [{ time: null, days: [0, 1, 2, 3, 4, 5, 6] }],
+  verificationType: 'honor', makePublic: false, reminderMinutes: null,
 })
-
-const scheduleType = ref('daily')
-const schedulePresets = [
-  { label: 'Daily', value: 'daily' },
-  { label: 'Weekdays', value: 'weekdays' },
-  { label: 'Weekends', value: 'weekends' },
-  { label: 'Custom', value: 'weekly' },
-]
-const weekDays = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 
 const selectedBuddies = ref([])
 const buddySearch = ref('')
@@ -242,13 +273,17 @@ watch(() => props.show, (val) => {
     taskForm.description = ''
     taskForm.emoji = '📝'
     taskForm.dueDate = ''
+    taskForm.setScheduledTime = false
+    taskForm.scheduledTime = ''
+    taskForm.scheduledDays = [1, 2, 3, 4, 5]
+    taskForm.reminderMinutes = null
     habitForm.title = ''
     habitForm.description = ''
     habitForm.emoji = '🎯'
-    habitForm.schedule = [1, 2, 3, 4, 5, 6, 7]
+    habitForm.schedules = [{ time: null, days: [0, 1, 2, 3, 4, 5, 6] }]
     habitForm.verificationType = 'honor'
     habitForm.makePublic = false
-    scheduleType.value = 'daily'
+    habitForm.reminderMinutes = null
     selectedBuddies.value = []
     buddySearch.value = ''
     buddyResults.value = []
@@ -267,18 +302,10 @@ watch(() => props.show, (val) => {
   }
 })
 
-function selectSchedule(p) {
-  scheduleType.value = p.value
-  if (p.value === 'daily') habitForm.schedule = [1, 2, 3, 4, 5, 6, 7]
-  else if (p.value === 'weekdays') habitForm.schedule = [1, 2, 3, 4, 5]
-  else if (p.value === 'weekends') habitForm.schedule = [0, 6]
-  else habitForm.schedule = []
-}
-
-function toggleDay(i) {
-  const idx = habitForm.schedule.indexOf(i)
-  if (idx >= 0) habitForm.schedule.splice(idx, 1)
-  else habitForm.schedule.push(i)
+function toggleTaskDay(i) {
+  const idx = taskForm.scheduledDays.indexOf(i)
+  if (idx >= 0) taskForm.scheduledDays.splice(idx, 1)
+  else taskForm.scheduledDays.push(i)
 }
 
 let buddyTimeout = null
@@ -337,7 +364,16 @@ function removeChallenger(friend) {
 
 function createTask() {
   if (!taskForm.title.trim()) return
-  emit('created', 'task', { ...taskForm })
+  const data = { ...taskForm }
+  if (!data.setScheduledTime) {
+    delete data.scheduledTime
+    delete data.scheduledDays
+    delete data.reminderMinutes
+  } else {
+    data.scheduledDays = data.scheduledDays.length ? data.scheduledDays : [1, 2, 3, 4, 5]
+  }
+  delete data.setScheduledTime
+  emit('created', 'task', data)
 }
 
 function createHabit() {

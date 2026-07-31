@@ -62,9 +62,19 @@
     <section class="space-y-3">
       <h2 class="section-title">Habits</h2>
       <div v-if="activeHabits.length === 0" class="text-sm text-gray-500">No active habits</div>
-      <div v-for="h in activeHabits" :key="h.id" class="rounded-xl border border-gray-800 bg-gray-900/50" :class="{ 'animate-celebrate': completingHabitId === h.id }">
+
+      <!-- Habits with time slots -->
+      <template v-if="timedHabits.length">
+        <div v-for="h in timedHabits" :key="h.id + '-' + (h.scheduledTime || '')" class="rounded-xl border border-gray-800 bg-gray-900/50" :class="{ 'animate-celebrate': completingHabitId === h.id }">
+          <HabitCard :habit="h" :scheduled-time="h.scheduledTime" @finish="completeHabit" @cam="openCamHabit" />
+        </div>
+      </template>
+
+      <!-- Unscheduled habits -->
+      <div v-for="h in unscheduledHabits" :key="h.id" class="rounded-xl border border-gray-800 bg-gray-900/50" :class="{ 'animate-celebrate': completingHabitId === h.id }">
         <HabitCard :habit="h" @finish="completeHabit" @cam="openCamHabit" />
       </div>
+
       <div v-if="completedHabits.length > 0" class="rounded-xl border border-gray-800 bg-gray-900/50 overflow-hidden">
         <button @click="showCompletedHabits = !showCompletedHabits" class="min-h-[44px] w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-400 hover:bg-gray-800/50 transition-colors">
           <div class="flex items-center gap-2">
@@ -113,7 +123,7 @@
       </div>
       <div v-if="scheduledForDay.length" class="space-y-2">
         <h3 class="text-xs font-medium text-gray-500">Scheduled</h3>
-        <div v-for="h in scheduledForDay" :key="h.id" class="card flex items-center gap-3">
+        <div v-for="(h, hi) in scheduledForDay" :key="hi" class="card flex items-center gap-3">
           <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
             :class="h.completed ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-800 text-gray-500'">
             <CheckCircle2 v-if="h.completed" :size="16" class="animate-done" />
@@ -122,6 +132,7 @@
           <div class="flex-1 min-w-0">
             <span class="text-sm truncate" :class="h.completed ? 'text-gray-300' : 'text-gray-500'">{{ h.emoji || '' }} {{ h.title }}</span>
           </div>
+          <span v-if="h.scheduledTime" class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 shrink-0">{{ formatTime(h.scheduledTime) }}</span>
           <span v-if="h.completed" class="text-[10px] text-emerald-400 shrink-0">done</span>
           <span v-else class="text-[10px] text-gray-600 shrink-0">missed</span>
         </div>
@@ -190,6 +201,14 @@ function nextDay() {
   selectedDate.value = d.toISOString().slice(0, 10)
 }
 
+function formatTime(t) {
+  if (!t) return ''
+  const [h, m] = t.split(':').map(Number)
+  const ampm = h >= 12 ? 'pm' : 'am'
+  const hour = h % 12 || 12
+  return m === 0 ? `${hour}${ampm}` : `${hour}:${String(m).padStart(2, '0')}${ampm}`
+}
+
 async function loadHistory() {
   try {
     const [dayRes, tasksRes] = await Promise.all([
@@ -199,16 +218,23 @@ async function loadHistory() {
 
     const scheduledHabits = dayRes.data.scheduled || []
     const loggedIds = new Set()
+    const loggedSlots = new Map()
 
     try {
       const logsForDay = await api.get('/grid/day', { params: { date: selectedDate.value } })
       const completedHabits = logsForDay.data.habits || []
-      completedHabits.forEach(h => loggedIds.add(h.habitId || h.id))
+      completedHabits.forEach(h => {
+        loggedIds.add(h.habitId || h.id)
+        if (h.scheduledTime) {
+          const key = `${h.habitId || h.id}-${h.scheduledTime}`
+          loggedSlots.set(key, true)
+        }
+      })
     } catch {}
 
     scheduledForDay.value = scheduledHabits.map(h => ({
       ...h,
-      completed: loggedIds.has(h.id),
+      completed: loggedIds.has(h.id) || (h.scheduledTime && loggedSlots.has(`${h.id}-${h.scheduledTime}`)),
     }))
 
     historyTasks.value = (tasksRes.data.logs || []).map(l => ({
@@ -238,6 +264,9 @@ const PAGE_SIZE = 10
 
 const visibleCompletedTasks = computed(() => completedTasks.value.slice(0, (completedTasksPage.value + 1) * PAGE_SIZE))
 const visibleCompletedHabits = computed(() => completedHabits.value.slice(0, (completedHabitsPage.value + 1) * PAGE_SIZE))
+
+const timedHabits = computed(() => activeHabits.value.filter(h => h.scheduledTime))
+const unscheduledHabits = computed(() => activeHabits.value.filter(h => !h.scheduledTime))
 
 function formatDate(dateStr) {
   if (!dateStr) return ''
@@ -274,9 +303,10 @@ async function handleCreated(type, data) {
     try {
       const payload = {
         title: data.title, description: data.description || undefined, emoji: data.emoji,
-        frequencyType: 'daily', schedule: data.schedule, verificationType: data.verificationType,
+        schedules: data.schedules, verificationType: data.verificationType,
         makePublic: data.makePublic,
       }
+      if (data.reminderMinutes != null) payload.reminderMinutes = data.reminderMinutes
       if (data.buddyIds?.length) payload.buddyIds = data.buddyIds
       if (data.challengeFriendIds?.length) {
         payload.challengeFriendIds = data.challengeFriendIds
@@ -331,16 +361,37 @@ async function loadAll() {
     completedTasks.value = allTasks.filter(t => t.isCompletedToday)
 
     const allHabits = habitsRes.data.habits || []
-    activeHabits.value = allHabits.filter(h => h.active !== false).map(h => ({
-      ...h, completedToday: false, hasBreak: !!h.breaks?.find(b => !b.endDate),
-    }))
-    completedHabits.value = allHabits.filter(h => h.active === false)
-
     const todayLogsRes = await api.get('/logs/today').catch(() => ({ data: { logs: [] } }))
-    const loggedIds = new Set((todayLogsRes.data.logs || []).map(l => l.habitId))
-    activeHabits.value = activeHabits.value.map(h => ({
-      ...h, completedToday: loggedIds.has(h.id),
-    }))
+    const logs = todayLogsRes.data.logs || []
+
+    const expanded = []
+    for (const h of allHabits.filter(h => h.active !== false)) {
+      const sched = h.schedules
+      if (sched && sched.length && sched.some(s => s.time)) {
+        const today = new Date().getDay()
+        for (const s of sched) {
+          if (s.time && s.days.includes(today)) {
+            const logForSlot = logs.find(l => l.habitId === h.id && l.scheduledTime === s.time)
+            expanded.push({
+              ...h,
+              scheduledTime: s.time,
+              completedToday: !!logForSlot,
+              hasBreak: !!h.breaks?.find(b => !b.endDate),
+            })
+          }
+        }
+      } else {
+        const hasLog = logs.some(l => l.habitId === h.id)
+        expanded.push({
+          ...h,
+          scheduledTime: null,
+          completedToday: hasLog,
+          hasBreak: !!h.breaks?.find(b => !b.endDate),
+        })
+      }
+    }
+    activeHabits.value = expanded
+    completedHabits.value = allHabits.filter(h => h.active === false)
   } catch {
     toast.error('Failed to load data')
   }
@@ -397,10 +448,12 @@ function openCamHabit(habit) { camHabit.value = habit }
 
 async function completeHabit(habit) {
   try {
-    await api.post('/logs', { habitId: habit.id })
+    const payload = { habitId: habit.id }
+    if (habit.scheduledTime) payload.scheduledTime = habit.scheduledTime
+    await api.post('/logs', payload)
     completingHabitId.value = habit.id
     activeHabits.value = activeHabits.value.map(h =>
-      h.id === habit.id ? { ...h, completedToday: true } : h
+      h.id === habit.id && h.scheduledTime === habit.scheduledTime ? { ...h, completedToday: true } : h
     )
     toast.success(`"${habit.title}" completed!`)
     setTimeout(() => { completingHabitId.value = null }, 600)
@@ -418,9 +471,12 @@ async function submitHabitProof(dataUrl) {
     const form = new FormData()
     form.append('photo', blob, 'proof.jpg')
     const { data } = await api.post('/upload', form)
-    await api.post('/logs', { habitId: camHabit.value.id, photo: data.url })
+    const payload = { habitId: camHabit.value.id, photo: data.url }
+    if (camHabit.value.scheduledTime) payload.scheduledTime = camHabit.value.scheduledTime
+    await api.post('/logs', payload)
     activeHabits.value = activeHabits.value.map(h =>
-      h.id === camHabit.value.id ? { ...h, completedToday: true } : h
+      h.id === camHabit.value.id && h.scheduledTime === camHabit.value.scheduledTime
+        ? { ...h, completedToday: true } : h
     )
     toast.success('Photo proof submitted!')
     camHabit.value = null
@@ -436,7 +492,7 @@ async function deleteCompletedHabit(habit) {
     completedHabits.value = completedHabits.value.filter(h => h.id !== habit.id)
     toast.success(`"${habit.title}" deleted`)
   } catch {
-    toast.error('Failed')
+    toast.error('Failed to delete habit')
   }
 }
 

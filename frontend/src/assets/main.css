@@ -67,21 +67,25 @@
 /* Styled scrollbar for ContributionGrid — works in all browsers */
 .grid-scroll {
   scrollbar-width: thin !important;
-  scrollbar-color: rgba(16, 185, 129, 0.45) rgba(255, 255, 255, 0.05) !important;
+  scrollbar-color: rgba(16, 185, 129, 0.5) rgba(255, 255, 255, 0.03) !important;
 }
 .grid-scroll::-webkit-scrollbar {
-  height: 6px !important;
+  height: 10px !important;
 }
 .grid-scroll::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
   border-radius: 99px !important;
 }
 .grid-scroll::-webkit-scrollbar-thumb {
-  background: rgba(16, 185, 129, 0.45) !important;
+  background: rgba(16, 185, 129, 0.5) !important;
   border-radius: 99px !important;
+  border: 2px solid transparent !important;
+  background-clip: content-box !important;
 }
 .grid-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(16, 185, 129, 0.7) !important;
+  background: rgba(16, 185, 129, 0.75) !important;
+  border: 2px solid transparent !important;
+  background-clip: content-box !important;
 }
 .grid-scroll::-webkit-scrollbar-button {
   display: none !important;

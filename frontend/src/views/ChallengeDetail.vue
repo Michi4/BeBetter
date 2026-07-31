@@ -256,17 +256,26 @@ onMounted(loadChallenge)
 </script>
 
 <style scoped>
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(16, 185, 129, 0.5) rgba(255, 255, 255, 0.03);
+}
 .scrollbar-thin::-webkit-scrollbar {
-  width: 4px;
+  width: 10px;
 }
 .scrollbar-thin::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 99px;
 }
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: rgba(16, 185, 129, 0.3);
-  border-radius: 2px;
+  background: rgba(16, 185, 129, 0.5);
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: rgba(16, 185, 129, 0.5);
+  background: rgba(16, 185, 129, 0.75);
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
 </style>

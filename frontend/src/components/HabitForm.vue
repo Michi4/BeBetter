@@ -12,8 +12,8 @@
       <textarea v-model="form.description" class="input min-h-[60px]" placeholder="Optional description" rows="2"></textarea>
     </div>
 
-    <!-- Recurrence -->
-    <RecurrenceBuilder v-model="form.recurrence" />
+    <!-- Schedule -->
+    <RecurrenceBuilder v-model="form.schedules" />
 
     <!-- Advanced toggle -->
     <button type="button" @click="showAdvanced = !showAdvanced"
@@ -116,13 +116,17 @@ const showAdvanced = ref(false)
 const form = reactive({
   title: '',
   description: '',
-  recurrence: { type: 'daily' },
+  schedules: [{ time: null, days: [0, 1, 2, 3, 4, 5, 6] }],
   verificationType: 'honor',
   wagers: [],
   createPreset: false,
   presetCategory: 'Other',
   ...props.modelValue,
 })
+
+if (!form.schedules || !form.schedules.length) {
+  form.schedules = [{ time: null, days: [0, 1, 2, 3, 4, 5, 6] }]
+}
 
 watch(form, (val) => {
   emit('update:modelValue', { ...val })
@@ -131,7 +135,7 @@ watch(form, (val) => {
 watch(() => props.modelValue, (val) => {
   if (val.title !== undefined) form.title = val.title
   if (val.description !== undefined) form.description = val.description
-  if (val.recurrence !== undefined) form.recurrence = val.recurrence
+  if (val.schedules !== undefined) form.schedules = val.schedules
   if (val.verificationType !== undefined) form.verificationType = val.verificationType
   if (val.wagers !== undefined) form.wagers = val.wagers
   if (val.createPreset !== undefined) form.createPreset = val.createPreset

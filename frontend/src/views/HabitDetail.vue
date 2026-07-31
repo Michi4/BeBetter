@@ -9,6 +9,29 @@
       <div class="card space-y-4">
         <p v-if="habit.description" class="text-sm text-gray-400 leading-relaxed">{{ habit.description }}</p>
 
+        <!-- Schedule info -->
+        <div v-if="habit.schedules?.length" class="space-y-2">
+          <div class="text-xs font-medium text-gray-400 flex items-center gap-1.5">
+            <Clock :size="12" /> Schedule
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <div v-for="(s, si) in habit.schedules" :key="si"
+              class="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-gray-800/50 border border-gray-700">
+              <span v-if="s.time" class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-medium">
+                {{ formatTime(s.time) }}
+              </span>
+              <span v-else class="text-[10px] text-gray-500">Any time</span>
+              <span class="text-[10px] text-gray-500">{{ formatScheduleDays(s.days) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reminder info -->
+        <div v-if="habit.reminderMinutes != null" class="flex items-center gap-2 text-xs text-gray-400">
+          <Bell :size="12" class="text-emerald-400" />
+          <span>Reminder: {{ formatReminder(habit.reminderMinutes) }}</span>
+        </div>
+
         <div class="grid grid-cols-2 gap-3">
           <div class="text-center p-2 rounded-lg bg-gray-800/50">
             <div class="text-lg font-bold text-emerald-400">{{ habit._count?.logs || logs.length || habit.totalCompletions || 0 }}</div>
@@ -24,7 +47,7 @@
           </div>
           <div class="text-center p-2 rounded-lg bg-gray-800/50">
             <div class="text-lg font-bold text-gray-300 text-sm">{{ formatRecurrence(habit) }}</div>
-            <div class="text-[10px] text-gray-500">Schedule</div>
+            <div class="text-[10px] text-gray-500">Recurrence</div>
           </div>
         </div>
 
@@ -238,7 +261,7 @@ import { useRoute, useRouter } from 'vue-router'
 import api from '../api'
 import { useToast } from 'vue-toastification'
 import { useAuthStore } from '../stores/auth'
-import { ArrowLeft, Pencil, Save, Pause, Play, CheckCircle, Trash2, ChevronRight, Copy, Link, Loader2 } from 'lucide-vue-next'
+import { ArrowLeft, Pencil, Save, Pause, Play, CheckCircle, Trash2, ChevronRight, Copy, Link, Loader2, Clock, Bell } from 'lucide-vue-next'
 import HabitForm from '../components/HabitForm.vue'
 
 const route = useRoute()
@@ -276,7 +299,7 @@ const editForm = reactive({
   title: '',
   description: '',
   emoji: '🎯',
-  schedule: [1, 2, 3, 4, 5, 6, 7],
+  schedules: [{ time: null, days: [0, 1, 2, 3, 4, 5, 6] }],
   verificationType: 'honor',
   config: null,
 })
@@ -291,8 +314,15 @@ async function loadHabit() {
     editForm.verificationType = habit.value.verificationType || 'honor'
     editForm.config = habit.value.config || null
 
-    const sched = JSON.parse(typeof habit.value.daysPerWeek === 'string' ? habit.value.daysPerWeek : JSON.stringify(habit.value.daysPerWeek || '[]'))
-    editForm.schedule = Array.isArray(sched) ? sched : [1, 2, 3, 4, 5, 6, 7]
+    if (habit.value.schedules?.length) {
+      editForm.schedules = habit.value.schedules.map(s => ({
+        time: s.time || null,
+        days: Array.isArray(s.days) ? [...s.days] : [0, 1, 2, 3, 4, 5, 6],
+      }))
+    } else {
+      const sched = JSON.parse(typeof habit.value.daysPerWeek === 'string' ? habit.value.daysPerWeek : JSON.stringify(habit.value.daysPerWeek || '[]'))
+      editForm.schedules = [{ time: null, days: Array.isArray(sched) && sched.length ? sched : [0, 1, 2, 3, 4, 5, 6] }]
+    }
 
     logs.value = habit.value.logs || []
     buddies.value = habit.value.buddies || []
@@ -320,9 +350,7 @@ async function saveEdit() {
       title: editForm.title,
       description: editForm.description,
       emoji: editForm.emoji,
-      frequencyType: 'daily',
-      schedule: editForm.schedule,
-      daysPerWeek: editForm.schedule,
+      schedules: editForm.schedules,
       verificationType: editForm.verificationType,
       config: editForm.config,
     })
@@ -380,17 +408,41 @@ async function deleteHabit() {
 
 function formatRecurrence(h) {
   if (!h) return 'Daily'
-  if (h.frequencyType === 'daily' || h.frequencyType === 'always') return 'Daily'
-  const sched = JSON.parse(typeof h.daysPerWeek === 'string' ? h.daysPerWeek : JSON.stringify(h.daysPerWeek || '[]'))
-  if (h.frequencyType === 'days_per_week' || h.frequencyType === 'x_per_week') {
+  if (h.schedules?.length) {
+    const s = h.schedules[0]
+    if (!s || !s.days) return 'Daily'
+    const days = s.days.sort()
+    const all = [0, 1, 2, 3, 4, 5, 6]
+    const weekdays = [1, 2, 3, 4, 5]
+    const weekends = [0, 6]
+    if (JSON.stringify(days) === JSON.stringify(all)) return 'Daily'
+    if (JSON.stringify(days) === JSON.stringify(weekdays)) return 'Weekdays'
+    if (JSON.stringify(days) === JSON.stringify(weekends)) return 'Weekends'
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-    const names = sched.map(d => dayNames[d]).filter(Boolean)
-    if (names.length === 7) return 'Daily'
-    if (names.length === 5 && sched.every(d => d >= 1 && d <= 5)) return 'Weekdays'
-    if (names.length === 2 && sched.includes(0) && sched.includes(6)) return 'Weekends'
-    return names.join(', ')
+    return days.map(d => dayNames[d]).join(', ')
   }
+  if (h.frequencyType === 'daily' || h.frequencyType === 'always') return 'Daily'
   return h.frequencyType || 'Daily'
+}
+
+function formatTime(t) {
+  if (!t) return ''
+  const [h, m] = t.split(':').map(Number)
+  const ampm = h >= 12 ? 'pm' : 'am'
+  const hour = h % 12 || 12
+  return m === 0 ? `${hour}${ampm}` : `${hour}:${String(m).padStart(2, '0')}${ampm}`
+}
+
+function formatScheduleDays(days) {
+  if (!days?.length) return ''
+  if (days.length === 7) return 'Every day'
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  return days.map(d => dayNames[d]).join(', ')
+}
+
+function formatReminder(min) {
+  if (min === 0) return 'At time'
+  return `${min} min before`
 }
 
 function formatDate(d) {

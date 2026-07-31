@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { habitId, photo, proofUrl, date } = req.body;
+    const { habitId, photo, proofUrl, date, scheduledTime } = req.body;
     if (!habitId) return res.status(400).json({ error: 'habitId required' });
 
     const habit = await prisma.habit.findUnique({ where: { id: habitId }, include: { breaks: true } });
@@ -41,14 +41,40 @@ router.post('/', authMiddleware, async (req, res) => {
     if (vacation) return res.status(400).json({ error: 'On vacation this day' });
 
     const dayOfWeek = logDate.getDay();
-    const sched = JSON.parse(typeof habit.daysPerWeek === 'string' ? habit.daysPerWeek : JSON.stringify(habit.daysPerWeek || '[]'));
-    const isScheduled = habit.frequencyType === 'daily' || habit.frequencyType === 'always' || sched.includes(dayOfWeek);
-    if (!isScheduled) return res.status(400).json({ error: 'Habit not scheduled for this day' });
+    const schedules = habit.schedules ? (typeof habit.schedules === 'string' ? JSON.parse(habit.schedules) : habit.schedules) : null;
 
-    const existing = await prisma.habitLog.findFirst({
-      where: { habitId, userId: req.userId, completedAt: logDate },
-    });
-    if (existing) return res.status(400).json({ error: 'Already logged today' });
+    if (Array.isArray(schedules) && schedules.length > 0) {
+      const todaySchedules = schedules.filter(s => Array.isArray(s.days) && s.days.includes(dayOfWeek));
+      if (todaySchedules.length === 0) {
+        return res.status(400).json({ error: 'Habit not scheduled for this day' });
+      }
+      if (scheduledTime) {
+        const validSlot = todaySchedules.find(s => s.time === scheduledTime);
+        if (!validSlot) {
+          return res.status(400).json({ error: 'Invalid scheduled time for today' });
+        }
+      }
+    } else {
+      const sched = JSON.parse(typeof habit.daysPerWeek === 'string' ? habit.daysPerWeek : JSON.stringify(habit.daysPerWeek || '[]'));
+      const isScheduled = habit.frequencyType === 'daily' || habit.frequencyType === 'always' || sched.includes(dayOfWeek);
+      if (!isScheduled) return res.status(400).json({ error: 'Habit not scheduled for this day' });
+    }
+
+    const logDateUpper = new Date(logDate);
+    logDateUpper.setHours(23, 59, 59, 999);
+
+    const existingWhere = {
+      habitId,
+      userId: req.userId,
+      completedAt: { gte: logDate, lte: logDateUpper },
+    };
+    if (scheduledTime) {
+      existingWhere.scheduledTime = scheduledTime;
+    } else {
+      existingWhere.scheduledTime = null;
+    }
+    const existing = await prisma.habitLog.findFirst({ where: existingWhere });
+    if (existing) return res.status(400).json({ error: 'Already logged today for this time slot' });
 
     const log = await prisma.habitLog.create({
       data: {
@@ -56,6 +82,7 @@ router.post('/', authMiddleware, async (req, res) => {
         userId: req.userId,
         proofUrl: proofUrl || photo || undefined,
         completedAt: logDate,
+        scheduledTime: scheduledTime || undefined,
       },
     });
 
@@ -133,7 +160,12 @@ router.get('/today', authMiddleware, async (req, res) => {
       orderBy: { completedAt: 'desc' },
     });
 
-    res.json({ logs });
+    const enrichedLogs = logs.map(l => ({
+      ...l,
+      scheduledTime: l.scheduledTime || null,
+    }));
+
+    res.json({ logs: enrichedLogs });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Server error' });

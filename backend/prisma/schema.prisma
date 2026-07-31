@@ -55,6 +55,8 @@ model Habit {
   emoji            String      @default("🎯")
   frequencyType    String      @default("daily")
   daysPerWeek      Json        @default("[1,2,3,4,5,6,7]")
+  schedules        Json?       // [{ time: "15:00", days: [0,1,2,3,4,5,6] }] — time-based scheduling
+  reminderMinutes  Int?        // null=no reminder, 0=at time, 5/10/15/30=minutes before
   config           Json?
   verificationType String      @default("honor")
   active           Boolean     @default(true)
@@ -109,15 +111,16 @@ model Wager {
 }
 
 model HabitLog {
-  id          String   @id @default(uuid())
-  habitId     String
-  habit       Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  completedAt DateTime @default(now())
-  status      String   @default("completed")
-  proofUrl    String?
-  verifiedBy  String?
+  id            String   @id @default(uuid())
+  habitId       String
+  habit         Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  completedAt   DateTime @default(now())
+  status        String   @default("completed")
+  proofUrl      String?
+  verifiedBy    String?
+  scheduledTime String?  // "HH:MM" — which time slot was completed
 }
 
 model HabitBreak {
@@ -253,17 +256,20 @@ model Report {
 }
 
 model Task {
-  id          String    @id @default(uuid())
-  userId      String
-  user        User      @relation(fields: [userId], references: [id])
-  title       String
-  description String?
-  emoji       String    @default("📝")
-  dueDate     DateTime?
-  isScheduled Boolean   @default(true)
-  isEveryday  Boolean   @default(false)
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id])
+  title        String
+  description  String?
+  emoji        String    @default("📝")
+  dueDate      DateTime?
+  isScheduled  Boolean   @default(true)
+  isEveryday   Boolean   @default(false)
+  isActive     Boolean   @default(true)
+  scheduledTime String?  // "HH:MM" — specific time of day
+  scheduledDays Json?    // [0,1,2,3,4,5,6] — which days (null = everyday if isEveryday)
+  reminderMinutes Int?   // null=no reminder, 0=at time, 5/10/15/30=minutes before
+  createdAt    DateTime  @default(now())
 
   logs        TaskLog[]
 }

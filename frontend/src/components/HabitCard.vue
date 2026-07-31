@@ -1,13 +1,16 @@
 <template>
   <div class="card-hover flex items-center gap-3" @click="handleCardClick">
     <button @click.stop="handleClick" class="w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-150"
-      :class="habit.completedToday ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-800 text-gray-400 hover:bg-emerald-500/10 hover:text-emerald-400'">
-      <Camera v-if="needsCamera && !habit.completedToday" :size="18" />
+      :class="isCompleted ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-800 text-gray-400 hover:bg-emerald-500/10 hover:text-emerald-400'">
+      <Camera v-if="needsCamera && !isCompleted" :size="18" />
       <CheckCircle2 v-else :size="18" />
     </button>
     <div class="flex-1 min-w-0">
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 flex-wrap">
         <h4 class="font-medium text-sm truncate">{{ habit.title }}</h4>
+        <span v-if="scheduledTime" class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-medium">
+          {{ formatTime(scheduledTime) }}
+        </span>
         <span v-if="habit.challengeId" class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 font-medium">challenge</span>
         <span v-if="habit.currentStreak > 0" class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">{{ habit.currentStreak }}d</span>
         <span v-if="habit.hasBreak" class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400">pause</span>
@@ -15,7 +18,7 @@
       <p v-if="habit.description" class="text-xs text-gray-500 truncate mt-0.5">{{ habit.description }}</p>
       <p v-if="habit.challengeId && habit.challengeOpponent" class="text-[10px] text-amber-400/70 mt-0.5">vs {{ habit.challengeOpponent.username }}</p>
     </div>
-    <div v-if="habit.completedToday" class="text-emerald-400 text-[10px] font-medium">Done</div>
+    <div v-if="isCompleted" class="text-emerald-400 text-[10px] font-medium">Done</div>
   </div>
 </template>
 
@@ -24,13 +27,31 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { CheckCircle2, Camera } from 'lucide-vue-next'
 
-const props = defineProps({ habit: { type: Object, required: true } })
+const props = defineProps({
+  habit: { type: Object, required: true },
+  scheduledTime: { type: String, default: null },
+})
 const emit = defineEmits(['finish', 'cam'])
 const router = useRouter()
 
 const needsCamera = computed(() => {
   return props.habit.verificationType === 'be_better_cam' || props.habit.verificationType === 'photo'
 })
+
+const isCompleted = computed(() => {
+  if (props.scheduledTime && props.habit.completedSlots) {
+    return props.habit.completedSlots.includes(props.scheduledTime)
+  }
+  return props.habit.completedToday
+})
+
+function formatTime(t) {
+  if (!t) return ''
+  const [h, m] = t.split(':').map(Number)
+  const ampm = h >= 12 ? 'pm' : 'am'
+  const hour = h % 12 || 12
+  return m === 0 ? `${hour}${ampm}` : `${hour}:${String(m).padStart(2, '0')}${ampm}`
+}
 
 function handleCardClick() {
   if (props.habit.challengeId) {
@@ -41,7 +62,7 @@ function handleCardClick() {
 }
 
 function handleClick() {
-  if (props.habit.completedToday) return
+  if (isCompleted.value) return
   if (needsCamera.value) {
     emit('cam', props.habit)
   } else {

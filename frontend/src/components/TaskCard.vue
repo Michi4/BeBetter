@@ -29,6 +29,12 @@
       <div class="flex-1 min-w-0 cursor-pointer" @click="startEdit">
         <div class="flex items-center gap-2">
           <h4 class="font-medium text-sm truncate" :class="task.completed ? 'text-gray-400 line-through' : ''">{{ task.title }}</h4>
+          <span v-if="task.scheduledTime" class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-medium shrink-0">
+            {{ formatTime(task.scheduledTime) }}
+          </span>
+          <span v-if="task.scheduledDays?.length" class="text-[10px] px-1.5 py-0.5 rounded bg-gray-700/50 text-gray-400 shrink-0">
+            {{ formatDays(task.scheduledDays) }}
+          </span>
           <span v-if="task.dueDate" class="text-[10px] px-1.5 py-0.5 rounded shrink-0"
             :class="dueDateClass">{{ dueDateLabel }}</span>
         </div>
@@ -72,6 +78,24 @@ const editing = ref(false)
 const titleInput = ref(null)
 const editForm = reactive({ title: '', description: '', dueDate: '' })
 let longPressTimer = null
+
+const dayAbbr = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+
+function formatTime(t) {
+  if (!t) return ''
+  const [h, m] = t.split(':').map(Number)
+  const ampm = h >= 12 ? 'pm' : 'am'
+  const hour = h % 12 || 12
+  return m === 0 ? `${hour}${ampm}` : `${hour}:${String(m).padStart(2, '0')}${ampm}`
+}
+
+function formatDays(days) {
+  if (!days?.length) return ''
+  if (days.length === 7) return 'Daily'
+  if (days.length === 5 && days.every(d => d >= 1 && d <= 5)) return 'Wkdays'
+  if (days.length === 2 && days.includes(0) && days.includes(6)) return 'Wkends'
+  return days.map(d => dayAbbr[d]).join(' ')
+}
 
 function startLongPress(e) {
   longPressTimer = setTimeout(() => {

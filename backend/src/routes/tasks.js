@@ -10,6 +10,7 @@ router.get('/', authMiddleware, async (req, res) => {
     const { date } = req.query;
     const d = date ? new Date(date) : new Date();
     d.setHours(0, 0, 0, 0);
+    const dayOfWeek = d.getDay();
 
     const vacation = await prisma.vacation.findFirst({
       where: {
@@ -24,15 +25,25 @@ router.get('/', authMiddleware, async (req, res) => {
       orderBy: [{ dueDate: 'asc' }, { createdAt: 'desc' }],
     });
 
-    const completedToday = await prisma.taskLog.findMany({
+    const todayLogs = await prisma.taskLog.findMany({
       where: { userId: req.userId, completedAt: d },
       select: { taskId: true },
     });
-    const completedIds = new Set(completedToday.map((l) => l.taskId));
+    const completedIds = new Set(todayLogs.map((l) => l.taskId));
 
     const result = tasks.map((t) => {
-      const isCompletedToday = completedIds.has(t.id);
-      return { ...t, isCompletedToday };
+      if (t.scheduledDays) {
+        const days = typeof t.scheduledDays === 'string' ? JSON.parse(t.scheduledDays) : t.scheduledDays;
+        if (Array.isArray(days) && !days.includes(dayOfWeek)) {
+          return { ...t, isCompletedToday: false, isDueToday: false };
+        }
+      }
+
+      const isCompletedToday = t.scheduledTime
+        ? todayLogs.some(l => l.taskId === t.id)
+        : completedIds.has(t.id);
+
+      return { ...t, isCompletedToday, isDueToday: true };
     });
 
     res.json({ tasks: result, isOnVacation: !!vacation });
@@ -44,7 +55,7 @@ router.get('/', authMiddleware, async (req, res) => {
 
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { title, description, emoji, dueDate, isScheduled, isEveryday } = req.body;
+    const { title, description, emoji, dueDate, isScheduled, isEveryday, scheduledTime, scheduledDays, reminderMinutes } = req.body;
     if (!title) return res.status(400).json({ error: 'Title required' });
 
     const task = await prisma.task.create({
@@ -56,6 +67,9 @@ router.post('/', authMiddleware, async (req, res) => {
         dueDate: dueDate ? new Date(dueDate) : undefined,
         isScheduled: isScheduled !== false,
         isEveryday: isEveryday || false,
+        scheduledTime: scheduledTime || undefined,
+        scheduledDays: Array.isArray(scheduledDays) ? JSON.stringify(scheduledDays) : undefined,
+        reminderMinutes: reminderMinutes !== undefined ? reminderMinutes : undefined,
       },
     });
 
@@ -126,7 +140,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     const task = await prisma.task.findUnique({ where: { id } });
     if (!task || task.userId !== req.userId) return res.status(404).json({ error: 'Not found' });
 
-    const { title, description, emoji, dueDate, isActive, isScheduled, isEveryday } = req.body;
+    const { title, description, emoji, dueDate, isActive, isScheduled, isEveryday, scheduledTime, scheduledDays, reminderMinutes } = req.body;
 
     const updated = await prisma.task.update({
       where: { id },
@@ -138,6 +152,9 @@ router.put('/:id', authMiddleware, async (req, res) => {
         isActive: isActive !== undefined ? isActive : undefined,
         isScheduled: isScheduled !== undefined ? isScheduled : undefined,
         isEveryday: isEveryday !== undefined ? isEveryday : undefined,
+        scheduledTime: scheduledTime !== undefined ? scheduledTime : undefined,
+        scheduledDays: scheduledDays !== undefined ? (Array.isArray(scheduledDays) ? JSON.stringify(scheduledDays) : scheduledDays) : undefined,
+        reminderMinutes: reminderMinutes !== undefined ? reminderMinutes : undefined,
       },
     });
 
