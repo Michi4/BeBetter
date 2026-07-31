@@ -56,8 +56,8 @@
 
       <!-- End date -->
       <div>
-        <label class="text-xs font-medium text-gray-400 mb-1 block">End date (optional, defaults to 30 days)</label>
-        <input v-model="form.endDate" type="date" class="input" />
+        <label class="text-xs font-medium text-gray-400 mb-1 block">End date (optional)</label>
+        <input v-model="form.endDate" type="date" class="input" :min="todayStr" />
       </div>
 
       <button @click="createChallenge" class="btn w-full" :disabled="!isValid">
@@ -80,6 +80,7 @@ const toast = useToast()
 const habits = ref([])
 const searchQuery = ref('')
 const searchResults = ref([])
+const todayStr = new Date().toISOString().slice(0, 10)
 const form = reactive({
   habitId: '',
   opponentId: '',

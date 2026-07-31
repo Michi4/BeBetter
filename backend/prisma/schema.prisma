@@ -201,7 +201,7 @@ model Challenge {
   title      String    @default("")
   description String?
   startDate  DateTime  @default(now())
-  endDate    DateTime  @default(now())
+  endDate    DateTime?
   stake      String?
   status     String    @default("active")
   winnerId   String?

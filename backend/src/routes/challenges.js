@@ -102,7 +102,7 @@ router.post('/', authMiddleware, async (req, res) => {
         habitId,
         title: `${habit.title} challenge`,
         startDate: new Date(),
-        endDate: endDate ? new Date(endDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        endDate: endDate ? new Date(endDate) : null,
         status: 'pending',
       },
       include: {
@@ -153,7 +153,7 @@ router.post('/invite-link', authMiddleware, async (req, res) => {
         habitId,
         title: `${habit.title} challenge`,
         startDate: new Date(),
-        endDate: endDate ? new Date(endDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        endDate: endDate ? new Date(endDate) : null,
         status: 'pending',
       },
     });

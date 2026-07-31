@@ -153,7 +153,12 @@ async function loadLeaderboard() {
       entries.value = res.data.leaderboard || []
     } else {
       const res = await api.get('/challenges')
-      challenges.value = res.data.challenges || []
+      const seen = new Set()
+      challenges.value = (res.data.challenges || []).filter(c => {
+        if (seen.has(c.id)) return false
+        seen.add(c.id)
+        return true
+      })
     }
   } catch {
     entries.value = []

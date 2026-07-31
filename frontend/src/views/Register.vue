@@ -32,7 +32,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useToast } from 'vue-toastification'
 import { Loader2 } from 'lucide-vue-next'
@@ -40,6 +40,7 @@ import Logo from '../components/Logo.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 const toast = useToast()
 
 const form = ref({ username: '', email: '', password: '' })
@@ -53,7 +54,8 @@ async function handleRegister() {
   try {
     await auth.register({ ...form.value, stayLoggedIn: stayLoggedIn.value })
     toast.success('Account created!')
-    router.push('/dashboard')
+    const redirect = route.query.redirect || '/dashboard'
+    router.push(redirect)
   } catch (e) {
     error.value = e.response?.data?.error || 'Registration failed'
   } finally {

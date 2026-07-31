@@ -17,6 +17,9 @@
         <span v-if="challenge.endDate" class="text-xs text-gray-500">
           Ends {{ formatDate(challenge.endDate) }}
         </span>
+        <span v-else-if="challenge.status === 'active'" class="text-xs text-gray-500">
+          Started {{ formatDate(challenge.startDate) }}
+        </span>
       </div>
 
       <!-- Pending actions -->
@@ -84,9 +87,9 @@
       <!-- Challenge Grid -->
       <div v-if="gridDays.length" class="card">
         <p class="section-title mb-3">Daily Progress</p>
-        <div class="space-y-1">
-          <div v-for="day in recentGrid" :key="day.date" class="flex items-center gap-3 text-xs">
-            <span class="text-gray-500 w-20 shrink-0">{{ formatGridDate(day.date) }}</span>
+        <div class="overflow-y-auto max-h-64 space-y-0.5 pr-1 scrollbar-thin">
+          <div v-for="day in gridDays" :key="day.date" class="flex items-center gap-3 text-xs py-0.5">
+            <span class="text-gray-500 w-24 shrink-0" :class="{ 'text-emerald-400 font-medium': isToday(day.date) }">{{ formatGridDate(day.date) }}</span>
             <div class="flex-1 flex gap-1">
               <div class="h-3 rounded-sm flex-1 transition-all"
                 :class="day.creator > 0 ? 'bg-emerald-500' : 'bg-gray-800'"></div>
@@ -95,13 +98,13 @@
             </div>
           </div>
         </div>
-        <div v-if="gridDays.length > 14" class="flex items-center gap-2 mt-2 text-[10px] text-gray-500">
+        <div class="flex items-center gap-2 mt-2 text-[10px] text-gray-500">
           <div class="w-2 h-2 rounded-sm bg-emerald-500"></div> {{ challenge.creator?.username }}
           <div class="w-2 h-2 rounded-sm bg-amber-500 ml-2"></div> {{ challenge.opponent?.username }}
         </div>
       </div>
 
-      <!-- Resolve (only if active and end date passed or manual) -->
+      <!-- Resolve (only if active) -->
       <div v-if="challenge.status === 'active'" class="flex gap-2">
         <button v-if="creatorProgress > opponentProgress" @click="resolveChallenge(challenge.creator?.id)"
           class="btn flex-1">
@@ -153,8 +156,6 @@ const creatorPercent = computed(() => {
 })
 const opponentPercent = computed(() => 100 - creatorPercent.value)
 
-const recentGrid = computed(() => gridDays.value.slice(-14))
-
 const statusClass = computed(() => {
   const s = challenge.value.status
   if (s === 'active') return 'bg-emerald-500/20 text-emerald-400'
@@ -162,6 +163,10 @@ const statusClass = computed(() => {
   if (s === 'resolved') return 'bg-gray-700 text-gray-400'
   return 'bg-red-500/20 text-red-400'
 })
+
+function isToday(dateStr) {
+  return dateStr === new Date().toISOString().slice(0, 10)
+}
 
 async function loadChallenge() {
   loading.value = true
@@ -249,3 +254,19 @@ function formatGridDate(d) {
 
 onMounted(loadChallenge)
 </script>
+
+<style scoped>
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(16, 185, 129, 0.3);
+  border-radius: 2px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.5);
+}
+</style>

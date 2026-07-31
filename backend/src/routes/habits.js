@@ -266,6 +266,8 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 
     await prisma.habitLog.deleteMany({ where: { habitId: id } });
     await prisma.habitBreak.deleteMany({ where: { habitId: id } });
+    await prisma.habitBuddy.deleteMany({ where: { habitId: id } });
+    await prisma.challenge.deleteMany({ where: { habitId: id } });
     await prisma.wager.deleteMany({ where: { habitId: id } });
     await prisma.preset.deleteMany({ where: { habitId: id } });
     await prisma.habit.delete({ where: { id } });

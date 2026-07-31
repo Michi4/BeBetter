@@ -33,7 +33,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useToast } from 'vue-toastification'
 import { Loader2 } from 'lucide-vue-next'
@@ -41,6 +41,7 @@ import Logo from '../components/Logo.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 const toast = useToast()
 
 const email = ref('')
@@ -55,7 +56,8 @@ async function handleLogin() {
   try {
     await auth.login(email.value, password.value, stayLoggedIn.value)
     toast.success('Welcome back!')
-    router.push('/dashboard')
+    const redirect = route.query.redirect || '/dashboard'
+    router.push(redirect)
   } catch (e) {
     error.value = e.response?.data?.error || 'Login failed'
   } finally {

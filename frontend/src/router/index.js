@@ -30,7 +30,7 @@ router.beforeEach(async (to, from, next) => {
   if (auth.token && !auth.user) {
     try { await auth.fetchUser() } catch { auth.logout() }
   }
-  if (to.meta.auth && !auth.user) return next('/login')
+  if (to.meta.auth && !auth.user) return next({ path: '/login', query: { redirect: to.fullPath } })
   if (to.meta.guest && auth.user) return next('/dashboard')
   next()
 })
