@@ -134,7 +134,32 @@ router.get('/reports', async (req, res) => {
       },
       orderBy: { createdAt: 'desc' },
     });
-    res.json({ reports });
+
+    const enriched = await Promise.all(reports.map(async (r) => {
+      let targetUser = null;
+      let targetLink = null;
+      if (r.targetType === 'preset') {
+        const preset = await prisma.preset.findUnique({ where: { id: r.targetId }, select: { id: true, title: true, authorId: true, authorName: true } });
+        if (preset) {
+          targetUser = await prisma.user.findUnique({ where: { id: preset.authorId }, select: { id: true, username: true, email: true, bannedUntil: true } });
+          r.targetTitle = preset.title;
+          targetLink = `/presets/${preset.id}`;
+        }
+      } else if (r.targetType === 'habit') {
+        const habit = await prisma.habit.findUnique({ where: { id: r.targetId }, select: { id: true, title: true, userId: true } });
+        if (habit) {
+          targetUser = await prisma.user.findUnique({ where: { id: habit.userId }, select: { id: true, username: true, email: true, bannedUntil: true } });
+          r.targetTitle = habit.title;
+          targetLink = `/habits/${habit.id}`;
+        }
+      } else if (r.targetType === 'user') {
+        targetUser = await prisma.user.findUnique({ where: { id: r.targetId }, select: { id: true, username: true, email: true, bannedUntil: true } });
+        if (targetUser) targetLink = `/profile/${targetUser.username}`;
+      }
+      return { ...r, targetUser, targetLink };
+    }));
+
+    res.json({ reports: enriched });
   } catch (e) {
     console.error('admin reports error:', e.message);
     res.status(500).json({ error: 'Server error' });
@@ -159,6 +184,17 @@ router.post('/reports/:id/action', async (req, res) => {
     res.json({ ok: true });
   } catch (e) {
     console.error('admin action error:', e.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.delete('/reports/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.report.delete({ where: { id } });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('admin delete report error:', e.message);
     res.status(500).json({ error: 'Server error' });
   }
 });

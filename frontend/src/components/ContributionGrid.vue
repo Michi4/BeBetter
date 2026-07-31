@@ -48,7 +48,8 @@
     <div v-if="hoveredDay" ref="tipRef" class="fixed z-50 bg-gray-800 border border-gray-700 rounded-xl p-3 shadow-xl text-xs max-w-[220px] pointer-events-none">
       <div class="font-medium mb-1">{{ formatTipDate(hoveredDay.date) }}</div>
       <div v-if="hoveredDay.scheduled > 0" class="text-gray-400 mb-1">
-        {{ hoveredDay.completed }}/{{ hoveredDay.scheduled }} habits done
+        {{ hoveredDay.habits }}/{{ hoveredDay.scheduled }} habits done
+        <span v-if="hoveredDay.tasks > 0" class="text-gray-500"> + {{ hoveredDay.tasks }} tasks</span>
       </div>
       <div v-if="hoveredDay.items && hoveredDay.items.length" class="space-y-0.5">
         <div v-for="(item, idx) in hoveredDay.items" :key="idx" class="flex items-center gap-1.5">
@@ -56,7 +57,7 @@
           <span class="text-gray-400">{{ item.emoji || '' }} {{ item.title }}</span>
         </div>
       </div>
-      <div v-if="hoveredDay.scheduled === 0 && hoveredDay.completed === 0" class="text-gray-500 text-[10px]">No activity</div>
+      <div v-if="hoveredDay.scheduled === 0 && hoveredDay.habits === 0 && hoveredDay.tasks === 0" class="text-gray-500 text-[10px]">No activity</div>
     </div>
 
     <!-- Legend -->
@@ -176,7 +177,7 @@ const weeks = computed(() => {
             date: dateStr,
             scheduled: data.scheduled || 0,
             completed: data.completed || 0,
-            ratio: data.scheduled > 0 ? data.completed / data.scheduled : (data.completed > 0 ? 1 : null),
+            ratio: data.scheduled > 0 ? data.habits / data.scheduled : (data.habits > 0 ? 1 : null),
             items: data.items || [],
             habits: data.habits || 0,
             tasks: data.tasks || 0,
@@ -275,14 +276,20 @@ function onWheel(e) {
   // Otherwise let the page scroll normally
 }
 
+function isToday(dateStr) {
+  return dateStr === new Date().toISOString().slice(0, 10)
+}
+
 function getCellClass(day) {
   if (!day) return 'bg-transparent'
-  if (day.scheduled === 0 && day.completed === 0) return 'bg-gray-800/40 hover:bg-gray-700/40 cursor-default'
-  if (day.ratio === null || day.ratio === 0) return 'bg-gray-800/80 hover:bg-gray-700/60 cursor-pointer'
-  if (day.ratio <= 0.33) return 'bg-emerald-950 hover:brightness-110 cursor-pointer'
-  if (day.ratio <= 0.66) return 'bg-emerald-700 hover:brightness-110 cursor-pointer'
-  if (day.ratio < 1.0) return 'bg-emerald-500 hover:brightness-110 cursor-pointer'
-  return 'bg-emerald-400 shadow-[0_0_6px_rgba(74,222,128,0.3)] hover:brightness-110 cursor-pointer'
+  const today = isToday(day.date)
+  const todayRing = today ? ' ring-2 ring-emerald-400/60 ring-offset-1 ring-offset-transparent' : ''
+  if (day.scheduled === 0 && day.habits === 0 && day.tasks === 0) return 'bg-gray-800/40 hover:bg-gray-700/40 cursor-default' + todayRing
+  if (day.ratio === null || day.ratio === 0) return 'bg-gray-800/80 hover:bg-gray-700/60 cursor-pointer' + todayRing
+  if (day.ratio <= 0.33) return 'bg-emerald-950 hover:brightness-110 cursor-pointer' + todayRing
+  if (day.ratio <= 0.66) return 'bg-emerald-700 hover:brightness-110 cursor-pointer' + todayRing
+  if (day.ratio < 1.0) return 'bg-emerald-500 hover:brightness-110 cursor-pointer' + todayRing
+  return 'bg-emerald-400 shadow-[0_0_6px_rgba(74,222,128,0.3)] hover:brightness-110 cursor-pointer' + todayRing
 }
 
 function formatTipDate(dateStr) {

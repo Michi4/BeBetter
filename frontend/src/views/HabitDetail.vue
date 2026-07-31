@@ -88,18 +88,26 @@
       <!-- Accountability Buddy -->
       <div class="card space-y-3">
         <div class="flex items-center justify-between">
-          <p class="section-title">Accountability Buddy</p>
+          <p class="section-title">Accountability Buddies</p>
           <button @click="showBuddyForm = !showBuddyForm" class="text-xs text-emerald-400 hover:text-emerald-300">
             {{ showBuddyForm ? 'Cancel' : '+ Add' }}
           </button>
         </div>
-        <div v-if="buddies.length" class="space-y-2">
-          <div v-for="b in buddies" :key="b.id" class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-xs font-bold">
-              {{ (b.friend?.username || 'U')[0].toUpperCase() }}
+        <div v-if="buddyProgress.length" class="space-y-2">
+          <div v-for="b in buddyProgress" :key="b.buddyId" class="p-2 rounded-lg bg-gray-800/50">
+            <div class="flex items-center gap-3 mb-2">
+              <div class="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-xs font-bold">
+                {{ (b.friend?.username || 'U')[0].toUpperCase() }}
+              </div>
+              <span class="text-sm flex-1">@{{ b.friend?.username }}</span>
+              <span v-if="b.completedToday" class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">Done today</span>
+              <span v-else class="text-[10px] px-1.5 py-0.5 rounded bg-gray-700 text-gray-400">Not yet</span>
+              <button @click="removeBuddyById(b.buddyId)" class="text-[10px] text-red-400 hover:text-red-300">Remove</button>
             </div>
-            <span class="text-sm flex-1">@{{ b.friend?.username }}</span>
-            <button @click="removeBuddy(b)" class="text-xs text-red-400 hover:text-red-300">Remove</button>
+            <div class="flex gap-3 text-[10px] text-gray-500">
+              <span>{{ b.totalLogs }} completions</span>
+              <span v-if="b.currentStreak > 0" class="text-amber-400">{{ b.currentStreak }}d streak</span>
+            </div>
           </div>
         </div>
         <p v-else class="text-xs text-gray-500">No accountability partners yet. Add a friend to keep you on track!</p>
@@ -186,6 +194,7 @@ const showBuddyForm = ref(false)
 const buddySearch = ref('')
 const buddyResults = ref([])
 const buddies = ref([])
+const buddyProgress = ref([])
 
 const activeBreak = computed(() => {
   return habit.value.breaks?.find(b => !b.endDate) || null
@@ -215,6 +224,7 @@ async function loadHabit() {
 
     logs.value = habit.value.logs || []
     buddies.value = habit.value.buddies || []
+    buddyProgress.value = habit.value.buddyProgress || []
   } catch {
     toast.error('Failed to load habit')
   }
@@ -334,6 +344,18 @@ async function removeBuddy(buddy) {
   try {
     await api.delete(`/habits/${route.params.id}/buddy/${buddy.id}`)
     buddies.value = buddies.value.filter(b => b.id !== buddy.id)
+    buddyProgress.value = buddyProgress.value.filter(b => b.buddyId !== buddy.id)
+    toast.success('Buddy removed')
+  } catch {
+    toast.error('Failed to remove buddy')
+  }
+}
+
+async function removeBuddyById(buddyId) {
+  try {
+    await api.delete(`/habits/${route.params.id}/buddy/${buddyId}`)
+    buddyProgress.value = buddyProgress.value.filter(b => b.buddyId !== buddyId)
+    buddies.value = buddies.value.filter(b => b.id !== buddyId)
     toast.success('Buddy removed')
   } catch {
     toast.error('Failed to remove buddy')

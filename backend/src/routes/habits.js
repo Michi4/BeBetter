@@ -74,7 +74,7 @@ router.get('/scheduled', authMiddleware, async (req, res) => {
 
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { title, description, emoji, frequencyType, daysPerWeek, schedule, verificationType, wagerDays, wagerAmount, makePublic, config } = req.body;
+    const { title, description, emoji, frequencyType, daysPerWeek, schedule, verificationType, wagerDays, wagerAmount, makePublic, config, buddyIds, challengeFriendIds, endDate } = req.body;
     if (!title) return res.status(400).json({ error: 'Title required' });
 
     const sched = schedule || (frequencyType === 'daily' ? [1, 2, 3, 4, 5, 6, 7] : daysPerWeek || [1, 2, 3, 4, 5, 6, 7]);
@@ -125,6 +125,63 @@ router.post('/', authMiddleware, async (req, res) => {
           isPublished: true,
         },
       }).catch(() => {});
+    }
+
+    if (Array.isArray(buddyIds) && buddyIds.length > 0) {
+      for (const friendId of buddyIds) {
+        if (friendId === req.userId) continue;
+        await prisma.habitBuddy.create({
+          data: { habitId: habit.id, friendId },
+        }).catch(() => {});
+
+        await prisma.notification.create({
+          data: {
+            userId: friendId,
+            type: 'buddy_request',
+            message: `You've been invited as an accountability buddy for "${habit.title}"`,
+            data: { habitId: habit.id, habitTitle: habit.title },
+          },
+        }).catch(() => {});
+      }
+    }
+
+    if (Array.isArray(challengeFriendIds) && challengeFriendIds.length > 0) {
+      for (const friendId of challengeFriendIds) {
+        if (friendId === req.userId) continue;
+
+        const friendship = await prisma.friendship.findFirst({
+          where: {
+            OR: [
+              { user1Id: req.userId, user2Id: friendId },
+              { user1Id: friendId, user2Id: req.userId },
+            ],
+          },
+        });
+        if (!friendship) continue;
+
+        const challenge = await prisma.challenge.create({
+          data: {
+            creatorId: req.userId,
+            opponentId: friendId,
+            habitId: habit.id,
+            title: `${habit.title} challenge`,
+            startDate: new Date(),
+            endDate: endDate ? new Date(endDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            status: 'pending',
+          },
+        }).catch(() => null);
+
+        if (challenge) {
+          await prisma.notification.create({
+            data: {
+              userId: friendId,
+              type: 'challenge_invite',
+              message: `You've been challenged to "${habit.title}"!`,
+              data: { challengeId: challenge.id, habitTitle: habit.title },
+            },
+          }).catch(() => {});
+        }
+      }
     }
 
     res.json({ habit });
@@ -258,12 +315,59 @@ router.get('/:id', authMiddleware, async (req, res) => {
       include: {
         ...habitInclude,
         logs: { orderBy: { completedAt: 'desc' }, take: 100 },
-        buddies: { include: { friend: { select: { id: true, username: true, avatar: true } } } },
+        buddies: {
+          include: {
+            friend: { select: { id: true, username: true, avatar: true } },
+          },
+        },
       },
     });
     if (!habit) return res.status(404).json({ error: 'Not found' });
 
-    res.json({ habit });
+    const buddyProgress = await Promise.all(
+      (habit.buddies || []).map(async (b) => {
+        const friendId = b.friend.id;
+        const totalLogs = await prisma.habitLog.count({ where: { habitId: id, userId: friendId } });
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayLog = await prisma.habitLog.findFirst({
+          where: { habitId: id, userId: friendId, completedAt: today },
+        });
+
+        const recentLogs = await prisma.habitLog.findMany({
+          where: { habitId: id, userId: friendId },
+          orderBy: { completedAt: 'desc' },
+          take: 7,
+          select: { completedAt: true },
+        });
+
+        let currentStreak = 0;
+        let streakDate = new Date();
+        streakDate.setHours(0, 0, 0, 0);
+        for (const log of recentLogs) {
+          const logDate = new Date(log.completedAt);
+          logDate.setHours(0, 0, 0, 0);
+          const diff = Math.round((streakDate - logDate) / (1000 * 60 * 60 * 24));
+          if (diff <= 1) {
+            currentStreak++;
+            streakDate = logDate;
+          } else {
+            break;
+          }
+        }
+
+        return {
+          buddyId: b.id,
+          friend: b.friend,
+          totalLogs,
+          completedToday: !!todayLog,
+          currentStreak,
+        };
+      })
+    );
+
+    res.json({ habit: { ...habit, buddyProgress } });
   } catch (e) {
     console.error('habit GET :id error:', e.message);
     res.status(500).json({ error: 'Server error' });

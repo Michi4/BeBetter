@@ -60,7 +60,6 @@ router.get('/', authMiddleware, async (req, res) => {
       const day = new Date(t.completedAt).toISOString().split('T')[0];
       if (vacationSet.has(day)) continue;
       if (!grid[day]) grid[day] = { scheduled: 0, completed: 0, habits: 0, tasks: 0, items: [] };
-      grid[day].completed++;
       grid[day].tasks++;
       grid[day].items.push({ type: 'task', title: t.task.title, emoji: t.task.emoji });
     }

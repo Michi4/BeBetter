@@ -299,4 +299,54 @@ router.post('/:id/report', async (req, res) => {
   }
 });
 
+router.put('/:id', async (req, res) => {
+  try {
+    const preset = await prisma.preset.findUnique({ where: { id: req.params.id } });
+    if (!preset) return res.status(404).json({ error: 'Preset not found' });
+
+    const user = await prisma.user.findUnique({ where: { id: req.userId }, select: { role: true } });
+    if (preset.authorId !== req.userId && user.role !== 'admin') {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    const { title, description, category, emoji, verificationType } = req.body;
+    const updated = await prisma.preset.update({
+      where: { id: req.params.id },
+      data: {
+        ...(title !== undefined && { title }),
+        ...(description !== undefined && { description }),
+        ...(category !== undefined && { category }),
+        ...(emoji !== undefined && { emoji }),
+        ...(verificationType !== undefined && { verificationType }),
+      },
+    });
+
+    res.json({ preset: updated });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.delete('/:id', async (req, res) => {
+  try {
+    const preset = await prisma.preset.findUnique({ where: { id: req.params.id } });
+    if (!preset) return res.status(404).json({ error: 'Preset not found' });
+
+    const user = await prisma.user.findUnique({ where: { id: req.userId }, select: { role: true } });
+    if (preset.authorId !== req.userId && user.role !== 'admin') {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    await prisma.presetLike.deleteMany({ where: { presetId: req.params.id } });
+    await prisma.presetUsage.deleteMany({ where: { presetId: req.params.id } });
+    await prisma.preset.delete({ where: { id: req.params.id } });
+
+    res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 module.exports = router;

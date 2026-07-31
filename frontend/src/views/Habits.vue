@@ -143,8 +143,8 @@
       </button>
     </div>
 
-    <CreateModal :show="showCreateModal" initial-mode="task"
-      @close="showCreateModal = false" @created="handleCreated" @convertToHabit="handleConvertToHabit" />
+    <CreateModal :show="showCreateModal" initial-mode="task" :convert-data="convertData"
+      @close="showCreateModal = false; convertData = null" @created="handleCreated" @convertToHabit="handleConvertToHabit" />
     <BeBetterCam :show="!!camHabit" @close="camHabit = null" @capture="submitHabitProof" />
   </div>
 </template>
@@ -166,6 +166,7 @@ const scheduledForDay = ref([])
 const historyTasks = ref([])
 const showCreateModal = ref(false)
 const quickTaskTitle = ref('')
+const convertData = ref(null)
 
 const completingTaskId = ref(null)
 const completingHabitId = ref(null)
@@ -272,6 +273,11 @@ async function handleCreated(type, data) {
         frequencyType: 'daily', schedule: data.schedule, verificationType: data.verificationType,
         makePublic: data.makePublic,
       }
+      if (data.buddyIds?.length) payload.buddyIds = data.buddyIds
+      if (data.challengeFriendIds?.length) {
+        payload.challengeFriendIds = data.challengeFriendIds
+        if (data.challengeEndDate) payload.endDate = data.challengeEndDate
+      }
       await api.post('/habits', payload)
       toast.success('Habit created')
       loadAll()
@@ -280,18 +286,21 @@ async function handleCreated(type, data) {
     }
   }
   showCreateModal.value = false
+  convertData.value = null
 }
 
 function handleConvertToHabit() {
   showCreateModal.value = false
+  convertData.value = null
 }
 
 async function convertTask(task) {
   try {
     await api.delete(`/tasks/${task.id}`)
     incompleteTasks.value = incompleteTasks.value.filter(t => t.id !== task.id)
-    toast.info('Task removed. Create a habit instead!')
+    convertData.value = { title: task.title, description: task.description }
     showCreateModal.value = true
+    toast.info('Task removed. Create a habit instead!')
   } catch {}
 }
 

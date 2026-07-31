@@ -105,8 +105,8 @@
     </div>
 
     <!-- Create Modal -->
-    <CreateModal :show="showCreateModal" initial-mode="task"
-      @close="showCreateModal = false" @created="handleCreated" @convertToHabit="handleConvertToHabit" />
+    <CreateModal :show="showCreateModal" initial-mode="task" :convert-data="convertData"
+      @close="showCreateModal = false; convertData = null" @created="handleCreated" @convertToHabit="handleConvertToHabit" />
   </div>
 </template>
 
@@ -130,6 +130,7 @@ const camHabit = ref(null)
 const isOnVacation = ref(false)
 const showCreateModal = ref(false)
 const quickTaskTitle = ref('')
+const convertData = ref(null)
 
 const stats = ref({})
 const todayTasks = ref([])
@@ -243,6 +244,11 @@ async function handleCreated(type, data) {
         frequencyType: 'daily', schedule: data.schedule, verificationType: data.verificationType,
         makePublic: data.makePublic,
       }
+      if (data.buddyIds?.length) payload.buddyIds = data.buddyIds
+      if (data.challengeFriendIds?.length) {
+        payload.challengeFriendIds = data.challengeFriendIds
+        if (data.challengeEndDate) payload.endDate = data.challengeEndDate
+      }
       await api.post('/habits', payload)
       toast.success('Habit created')
       loadStats()
@@ -261,6 +267,7 @@ async function convertTask(task) {
   try {
     await api.delete(`/tasks/${task.id}`)
     todayTasks.value = todayTasks.value.filter(t => t.id !== task.id)
+    convertData.value = { title: task.title, description: task.description }
     showCreateModal.value = true
     toast.info('Task removed. Create a habit instead!')
   } catch {}

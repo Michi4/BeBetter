@@ -17,6 +17,7 @@ const vacationRoutes = require('./routes/vacation');
 const taskRoutes = require('./routes/tasks');
 const notificationRoutes = require('./routes/notifications');
 const leaderboardRoutes = require('./routes/leaderboard');
+const publicPresetRoutes = require('./routes/presets-public');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -31,6 +32,7 @@ app.use('/api/habits', habitRoutes);
 app.use('/api/logs', logRoutes);
 app.use('/api/grid', gridRoutes);
 app.use('/api/presets', presetRoutes);
+app.use('/api/presets/public', publicPresetRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/friends', friendRoutes);

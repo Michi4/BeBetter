@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { habitId, note, photo, date } = req.body;
+    const { habitId, note, photo, proofUrl, date } = req.body;
     if (!habitId) return res.status(400).json({ error: 'habitId required' });
 
     const habit = await prisma.habit.findUnique({ where: { id: habitId }, include: { breaks: true } });
@@ -42,8 +42,7 @@ router.post('/', authMiddleware, async (req, res) => {
       data: {
         habitId,
         userId: req.userId,
-        note: note || '',
-        photo: photo || undefined,
+        proofUrl: proofUrl || photo || undefined,
         completedAt: logDate,
       },
     });

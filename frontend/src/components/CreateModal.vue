@@ -2,15 +2,12 @@
   <Teleport to="body">
     <div v-if="show" class="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm" @click.self="$emit('close')" @keydown.escape="$emit('close')" ref="modalEl" tabindex="-1">
       <div class="card w-full max-w-md mx-0 sm:mx-4 max-h-[90vh] overflow-y-auto rounded-b-2xl sm:rounded-2xl safe-bottom relative" style="padding-bottom: max(env(safe-area-inset-bottom, 0px), 24px)" @click.stop>
-        <!-- Close button -->
         <button @click="$emit('close')" class="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-gray-700/50 hover:bg-gray-600/60 flex items-center justify-center text-gray-400 hover:text-white transition-all">
           <X :size="16" :stroke-width="2.5" />
         </button>
 
-        <!-- Header -->
         <h3 class="text-lg font-bold mb-4 pr-10">Create New</h3>
 
-        <!-- Tabs -->
         <div class="flex gap-1 p-1 bg-gray-800/50 rounded-xl mb-5">
           <button @click="mode = 'task'" class="flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors"
             :class="mode === 'task' ? 'bg-emerald-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'">
@@ -120,7 +117,8 @@
                 </button>
               </div>
             </div>
-            <!-- Clickable preset toggle -->
+
+            <!-- Publish as preset -->
             <button type="button" @click="habitForm.makePublic = !habitForm.makePublic"
               class="w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left"
               :class="habitForm.makePublic ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-gray-800/50 border-gray-700 hover:border-gray-600'">
@@ -134,6 +132,54 @@
               </div>
               <Globe :size="16" :class="habitForm.makePublic ? 'text-emerald-400' : 'text-gray-600'" class="shrink-0" />
             </button>
+
+            <!-- Accountability buddies -->
+            <div class="space-y-2">
+              <label class="text-xs font-medium text-gray-400 block">Accountability Buddies</label>
+              <div v-if="selectedBuddies.length" class="flex flex-wrap gap-2">
+                <span v-for="b in selectedBuddies" :key="b.id"
+                  class="flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs">
+                  {{ b.username }}
+                  <button @click="removeBuddy(b)" class="ml-1 hover:text-red-400"><X :size="10" /></button>
+                </span>
+              </div>
+              <input v-model="buddySearch" @input="searchBuddies" class="input text-xs" placeholder="Search friends to add as buddies..." />
+              <div v-if="buddyResults.length" class="space-y-1">
+                <button v-for="f in buddyResults" :key="f.id" @click="addBuddy(f)"
+                  class="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-800 transition-colors text-left">
+                  <div class="w-7 h-7 rounded-full bg-emerald-600 flex items-center justify-center text-[10px] font-bold">
+                    {{ (f.username || 'U')[0].toUpperCase() }}
+                  </div>
+                  <span class="text-sm">@{{ f.username }}</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Challenge invite friends -->
+            <div class="space-y-2">
+              <label class="text-xs font-medium text-gray-400 block">Challenge Friends</label>
+              <div v-if="selectedChallengers.length" class="flex flex-wrap gap-2">
+                <span v-for="c in selectedChallengers" :key="c.id"
+                  class="flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/10 text-amber-400 text-xs">
+                  {{ c.username }}
+                  <button @click="removeChallenger(c)" class="ml-1 hover:text-red-400"><X :size="10" /></button>
+                </span>
+              </div>
+              <input v-model="challengerSearch" @input="searchChallengers" class="input text-xs" placeholder="Search friends to challenge..." />
+              <div v-if="challengerResults.length" class="space-y-1">
+                <button v-for="f in challengerResults" :key="f.id" @click="addChallenger(f)"
+                  class="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-800 transition-colors text-left">
+                  <div class="w-7 h-7 rounded-full bg-amber-600 flex items-center justify-center text-[10px] font-bold">
+                    {{ (f.username || 'U')[0].toUpperCase() }}
+                  </div>
+                  <span class="text-sm">@{{ f.username }}</span>
+                </button>
+              </div>
+              <div v-if="selectedChallengers.length" class="mt-2">
+                <label class="text-xs font-medium text-gray-400 mb-1 block">Challenge end date (optional)</label>
+                <input v-model="challengeEndDate" type="date" class="input text-xs" />
+              </div>
+            </div>
           </div>
 
           <div class="pt-2">
@@ -150,10 +196,12 @@
 <script setup>
 import { ref, reactive, nextTick, watch } from 'vue'
 import { Plus, X, ListTodo, Target, ChevronDown, Shield, Camera, Check, Globe, ArrowRightLeft } from 'lucide-vue-next'
+import api from '../api'
 
 const props = defineProps({
   show: Boolean,
   initialMode: { type: String, default: 'task' },
+  convertData: { type: Object, default: null },
 })
 
 const emit = defineEmits(['close', 'created', 'convertToHabit'])
@@ -178,6 +226,14 @@ const schedulePresets = [
 ]
 const weekDays = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 
+const selectedBuddies = ref([])
+const buddySearch = ref('')
+const buddyResults = ref([])
+const selectedChallengers = ref([])
+const challengerSearch = ref('')
+const challengerResults = ref([])
+const challengeEndDate = ref('')
+
 watch(() => props.show, (val) => {
   if (val) {
     mode.value = props.initialMode
@@ -193,6 +249,18 @@ watch(() => props.show, (val) => {
     habitForm.verificationType = 'honor'
     habitForm.makePublic = false
     scheduleType.value = 'daily'
+    selectedBuddies.value = []
+    buddySearch.value = ''
+    buddyResults.value = []
+    selectedChallengers.value = []
+    challengerSearch.value = ''
+    challengerResults.value = []
+    challengeEndDate.value = ''
+    if (props.convertData) {
+      mode.value = 'habit'
+      habitForm.title = props.convertData.title || ''
+      habitForm.description = props.convertData.description || ''
+    }
     nextTick(() => {
       modalEl.value?.focus()
     })
@@ -213,6 +281,52 @@ function toggleDay(i) {
   else habitForm.schedule.push(i)
 }
 
+let buddyTimeout = null
+function searchBuddies() {
+  clearTimeout(buddyTimeout)
+  if (buddySearch.value.length < 2) { buddyResults.value = []; return }
+  buddyTimeout = setTimeout(async () => {
+    try {
+      const res = await api.get('/friends/search', { params: { q: buddySearch.value } })
+      const existing = new Set(selectedBuddies.value.map(b => b.id))
+      buddyResults.value = (res.data.users || []).filter(u => !existing.has(u.id)).slice(0, 5)
+    } catch { buddyResults.value = [] }
+  }, 300)
+}
+
+function addBuddy(friend) {
+  selectedBuddies.value.push(friend)
+  buddySearch.value = ''
+  buddyResults.value = []
+}
+
+function removeBuddy(friend) {
+  selectedBuddies.value = selectedBuddies.value.filter(b => b.id !== friend.id)
+}
+
+let challengerTimeout = null
+function searchChallengers() {
+  clearTimeout(challengerTimeout)
+  if (challengerSearch.value.length < 2) { challengerResults.value = []; return }
+  challengerTimeout = setTimeout(async () => {
+    try {
+      const res = await api.get('/friends/search', { params: { q: challengerSearch.value } })
+      const existing = new Set(selectedChallengers.value.map(c => c.id))
+      challengerResults.value = (res.data.users || []).filter(u => !existing.has(u.id)).slice(0, 5)
+    } catch { challengerResults.value = [] }
+  }, 300)
+}
+
+function addChallenger(friend) {
+  selectedChallengers.value.push(friend)
+  challengerSearch.value = ''
+  challengerResults.value = []
+}
+
+function removeChallenger(friend) {
+  selectedChallengers.value = selectedChallengers.value.filter(c => c.id !== friend.id)
+}
+
 function createTask() {
   if (!taskForm.title.trim()) return
   emit('created', 'task', { ...taskForm })
@@ -220,7 +334,12 @@ function createTask() {
 
 function createHabit() {
   if (!habitForm.title.trim()) return
-  emit('created', 'habit', { ...habitForm })
+  emit('created', 'habit', {
+    ...habitForm,
+    buddyIds: selectedBuddies.value.map(b => b.id),
+    challengeFriendIds: selectedChallengers.value.map(c => c.id),
+    challengeEndDate: challengeEndDate.value || undefined,
+  })
 }
 
 function switchToHabit() {
