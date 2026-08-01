@@ -91,7 +91,7 @@ router.post('/', authMiddleware, async (req, res) => {
       orderBy: { completedAt: 'asc' },
     });
 
-    const bestStreak = calculateBestStreak(allLogs);
+    const { bestStreak, currentStreak } = calculateBestStreak(allLogs);
 
     await prisma.habit.update({ where: { id: habitId }, data: { bestStreak } });
 
@@ -287,7 +287,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
         orderBy: { completedAt: 'asc' },
       });
 
-      const bestStreak = calculateBestStreak(allLogs);
+      const { bestStreak } = calculateBestStreak(allLogs);
 
       await prisma.habit.update({ where: { id: log.habitId }, data: { bestStreak } });
     }

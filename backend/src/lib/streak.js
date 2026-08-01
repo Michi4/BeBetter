@@ -20,7 +20,7 @@ function calculateBestStreak(logs) {
     lastDate = d;
   }
 
-  return bestStreak;
+  return { bestStreak, currentStreak };
 }
 
 module.exports = { calculateBestStreak };

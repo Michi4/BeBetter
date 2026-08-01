@@ -105,8 +105,8 @@ router.post('/users/:id/ban', async (req, res) => {
       return res.status(400).json({ error: 'Days must be a number between 1 and 365' });
     }
 
-    const banUntil = new Date();
-    banUntil.setDate(banUntil.getDate() + days);
+    const bannedUntil = new Date();
+    bannedUntil.setDate(bannedUntil.getDate() + days);
 
     const user = await prisma.user.update({
       where: { id },
