@@ -335,7 +335,9 @@ async function convertTask(task) {
     convertData.value = { title: task.title, description: task.description }
     showCreateModal.value = true
     toast.info('Task removed. Create a habit instead!')
-  } catch {}
+  } catch {
+    toast.error('Failed to remove task')
+  }
 }
 
 async function createQuickTask() {

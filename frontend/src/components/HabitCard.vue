@@ -1,6 +1,6 @@
 <template>
   <div class="card-hover flex items-center gap-3" @click="handleCardClick">
-    <button @click.stop="handleClick" class="w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-150"
+    <button @click.stop="handleClick" class="w-11 h-11 rounded-full flex items-center justify-center transition-colors duration-150"
       :class="isCompleted ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-800 text-gray-400 hover:bg-emerald-500/10 hover:text-emerald-400'">
       <Camera v-if="needsCamera && !isCompleted" :size="18" />
       <CheckCircle2 v-else :size="18" />

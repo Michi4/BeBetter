@@ -18,11 +18,11 @@
     <div v-else class="flex items-center gap-3 group" @contextmenu.prevent="showMenu = !showMenu" @touchstart="startLongPress" @touchend="cancelLongPress" @touchmove="cancelLongPress">
       <!-- Checkbox -->
       <button @click.stop="$emit('complete', task)"
-        class="shrink-0 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all duration-200"
+        class="shrink-0 w-10 h-10 rounded-lg border-2 flex items-center justify-center transition-all duration-200"
         :class="task.completed
           ? 'bg-emerald-500 border-emerald-500 text-white scale-110 animate-check'
           : 'border-gray-600 hover:border-emerald-400 hover:bg-emerald-500/10 text-transparent hover:text-emerald-400/40'">
-        <Check :size="14" :stroke-width="3" />
+        <Check :size="16" :stroke-width="3" />
       </button>
 
       <!-- Body -->

@@ -238,3 +238,22 @@ html.light .input { background: #ffffff !important; border-color: #d1d5db !impor
 html.light .input::placeholder { color: #9ca3af !important; }
 html.light .card { background: #ffffff !important; border-color: #e5e7eb !important; }
 html.light input[type="checkbox"] { border-color: #9ca3af !important; background: #f3f4f6 !important; }
+html.light .bg-gray-900\/95 { background: rgba(255,255,255,0.95) !important; border-color: rgba(0,0,0,0.06) !important; }
+html.light .bg-emerald-500\/10 { background: rgba(5,150,105,0.08) !important; }
+html.light .bg-emerald-500\/20 { background: rgba(5,150,105,0.12) !important; }
+html.light .bg-emerald-600\/20 { background: rgba(5,150,105,0.15) !important; }
+html.light .bg-amber-500\/10 { background: rgba(245,158,11,0.08) !important; }
+html.light .bg-amber-500\/20 { background: rgba(245,158,11,0.12) !important; }
+html.light .bg-red-500\/10 { background: rgba(239,68,68,0.08) !important; }
+html.light .bg-blue-500\/10 { background: rgba(59,130,246,0.08) !important; }
+html.light .bg-purple-500\/10 { background: rgba(168,85,247,0.08) !important; }
+html.light .card-hover { background: #ffffff !important; border-color: #e5e7eb !important; }
+html.light .card-hover:hover { background: #f9fafb !important; border-color: #d1d5db !important; }
+html.light .divide-gray-800 > :not([hidden]) ~ :not([hidden]) { border-color: #e5e7eb !important; }
+html.light .text-emerald-400 { color: #059669 !important; }
+html.light .text-emerald-300 { color: #10b981 !important; }
+html.light .text-amber-400 { color: #d97706 !important; }
+html.light .text-red-400 { color: #dc2626 !important; }
+html.light .text-blue-400 { color: #2563eb !important; }
+html.light .ring-emerald-500\/30 { --tw-ring-color: rgba(5,150,105,0.2); }
+html.light .ring-emerald-400\/60 { --tw-ring-color: rgba(5,150,105,0.4); }

@@ -22,8 +22,11 @@ const publicPresetRoutes = require('./routes/presets-public');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors({ origin: true, credentials: true }));
-app.use(express.json());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' ? 'https://bebetter.home.websters.at' : true,
+  credentials: true,
+}));
+app.use(express.json({ limit: '5mb' }));
 app.use(cookieParser());
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
@@ -31,8 +34,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/habits', habitRoutes);
 app.use('/api/logs', logRoutes);
 app.use('/api/grid', gridRoutes);
-app.use('/api/presets', presetRoutes);
 app.use('/api/presets/public', publicPresetRoutes);
+app.use('/api/presets', presetRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/friends', friendRoutes);

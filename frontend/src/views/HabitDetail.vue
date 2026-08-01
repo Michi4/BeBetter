@@ -230,8 +230,8 @@
           <span class="text-xs font-medium px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">
             completed
           </span>
-          <div v-if="log.photo" class="ml-auto shrink-0">
-            <img :src="log.photo" class="w-8 h-8 rounded object-cover" alt="proof" />
+          <div v-if="log.proofUrl" class="ml-auto shrink-0">
+            <img :src="log.proofUrl" class="w-8 h-8 rounded object-cover" alt="proof" />
           </div>
         </div>
       </div>

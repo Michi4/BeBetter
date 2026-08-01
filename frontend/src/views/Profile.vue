@@ -346,7 +346,7 @@ const gridYearRange = ref({ firstYear: new Date().getFullYear(), lastYear: new D
 const isOwn = computed(() => {
   const param = route.params.id
   if (!param || !auth.user) return false
-  return auth.user.id === param || auth.user.username === param
+  return String(auth.user.id) === param || auth.user.username === param
 })
 
 async function loadProfile() {
@@ -375,7 +375,9 @@ async function loadSettings() {
     notifPrefs.value = prefsRes.data.preferences
     vacation.active = vacRes.data.active
     vacation.data = vacRes.data.vacation
-  } catch {}
+  } catch {
+    toast.error('Failed to load settings')
+  }
 
   if ('serviceWorker' in navigator && 'PushManager' in window) {
     try {

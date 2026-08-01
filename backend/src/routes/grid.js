@@ -133,7 +133,7 @@ router.get('/day', authMiddleware, async (req, res) => {
     const [habitLogs, taskLogs] = await Promise.all([
       prisma.habitLog.findMany({
         where: { userId: req.userId, completedAt: { gte: d, lt: tomorrow } },
-        include: { habit: { select: { id: true, title: true, emoji: true } } },
+        include: { habit: { select: { id: true, title: true, emoji: true, verificationType: true } } },
       }),
       prisma.taskLog.findMany({
         where: { userId: req.userId, completedAt: { gte: d, lt: tomorrow } },
@@ -141,10 +141,32 @@ router.get('/day', authMiddleware, async (req, res) => {
       }),
     ]);
 
+    const habitsWithScheduled = await prisma.habit.findMany({
+      where: { userId: req.userId, active: true },
+      select: { id: true, daysPerWeek: true, frequencyType: true, createdAt: true, breaks: { where: { endDate: null }, select: { startDate: true } } },
+    });
+    const scheduledHabitIds = new Set();
+    const dow = d.getDay();
+    for (const h of habitsWithScheduled) {
+      if (h.breaks.length > 0) continue;
+      if (h.createdAt && d < new Date(h.createdAt)) continue;
+      const sched = JSON.parse(typeof h.daysPerWeek === 'string' ? h.daysPerWeek : JSON.stringify(h.daysPerWeek || '[]'));
+      if (h.frequencyType === 'daily' || h.frequencyType === 'always' || (Array.isArray(sched) && sched.includes(dow))) {
+        scheduledHabitIds.add(h.id);
+      }
+    }
+
+    const completedHabitIds = new Set(habitLogs.map(l => l.habitId));
+
     res.json({
       date: d.toISOString().split('T')[0],
       habits: habitLogs,
       tasks: taskLogs,
+      scheduledHabits: [...scheduledHabitIds].map(id => {
+        const log = habitLogs.find(l => l.habitId === id);
+        const habit = log?.habit || habitsWithScheduled.find(h => h.id === id);
+        return { id, title: habit?.title, emoji: habit?.emoji, completed: completedHabitIds.has(id), proofUrl: log?.proofUrl || null };
+      }),
       isOnVacation: !!isOnVacation,
     });
   } catch (e) {

@@ -18,7 +18,7 @@
         <div class="flex items-center justify-between" v-if="entries.length > 1">
           <span class="text-[10px] text-gray-500 font-medium">Time slot {{ idx + 1 }}</span>
           <button type="button" @click="removeEntry(idx)"
-            class="w-6 h-6 rounded-full flex items-center justify-center text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors">
+            class="w-8 h-8 rounded-full flex items-center justify-center text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors">
             <X :size="12" />
           </button>
         </div>

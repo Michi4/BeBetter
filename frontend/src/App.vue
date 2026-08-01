@@ -27,7 +27,7 @@
           <template v-if="auth.user">
             <router-link :to="`/profile/${auth.user.username || auth.user.id}`"
               class="w-8 h-8 rounded-full bg-emerald-600/20 flex items-center justify-center text-xs font-bold text-emerald-400 ring-1 ring-emerald-500/30">
-              {{ (auth.user.username || '?')[0].toUpperCase() }}
+              {{ (auth.user?.username || '?')[0]?.toUpperCase() || '?' }}
             </router-link>
             <button @click="handleLogout" class="p-2.5 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition-colors touch-target">
               <LogOut :size="18" />
@@ -100,7 +100,10 @@ const bottomNavItems = computed(() => {
 function isActive(to) {
   const path = route.path
   if (to === '/dashboard') return path === '/dashboard'
-  if (to === '/habits') return path === '/habits'
+  if (to === '/habits') return path.startsWith('/habits')
+  if (to === '/friends') return path === '/friends'
+  if (to === '/presets') return path.startsWith('/presets')
+  if (to === '/admin') return path === '/admin'
   return path.startsWith(to)
 }
 

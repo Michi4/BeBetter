@@ -263,7 +263,9 @@ async function loadTasks() {
   try {
     const res = await api.get('/tasks')
     todayTasks.value = (res.data.tasks || []).filter(t => !t.isCompletedToday)
-  } catch {}
+  } catch {
+    toast.error('Failed to load tasks')
+  }
 }
 
 async function loadYearRange() {
@@ -355,7 +357,9 @@ async function convertTask(task) {
     convertData.value = { title: task.title, description: task.description }
     showCreateModal.value = true
     toast.info('Task removed. Create a habit instead!')
-  } catch {}
+  } catch {
+    toast.error('Failed to remove task')
+  }
 }
 
 async function completeTask(task) {
