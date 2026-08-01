@@ -357,6 +357,7 @@ async function loadProfile() {
     editForm.bio = profile.value.bio || ''
     editForm.isPublic = profile.value.isPublic || false
     isFriend.value = res.data.isFriend || false
+    requestSent.value = res.data.requestSent || false
     activity.value = res.data.recentLogs || []
     profileStats.value = res.data.stats || {}
   } catch {

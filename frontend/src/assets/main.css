@@ -3,6 +3,9 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
   html.light {
     background: #f9fafb;
     color: #111827;
@@ -61,6 +64,7 @@
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .safe-top { padding-top: env(safe-area-inset-top, 0px); }
   .touch-target { min-width: 44px; min-height: 44px; }
 }
 

@@ -1,10 +1,9 @@
 const { Router } = require('express');
 const crypto = require('crypto');
-const { PrismaClient } = require('@prisma/client');
-const { authMiddleware } = require('../middleware/auth');
+const prisma = require('../lib/prisma');
+const { authMiddleware, JWT_SECRET } = require('../middleware/auth');
 
 const router = Router();
-const prisma = new PrismaClient();
 
 const FRIEND_LINK_SECRET = process.env.JWT_SECRET || 'bebetter-friend-link-secret-key';
 
@@ -288,8 +287,8 @@ router.get('/profile/:userIdOrUsername', async (req, res) => {
     if (authHeader && authHeader.startsWith('Bearer ')) {
       try {
         const jwt = require('jsonwebtoken');
-        const decoded = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET || 'bebetter-secret-key');
-        currentUserId = decoded.userId;
+        const decoded = jwt.verify(authHeader.slice(7), JWT_SECRET);
+        currentUserId = decoded.sub;
       } catch {}
     }
 

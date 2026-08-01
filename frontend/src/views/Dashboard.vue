@@ -1,5 +1,11 @@
 <template>
   <div class="page pb-32 md:pb-24">
+    <!-- Loading -->
+    <div v-if="loading" class="flex items-center justify-center py-20">
+      <Loader2 :size="24" class="animate-spin text-emerald-400" />
+    </div>
+
+    <template v-else>
     <!-- Inline Notifications -->
     <NotificationAlerts />
 
@@ -134,6 +140,7 @@
     <!-- Create Modal -->
     <CreateModal :show="showCreateModal" initial-mode="habit" :convert-data="convertData"
       @close="showCreateModal = false; convertData = null" @created="handleCreated" @convertToHabit="handleConvertToHabit" />
+    </template>
   </div>
 </template>
 
@@ -141,7 +148,7 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import api from '../api'
 import { useToast } from 'vue-toastification'
-import { Plus, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Target } from 'lucide-vue-next'
+import { Plus, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Target, Loader2 } from 'lucide-vue-next'
 import ContributionGrid from '../components/ContributionGrid.vue'
 import DayDetail from '../components/DayDetail.vue'
 import HabitCard from '../components/HabitCard.vue'
@@ -164,6 +171,7 @@ const stats = ref({})
 const todayTasks = ref([])
 const todayHabits = ref([])
 const gridDays = ref([])
+const loading = ref(true)
 
 const selectedYear = ref(new Date().getFullYear())
 const yearRange = ref({ firstYear: new Date().getFullYear(), lastYear: new Date().getFullYear() })
@@ -187,19 +195,19 @@ function timeToMinutes(t) {
 const unscheduledHabits = computed(() => todayHabits.value.filter(h => !h.scheduledTime))
 const overdueHabits = computed(() => {
   const now = getCurrentTimeMinutes()
-  return todayHabits.value.filter(h => h.scheduledTime && timeToMinutes(h.scheduledTime) < now - 30 && !h.completedToday)
+  return todayHabits.value.filter(h => h.scheduledTime && timeToMinutes(h.scheduledTime) < now - 30 && !h.completedToday && !h.hasBreak)
 })
 const nowHabits = computed(() => {
   const now = getCurrentTimeMinutes()
   return todayHabits.value.filter(h => {
-    if (!h.scheduledTime) return false
+    if (!h.scheduledTime || h.hasBreak) return false
     const t = timeToMinutes(h.scheduledTime)
     return t >= now - 30 && t <= now + 30
   })
 })
 const upcomingHabits = computed(() => {
   const now = getCurrentTimeMinutes()
-  return todayHabits.value.filter(h => h.scheduledTime && timeToMinutes(h.scheduledTime) > now + 30 && !h.completedToday)
+  return todayHabits.value.filter(h => h.scheduledTime && timeToMinutes(h.scheduledTime) > now + 30 && !h.completedToday && !h.hasBreak)
 })
 
 async function createQuickTask() {
@@ -287,14 +295,14 @@ async function loadGrid() {
     const to = `${year}-12-31`
     const gridRes = await api.get('/grid', { params: { from, to } })
     const gridRaw = gridRes.data.grid || {}
-    const vacationDays = gridRes.data.vacationDays || []
+    const vacationSet = new Set(vacationDays)
     const days = []
     const cur = new Date(from + 'T12:00:00Z')
     const end = new Date(to + 'T12:00:00Z')
     while (cur <= end) {
       const ds = cur.toISOString().slice(0, 10)
       const data = gridRaw[ds]
-      const isVacation = vacationDays.includes(ds)
+      const isVacation = vacationSet.has(ds)
       if (data) {
         days.push({ date: ds, count: (data.completed || 0), items: data.items || [], isVacation, scheduled: data.scheduled || 0, completed: data.completed || 0, habits: data.habits || 0, tasks: data.tasks || 0 })
       } else {
@@ -444,7 +452,8 @@ async function selectDay(day) {
   try {
     const res = await api.get('/grid/day', { params: { date: day.date } })
     selectedDay.value = {
-      ...day, habits: res.data.habits || [], tasks: res.data.tasks || [], isOnVacation: res.data.isOnVacation || false,
+      ...day, habits: res.data.habits || [], tasks: res.data.tasks || [],
+      scheduledHabits: res.data.scheduledHabits || [], isOnVacation: res.data.isOnVacation || false,
     }
   } catch {
     selectedDay.value = day
@@ -463,10 +472,14 @@ async function endVacation() {
   }
 }
 
-onMounted(() => {
-  loadStats()
-  loadTasks()
-  loadYearRange()
-  loadGrid()
+onMounted(async () => {
+  loading.value = true
+  await Promise.all([
+    loadStats(),
+    loadTasks(),
+    loadYearRange(),
+    loadGrid(),
+  ])
+  loading.value = false
 })
 </script>

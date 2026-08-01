@@ -1,9 +1,8 @@
 const { Router } = require('express');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../lib/prisma');
 const { authMiddleware } = require('../middleware/auth');
 
 const router = Router();
-const prisma = new PrismaClient();
 
 const adminMiddleware = async (req, res, next) => {
   try {
@@ -59,7 +58,16 @@ router.get('/stats', async (req, res) => {
 
 router.get('/users', async (req, res) => {
   try {
+    const { q } = req.query;
+    const where = {};
+    if (q && q.length >= 2) {
+      where.OR = [
+        { username: { contains: q, mode: 'insensitive' } },
+        { email: { contains: q, mode: 'insensitive' } },
+      ];
+    }
     const users = await prisma.user.findMany({
+      where,
       select: {
         id: true, email: true, username: true, role: true,
         bannedUntil: true, createdAt: true, _count: { select: { habits: true, logs: true } },

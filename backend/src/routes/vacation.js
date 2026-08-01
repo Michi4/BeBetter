@@ -1,9 +1,8 @@
 const { Router } = require('express');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../lib/prisma');
 const { authMiddleware } = require('../middleware/auth');
 
 const router = Router();
-const prisma = new PrismaClient();
 router.use(authMiddleware);
 
 router.post('/start', async (req, res) => {
@@ -19,11 +18,12 @@ router.post('/start', async (req, res) => {
     });
     if (active) return res.status(409).json({ error: 'Vacation already active' });
 
-    const { reason, endDate } = req.body;
+    const { reason, endDate, startDate } = req.body;
     const vacation = await prisma.vacation.create({
       data: {
         userId: req.userId,
         reason: reason || null,
+        startDate: startDate ? new Date(startDate) : new Date(),
         endDate: endDate ? new Date(endDate) : null,
       },
     });

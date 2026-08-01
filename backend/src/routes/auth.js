@@ -1,11 +1,10 @@
 const { Router } = require('express');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../lib/prisma');
 const { signToken, authMiddleware } = require('../middleware/auth');
 
 const router = Router();
-const prisma = new PrismaClient();
 
 const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -108,6 +107,31 @@ router.get('/me', authMiddleware, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({ where: { id: req.userId }, select: userSelect });
     if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({ user });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.put('/me', authMiddleware, async (req, res) => {
+  try {
+    const { bio, isPublic, avatar, username } = req.body;
+    const data = {};
+    if (bio !== undefined) data.bio = bio;
+    if (isPublic !== undefined) data.isPublic = isPublic;
+    if (avatar !== undefined) data.avatar = avatar;
+    if (username !== undefined) {
+      if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
+        return res.status(400).json({ error: 'Username must be 3-20 characters, alphanumeric and underscores only' });
+      }
+      const existing = await prisma.user.findUnique({ where: { username } });
+      if (existing && existing.id !== req.userId) {
+        return res.status(409).json({ error: 'Username already taken' });
+      }
+      data.username = username;
+    }
+    const user = await prisma.user.update({ where: { id: req.userId }, data, select: userSelect });
     res.json({ user });
   } catch (e) {
     console.error(e);

@@ -11,7 +11,13 @@
         <input v-model="form.username" type="text" placeholder="Username (3-20 chars)" class="input" required
           minlength="3" maxlength="20" pattern="[a-zA-Z0-9_]+" />
         <input v-model="form.email" type="email" placeholder="Email" class="input" required />
-        <input v-model="form.password" type="password" placeholder="Password (min 6 chars)" class="input" required minlength="6" />
+        <div class="relative">
+          <input v-model="form.password" :type="showPw ? 'text' : 'password'" placeholder="Password (min 6 chars)" class="input pr-10" required minlength="6" />
+          <button type="button" @click="showPw = !showPw" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors">
+            <Eye v-if="!showPw" :size="16" />
+            <EyeOff v-else :size="16" />
+          </button>
+        </div>
         <label class="flex items-center gap-2 cursor-pointer">
           <input v-model="stayLoggedIn" type="checkbox"
             class="w-4 h-4 rounded border-gray-600 bg-gray-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0 cursor-pointer" />
@@ -35,7 +41,7 @@ import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useToast } from 'vue-toastification'
-import { Loader2 } from 'lucide-vue-next'
+import { Loader2, Eye, EyeOff } from 'lucide-vue-next'
 import Logo from '../components/Logo.vue'
 
 const auth = useAuthStore()
@@ -47,6 +53,7 @@ const form = ref({ username: '', email: '', password: '' })
 const stayLoggedIn = ref(true)
 const error = ref('')
 const loading = ref(false)
+const showPw = ref(false)
 
 async function handleRegister() {
   loading.value = true

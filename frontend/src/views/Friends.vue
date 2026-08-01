@@ -190,16 +190,21 @@ async function declineRequest(requestId) {
 
 async function loadAll() {
   try {
-    const [friendsRes, requestsRes, linkRes] = await Promise.all([
+    const [friendsRes, requestsRes] = await Promise.all([
       api.get('/friends'),
       api.get('/friends/requests'),
-      api.post('/friends/link'),
     ])
     friends.value = friendsRes.data.friends || []
     friendIds.value = new Set(friends.value.map(f => f.id))
     pendingRequests.value = requestsRes.data.requests || []
     pendingRequestIds.value = new Set(pendingRequests.value.map(r => r.requesterId))
-    friendToken.value = linkRes.data.token || ''
+
+    if (!friendToken.value) {
+      try {
+        const linkRes = await api.post('/friends/link')
+        friendToken.value = linkRes.data.token || ''
+      } catch {}
+    }
   } catch {
     toast.error('Failed to load friends')
   }

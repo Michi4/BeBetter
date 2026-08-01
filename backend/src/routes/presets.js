@@ -1,9 +1,8 @@
 const { Router } = require('express');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../lib/prisma');
 const { authMiddleware } = require('../middleware/auth');
 
 const router = Router();
-const prisma = new PrismaClient();
 router.use(authMiddleware);
 
 const authorSelect = { id: true, username: true, avatar: true };
@@ -239,6 +238,10 @@ router.post('/:id/stop-using', async (req, res) => {
     if (!usage) return res.status(404).json({ error: 'Not using this preset' });
 
     await prisma.presetUsage.delete({ where: { id: usage.id } });
+    await prisma.preset.update({
+      where: { id: req.params.id },
+      data: { usagesCount: { decrement: 1 } },
+    }).catch(() => {});
     res.json({ ok: true });
   } catch (e) {
     console.error(e);

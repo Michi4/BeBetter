@@ -1,8 +1,7 @@
 const { Router } = require('express');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../lib/prisma');
 
 const router = Router();
-const prisma = new PrismaClient();
 
 const authorSelect = { id: true, username: true, avatar: true };
 

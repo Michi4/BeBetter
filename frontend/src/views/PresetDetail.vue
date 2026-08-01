@@ -180,7 +180,11 @@ const isAuthor = computed(() => auth.user && preset.value.authorId === auth.user
 async function loadPreset() {
   try {
     const res = await api.get(`/presets/${route.params.id}`)
-    preset.value = res.data.preset || {}
+    const p = res.data.preset || {}
+    p.likes = p.likesCount || p.likes || 0
+    p.forks = p.forksCount || p.forks || 0
+    p.usages = p.usagesCount || p.usages || 0
+    preset.value = p
     leaderboard.value = res.data.leaderboard || []
     isLiked.value = res.data.isLiked || false
   } catch {
@@ -289,6 +293,15 @@ async function submitReport() {
 
 function formatRecurrence(r) {
   if (!r) return 'Daily'
+  if (Array.isArray(r.schedules) && r.schedules.length > 0) {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    const allDays = new Set()
+    for (const s of r.schedules) {
+      if (Array.isArray(s.days)) s.days.forEach(d => allDays.add(d))
+    }
+    if (allDays.size === 7) return 'Daily'
+    return `Weekly (${[...allDays].sort().map(d => days[d]).filter(Boolean).join(', ')})`
+  }
   if (r.frequencyType === 'daily') return 'Daily'
   if (r.frequencyType === 'weekdays') return 'Weekdays'
   if (r.frequencyType === 'weekends') return 'Weekends'

@@ -1,9 +1,8 @@
 const { Router } = require('express');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../lib/prisma');
 const { authMiddleware } = require('../middleware/auth');
 
 const router = Router();
-const prisma = new PrismaClient();
 
 const habitInclude = {
   tags: { select: { id: true, name: true, color: true } },
@@ -456,8 +455,10 @@ router.get('/:id', authMiddleware, async (req, res) => {
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
         const todayLog = await prisma.habitLog.findFirst({
-          where: { habitId: id, userId: friendId, completedAt: today },
+          where: { habitId: id, userId: friendId, completedAt: { gte: today, lt: tomorrow } },
         });
 
         const recentLogs = await prisma.habitLog.findMany({

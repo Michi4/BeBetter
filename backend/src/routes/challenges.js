@@ -1,10 +1,9 @@
 const { Router } = require('express');
 const crypto = require('crypto');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../lib/prisma');
 const { authMiddleware } = require('../middleware/auth');
 
 const router = Router();
-const prisma = new PrismaClient();
 
 const INVITE_SECRET = process.env.JWT_SECRET || 'bebetter-challenge-invite-secret';
 
@@ -39,11 +38,25 @@ router.get('/leaderboard/friends', authMiddleware, async (req, res) => {
     const allIds = [req.userId, ...friendIds];
 
     const leaderboard = [];
+    const logCounts = await prisma.habitLog.groupBy({
+      by: ['userId'],
+      where: { userId: { in: allIds } },
+      _count: { id: true },
+    });
+    const countMap = new Map(logCounts.map(l => [l.userId, l._count.id]));
+
+    const winCounts = await prisma.challenge.groupBy({
+      by: ['winnerId'],
+      where: { winnerId: { in: allIds }, status: 'resolved' },
+      _count: { id: true },
+    });
+    const winMap = new Map(winCounts.map(w => [w.winnerId, w._count.id]));
+
     for (const uid of allIds) {
       const user = await prisma.user.findUnique({ where: { id: uid }, select: { id: true, username: true, avatar: true } });
       if (!user) continue;
-      const totalLogs = await prisma.habitLog.count({ where: { userId: uid } });
-      const wins = await prisma.challenge.count({ where: { OR: [{ creatorId: uid }, { opponentId: uid }], status: 'resolved', winnerId: uid } });
+      const totalLogs = countMap.get(uid) || 0;
+      const wins = winMap.get(uid) || 0;
       leaderboard.push({ ...user, score: totalLogs, wins });
     }
 
@@ -70,8 +83,16 @@ router.get('/', authMiddleware, async (req, res) => {
     });
 
     const enriched = await Promise.all(challenges.map(async (c) => {
-      const creatorLogs = await prisma.habitLog.count({ where: { habitId: c.habitId, userId: c.creatorId } });
-      const opponentLogs = await prisma.habitLog.count({ where: { habitId: c.habitId, userId: c.opponentId } });
+      const where = { habitId: c.habitId };
+      if (c.startDate) where.completedAt = { gte: c.startDate };
+      if (c.endDate) {
+        where.completedAt = where.completedAt || {};
+        where.completedAt.lte = c.endDate;
+      }
+      const [creatorLogs, opponentLogs] = await Promise.all([
+        prisma.habitLog.count({ where: { ...where, userId: c.creatorId } }),
+        prisma.habitLog.count({ where: { ...where, userId: c.opponentId } }),
+      ]);
       return { ...c, creatorProgress: creatorLogs, opponentProgress: opponentLogs };
     }));
 
@@ -311,10 +332,18 @@ router.get('/:id', authMiddleware, async (req, res) => {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
-    const creatorLogs = await prisma.habitLog.count({ where: { habitId: challenge.habitId, userId: challenge.creatorId } });
-    const opponentLogs = challenge.opponentId !== challenge.creatorId
-      ? await prisma.habitLog.count({ where: { habitId: challenge.habitId, userId: challenge.opponentId } })
-      : 0;
+    const challengeWhere = { habitId: challenge.habitId };
+    if (challenge.startDate) challengeWhere.completedAt = { gte: challenge.startDate };
+    if (challenge.endDate) {
+      challengeWhere.completedAt = challengeWhere.completedAt || {};
+      challengeWhere.completedAt.lte = challenge.endDate;
+    }
+    const [creatorLogs, opponentLogs] = await Promise.all([
+      prisma.habitLog.count({ where: { ...challengeWhere, userId: challenge.creatorId } }),
+      challenge.opponentId !== challenge.creatorId
+        ? prisma.habitLog.count({ where: { ...challengeWhere, userId: challenge.opponentId } })
+        : Promise.resolve(0),
+    ]);
 
     res.json({
       challenge: { ...challenge, creatorProgress: creatorLogs, opponentProgress: opponentLogs },
@@ -388,8 +417,16 @@ router.get('/:id/progress', authMiddleware, async (req, res) => {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
-    const creatorCount = await prisma.habitLog.count({ where: { habitId: challenge.habitId, userId: challenge.creatorId } });
-    const opponentCount = await prisma.habitLog.count({ where: { habitId: challenge.habitId, userId: challenge.opponentId } });
+    const progressWhere = { habitId: challenge.habitId };
+    if (challenge.startDate) progressWhere.completedAt = { gte: challenge.startDate };
+    if (challenge.endDate) {
+      progressWhere.completedAt = progressWhere.completedAt || {};
+      progressWhere.completedAt.lte = challenge.endDate;
+    }
+    const [creatorCount, opponentCount] = await Promise.all([
+      prisma.habitLog.count({ where: { ...progressWhere, userId: challenge.creatorId } }),
+      prisma.habitLog.count({ where: { ...progressWhere, userId: challenge.opponentId } }),
+    ]);
 
     res.json({
       creatorProgress: creatorCount,
@@ -413,6 +450,9 @@ router.post('/:id/resolve', authMiddleware, async (req, res) => {
     }
     if (challenge.status === 'resolved') {
       return res.status(400).json({ error: 'Challenge already resolved' });
+    }
+    if (challenge.status !== 'active') {
+      return res.status(400).json({ error: 'Challenge is not active' });
     }
     if (winnerId && winnerId !== challenge.creatorId && winnerId !== challenge.opponentId) {
       return res.status(400).json({ error: 'Winner must be creator or opponent' });

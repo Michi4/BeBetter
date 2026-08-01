@@ -1,5 +1,11 @@
 <template>
   <div class="page pb-32 md:pb-24">
+    <!-- Loading -->
+    <div v-if="loading" class="flex items-center justify-center py-20">
+      <Loader2 :size="24" class="animate-spin text-emerald-400" />
+    </div>
+
+    <template v-else>
     <!-- Inline Notifications -->
     <NotificationAlerts />
 
@@ -160,6 +166,7 @@
     <CreateModal :show="showCreateModal" initial-mode="habit" :convert-data="convertData"
       @close="showCreateModal = false; convertData = null" @created="handleCreated" @convertToHabit="handleConvertToHabit" />
     <BeBetterCam :show="!!camHabit" @close="camHabit = null" @capture="submitHabitProof" />
+    </template>
   </div>
 </template>
 
@@ -167,7 +174,7 @@
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import api from '../api'
 import { useToast } from 'vue-toastification'
-import { Plus, ChevronDown, ChevronLeft, ChevronRight, CheckCircle2, Circle, Check, Trash2, Target } from 'lucide-vue-next'
+import { Plus, ChevronDown, ChevronLeft, ChevronRight, CheckCircle2, Circle, Check, Trash2, Target, Loader2 } from 'lucide-vue-next'
 import HabitCard from '../components/HabitCard.vue'
 import TaskCard from '../components/TaskCard.vue'
 import BeBetterCam from '../components/BeBetterCam.vue'
@@ -261,6 +268,7 @@ const showCompletedHabits = ref(false)
 const completedTasksPage = ref(0)
 const completedHabitsPage = ref(0)
 const PAGE_SIZE = 10
+const loading = ref(true)
 
 const visibleCompletedTasks = computed(() => completedTasks.value.slice(0, (completedTasksPage.value + 1) * PAGE_SIZE))
 const visibleCompletedHabits = computed(() => completedHabits.value.slice(0, (completedHabitsPage.value + 1) * PAGE_SIZE))
@@ -353,6 +361,7 @@ async function createQuickTask() {
 }
 
 async function loadAll() {
+  loading.value = true
   try {
     const [tasksRes, habitsRes] = await Promise.all([
       api.get('/tasks'),
@@ -396,6 +405,8 @@ async function loadAll() {
     completedHabits.value = allHabits.filter(h => h.active === false)
   } catch {
     toast.error('Failed to load data')
+  } finally {
+    loading.value = false
   }
 }
 

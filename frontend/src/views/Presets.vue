@@ -121,7 +121,7 @@ const createForm = reactive({
   title: '',
   description: '',
   category: 'Other',
-  recurrence: { type: 'daily' },
+  recurrence: [{ time: null, days: [0, 1, 2, 3, 4, 5, 6] }],
   verificationType: 'honor',
 })
 
@@ -183,7 +183,7 @@ async function createPreset() {
     showCreateForm.value = false
     Object.assign(createForm, {
       title: '', description: '', category: 'Other',
-      recurrence: { type: 'daily' }, verificationType: 'honor',
+      recurrence: [{ time: null, days: [0, 1, 2, 3, 4, 5, 6] }], verificationType: 'honor',
     })
     loadPresets()
   } catch {

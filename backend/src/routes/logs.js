@@ -1,9 +1,9 @@
 const { Router } = require('express');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../lib/prisma');
 const { authMiddleware } = require('../middleware/auth');
+const { calculateBestStreak } = require('../lib/streak');
 
 const router = Router();
-const prisma = new PrismaClient();
 
 router.post('/', authMiddleware, async (req, res) => {
   try {
@@ -74,7 +74,7 @@ router.post('/', authMiddleware, async (req, res) => {
       existingWhere.scheduledTime = null;
     }
     const existing = await prisma.habitLog.findFirst({ where: existingWhere });
-    if (existing) return res.status(400).json({ error: 'Already logged today for this time slot' });
+    if (existing) return res.status(409).json({ error: 'Already logged today for this time slot' });
 
     const log = await prisma.habitLog.create({
       data: {
@@ -91,26 +91,7 @@ router.post('/', authMiddleware, async (req, res) => {
       orderBy: { completedAt: 'asc' },
     });
 
-    let bestStreak = 0;
-    let currentStreak = 0;
-    let lastDate = null;
-
-    for (const l of allLogs) {
-      const d = new Date(l.completedAt);
-      d.setHours(0, 0, 0, 0);
-      if (lastDate) {
-        const diff = (d - lastDate) / (1000 * 60 * 60 * 24);
-        if (diff === 1) {
-          currentStreak++;
-        } else if (diff > 1) {
-          currentStreak = 1;
-        }
-      } else {
-        currentStreak = 1;
-      }
-      if (currentStreak > bestStreak) bestStreak = currentStreak;
-      lastDate = d;
-    }
+    const bestStreak = calculateBestStreak(allLogs);
 
     await prisma.habit.update({ where: { id: habitId }, data: { bestStreak } });
 
@@ -306,26 +287,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
         orderBy: { completedAt: 'asc' },
       });
 
-      let bestStreak = 0;
-      let currentStreak = 0;
-      let lastDate = null;
-
-      for (const l of allLogs) {
-        const d = new Date(l.completedAt);
-        d.setHours(0, 0, 0, 0);
-        if (lastDate) {
-          const diff = (d - lastDate) / (1000 * 60 * 60 * 24);
-          if (diff === 1) {
-            currentStreak++;
-          } else if (diff > 1) {
-            currentStreak = 1;
-          }
-        } else {
-          currentStreak = 1;
-        }
-        if (currentStreak > bestStreak) bestStreak = currentStreak;
-        lastDate = d;
-      }
+      const bestStreak = calculateBestStreak(allLogs);
 
       await prisma.habit.update({ where: { id: log.habitId }, data: { bestStreak } });
     }

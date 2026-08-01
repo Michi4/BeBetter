@@ -93,16 +93,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import api from '../api'
 import { useToast } from 'vue-toastification'
 import { Loader2, Trophy } from 'lucide-vue-next'
 
 const toast = useToast()
-const activeTab = ref('friends')
+const activeTab = ref('global')
 const entries = ref([])
 const challenges = ref([])
 const loading = ref(false)
+const hasFriends = ref(false)
 
 const tabs = [
   { label: 'Friends', value: 'friends' },
@@ -167,5 +168,12 @@ async function loadLeaderboard() {
   loading.value = false
 }
 
-onMounted(loadLeaderboard)
+onMounted(async () => {
+  try {
+    const res = await api.get('/friends')
+    hasFriends.value = (res.data.friends || []).length > 0
+    if (hasFriends.value) activeTab.value = 'friends'
+  } catch {}
+  await loadLeaderboard()
+})
 </script>

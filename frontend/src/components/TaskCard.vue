@@ -15,7 +15,7 @@
     </div>
 
     <!-- Normal mode -->
-    <div v-else class="flex items-center gap-3 group" @contextmenu.prevent="showMenu = !showMenu" @touchstart="startLongPress" @touchend="cancelLongPress" @touchmove="cancelLongPress">
+    <div v-else class="flex items-center gap-3 group" @contextmenu.prevent="showContextMenu" @touchstart="startLongPress" @touchend="cancelLongPress" @touchmove="cancelLongPress">
       <!-- Checkbox -->
       <button @click.stop="$emit('complete', task)"
         class="shrink-0 w-10 h-10 rounded-lg border-2 flex items-center justify-center transition-all duration-200"
@@ -95,6 +95,11 @@ function formatDays(days) {
   if (days.length === 5 && days.every(d => d >= 1 && d <= 5)) return 'Wkdays'
   if (days.length === 2 && days.includes(0) && days.includes(6)) return 'Wkends'
   return days.map(d => dayAbbr[d]).join(' ')
+}
+
+function showContextMenu(e) {
+  menuPos.value = { top: e.clientY + 'px', left: Math.min(e.clientX, window.innerWidth - 200) + 'px' }
+  showMenu.value = true
 }
 
 function startLongPress(e) {

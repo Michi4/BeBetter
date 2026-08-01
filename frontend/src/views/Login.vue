@@ -9,7 +9,13 @@
       <form @submit.prevent="handleLogin" class="card space-y-4">
         <div v-if="error" class="text-red-400 text-sm bg-red-500/10 px-3 py-2 rounded-lg">{{ error }}</div>
         <input v-model="email" type="text" placeholder="Email or username" class="input" required />
-        <input v-model="password" type="password" placeholder="Password" class="input" required />
+        <div class="relative">
+          <input v-model="password" :type="showPw ? 'text' : 'password'" placeholder="Password" class="input pr-10" required />
+          <button type="button" @click="showPw = !showPw" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors">
+            <Eye v-if="!showPw" :size="16" />
+            <EyeOff v-else :size="16" />
+          </button>
+        </div>
         <label class="flex items-center gap-2 cursor-pointer">
           <input v-model="stayLoggedIn" type="checkbox"
             class="w-4 h-4 rounded border-gray-600 bg-gray-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0 cursor-pointer" />
@@ -36,7 +42,7 @@ import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useToast } from 'vue-toastification'
-import { Loader2 } from 'lucide-vue-next'
+import { Loader2, Eye, EyeOff } from 'lucide-vue-next'
 import Logo from '../components/Logo.vue'
 
 const auth = useAuthStore()
@@ -49,6 +55,7 @@ const password = ref('')
 const stayLoggedIn = ref(true)
 const error = ref('')
 const loading = ref(false)
+const showPw = ref(false)
 
 async function handleLogin() {
   loading.value = true

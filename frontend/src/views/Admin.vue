@@ -180,7 +180,7 @@
 import { ref, computed, onMounted } from 'vue'
 import api from '../api'
 import { useToast } from 'vue-toastification'
-import { Inbox, Loader2, Ban, X, ShieldCheck, Trash2, EyeOff, CheckCircle } from 'lucide-vue-next'
+import { Inbox, Loader2, Ban, ShieldCheck, Trash2, EyeOff, CheckCircle } from 'lucide-vue-next'
 
 const toast = useToast()
 
@@ -248,6 +248,7 @@ async function searchUsers() {
 
 async function toggleAdmin(u) {
   const newRole = u.role === 'admin' ? 'user' : 'admin'
+  if (!confirm(`Set ${u.username} to ${newRole}?`)) return
   try {
     await api.post(`/admin/users/${u.id}/role`, { role: newRole })
     u.role = newRole

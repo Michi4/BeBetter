@@ -1,9 +1,8 @@
 const { Router } = require('express');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../lib/prisma');
 const { authMiddleware } = require('../middleware/auth');
 
 const router = Router();
-const prisma = new PrismaClient();
 
 router.get('/global', authMiddleware, async (req, res) => {
   try {
@@ -12,16 +11,21 @@ router.get('/global', authMiddleware, async (req, res) => {
       select: { id: true, username: true, avatar: true },
     });
 
-    const leaderboard = [];
-    for (const user of users) {
-      const totalLogs = await prisma.habitLog.count({ where: { userId: user.id } });
-      if (totalLogs > 0) {
-        leaderboard.push({ ...user, score: totalLogs });
-      }
-    }
+    const userIds = users.map(u => u.id);
+    const logCounts = await prisma.habitLog.groupBy({
+      by: ['userId'],
+      where: { userId: { in: userIds } },
+      _count: { id: true },
+    });
+    const countMap = new Map(logCounts.map(l => [l.userId, l._count.id]));
 
-    leaderboard.sort((a, b) => b.score - a.score);
-    res.json({ leaderboard: leaderboard.slice(0, 50) });
+    const leaderboard = users
+      .map(u => ({ ...u, score: countMap.get(u.id) || 0 }))
+      .filter(u => u.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 50);
+
+    res.json({ leaderboard });
   } catch (e) {
     console.error('leaderboard global error:', e.message);
     res.status(500).json({ error: 'Server error' });

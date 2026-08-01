@@ -69,11 +69,12 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import api from '../api'
 import { useToast } from 'vue-toastification'
 import { ArrowLeft, X, Trophy, Check } from 'lucide-vue-next'
 
+const route = useRoute()
 const router = useRouter()
 const toast = useToast()
 
@@ -134,5 +135,15 @@ onMounted(async () => {
     const res = await api.get('/habits')
     habits.value = (res.data.habits || []).filter(h => h.active !== false)
   } catch {}
+
+  const userId = route.query.user
+  if (userId) {
+    try {
+      const res = await api.get('/friends/search', { params: { q: userId } })
+      const users = res.data.users || []
+      const match = users.find(u => u.id === userId || u.username === userId)
+      if (match) selectOpponent(match)
+    } catch {}
+  }
 })
 </script>

@@ -32,11 +32,20 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 
 defineProps({
   size: { type: [Number, String], default: 28 },
 })
 
-const isLight = computed(() => document.documentElement.classList.contains('light'))
+const isLight = ref(typeof document !== 'undefined' && document.documentElement.classList.contains('light'))
+
+let observer = null
+onMounted(() => {
+  observer = new MutationObserver(() => {
+    isLight.value = document.documentElement.classList.contains('light')
+  })
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+})
+onUnmounted(() => observer?.disconnect())
 </script>

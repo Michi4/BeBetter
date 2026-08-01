@@ -98,13 +98,6 @@ onMounted(async () => {
     return
   }
 
-  try {
-    await api.post('/friends/link/accept', { token })
-    accepted.value = true
-    toast.success('Friend added!')
-  } catch (e) {
-    error.value = e.response?.data?.error || 'This link may have already been used or expired'
-  }
   loading.value = false
 })
 </script>

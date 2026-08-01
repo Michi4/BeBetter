@@ -1,7 +1,5 @@
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('./lib/prisma');
 const webpush = require('web-push');
-
-const prisma = new PrismaClient();
 
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
   webpush.setVapidDetails(
@@ -64,12 +62,13 @@ function parseSchedules(val) {
   return Array.isArray(arr) ? arr : [];
 }
 
-async function alreadyNotified(userId, type, entityId, time, todayDate) {
+async function alreadyNotified(userId, type, entityId, time, todayDate, isTask) {
+  const field = isTask ? 'taskId' : 'habitId';
   const existing = await prisma.notification.findFirst({
     where: {
       userId,
       type: 'scheduled_reminder',
-      data: { path: ['habitId'], equals: entityId },
+      data: { path: [field], equals: entityId },
       createdAt: { gte: new Date(todayDate + 'T00:00:00'), lt: new Date(todayDate + 'T23:59:59') },
     },
   });
@@ -133,7 +132,7 @@ async function checkScheduledReminders() {
           const effectiveTime = offset > 0 ? subtractMinutes(slot.time, offset) : slot.time;
           if (!effectiveTime || effectiveTime !== currentTime) continue;
 
-          if (await alreadyNotified(pref.userId, 'scheduled_reminder', habit.id, slot.time, todayDate)) continue;
+          if (await alreadyNotified(pref.userId, 'scheduled_reminder', habit.id, slot.time, todayDate, false)) continue;
 
           const label = offset === 0 ? 'Now' : `in ${offset} min`;
           const msg = offset === 0
@@ -169,7 +168,7 @@ async function checkScheduledReminders() {
         const effectiveTime = offset > 0 ? subtractMinutes(task.scheduledTime, offset) : task.scheduledTime;
         if (!effectiveTime || effectiveTime !== currentTime) continue;
 
-        if (await alreadyNotified(pref.userId, 'scheduled_reminder', task.id, task.scheduledTime, todayDate)) continue;
+        if (await alreadyNotified(pref.userId, 'scheduled_reminder', task.id, task.scheduledTime, todayDate, true)) continue;
 
         const label = offset === 0 ? 'Now' : `in ${offset} min`;
         const msg = offset === 0

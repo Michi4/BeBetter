@@ -1,9 +1,8 @@
 const { Router } = require('express');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../lib/prisma');
 const { authMiddleware } = require('../middleware/auth');
 
 const router = Router();
-const prisma = new PrismaClient();
 
 router.get('/', authMiddleware, async (req, res) => {
   try {
@@ -64,16 +63,20 @@ router.get('/', authMiddleware, async (req, res) => {
       grid[day].items.push({ type: 'task', title: t.task.title, emoji: t.task.emoji });
     }
 
+    const parsedHabits = activeHabits.map(h => ({
+      ...h,
+      sched: JSON.parse(typeof h.daysPerWeek === 'string' ? h.daysPerWeek : JSON.stringify(h.daysPerWeek || '[]')),
+    }));
+
     const cur = new Date(start);
     while (cur <= end) {
       const ds = cur.toISOString().split('T')[0];
       if (!vacationSet.has(ds)) {
         const dow = cur.getDay();
-        for (const h of activeHabits) {
+        for (const h of parsedHabits) {
           if (h.breaks.length > 0) continue;
           if (h.createdAt && cur < new Date(h.createdAt)) continue;
-          const sched = JSON.parse(typeof h.daysPerWeek === 'string' ? h.daysPerWeek : JSON.stringify(h.daysPerWeek || '[]'));
-          if (h.frequencyType === 'daily' || h.frequencyType === 'always' || (Array.isArray(sched) && sched.includes(dow))) {
+          if (h.frequencyType === 'daily' || h.frequencyType === 'always' || (Array.isArray(h.sched) && h.sched.includes(dow))) {
             if (!grid[ds]) grid[ds] = { scheduled: 0, completed: 0, habits: 0, tasks: 0, items: [] };
             grid[ds].scheduled++;
           }

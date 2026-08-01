@@ -1,9 +1,8 @@
 const { Router } = require('express');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../lib/prisma');
 const { authMiddleware } = require('../middleware/auth');
 
 const router = Router();
-const prisma = new PrismaClient();
 
 router.get('/overview', authMiddleware, async (req, res) => {
   try {
@@ -35,6 +34,30 @@ router.get('/overview', authMiddleware, async (req, res) => {
 
     const bestStreak = allHabits.reduce((max, h) => Math.max(max, h.bestStreak || 0), 0);
 
+    let activeStreak = 0;
+    {
+      const allLogs = await prisma.habitLog.findMany({
+        where: { userId },
+        orderBy: { completedAt: 'asc' },
+        select: { completedAt: true },
+      });
+      let currentStreak = 0;
+      let lastDate = null;
+      for (const l of allLogs) {
+        const d = new Date(l.completedAt);
+        d.setHours(0, 0, 0, 0);
+        if (lastDate) {
+          const diff = (d - lastDate) / (1000 * 60 * 60 * 24);
+          if (diff === 1) currentStreak++;
+          else if (diff > 1) currentStreak = 1;
+        } else {
+          currentStreak = 1;
+        }
+        if (currentStreak > activeStreak) activeStreak = currentStreak;
+        lastDate = d;
+      }
+    }
+
     let consistency = 0;
     if (totalLogs > 0 && activeHabits > 0) {
       const firstLog = await prisma.habitLog.findFirst({
@@ -53,7 +76,7 @@ router.get('/overview', authMiddleware, async (req, res) => {
       todayLogs,
       totalLogs,
       bestStreak,
-      activeStreak: bestStreak,
+      activeStreak,
       consistency,
       isOnVacation: !!todayVacation,
     });

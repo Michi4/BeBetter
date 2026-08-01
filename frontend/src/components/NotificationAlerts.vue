@@ -34,7 +34,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { Trophy, Users, Bell, Info } from 'lucide-vue-next'
+import { Trophy, Users, Bell } from 'lucide-vue-next'
 import api from '../api'
 
 const alerts = ref([])
