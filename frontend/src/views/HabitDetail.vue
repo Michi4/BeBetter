@@ -27,9 +27,9 @@
         </div>
 
         <!-- Reminder info -->
-        <div v-if="habit.reminderMinutes != null" class="flex items-center gap-2 text-xs text-gray-400">
+        <div v-if="habit.reminderMinutes != null && (Array.isArray(habit.reminderMinutes) ? habit.reminderMinutes.length : true)" class="flex items-center gap-2 text-xs text-gray-400">
           <Bell :size="12" class="text-emerald-400" />
-          <span>Reminder: {{ formatReminder(habit.reminderMinutes) }}</span>
+          <span>{{ Array.isArray(habit.reminderMinutes) && habit.reminderMinutes.length > 1 ? 'Reminders' : 'Reminder' }}: {{ formatReminder(habit.reminderMinutes) }}</span>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
@@ -302,6 +302,7 @@ const editForm = reactive({
   schedules: [{ time: null, days: [0, 1, 2, 3, 4, 5, 6] }],
   verificationType: 'honor',
   config: null,
+  reminderMinutes: [],
 })
 
 async function loadHabit() {
@@ -313,6 +314,7 @@ async function loadHabit() {
     editForm.emoji = habit.value.emoji || '🎯'
     editForm.verificationType = habit.value.verificationType || 'honor'
     editForm.config = habit.value.config || null
+    editForm.reminderMinutes = Array.isArray(habit.value.reminderMinutes) ? [...habit.value.reminderMinutes] : (habit.value.reminderMinutes != null ? [habit.value.reminderMinutes] : [])
 
     if (habit.value.schedules?.length) {
       editForm.schedules = habit.value.schedules.map(s => ({
@@ -353,6 +355,7 @@ async function saveEdit() {
       schedules: editForm.schedules,
       verificationType: editForm.verificationType,
       config: editForm.config,
+      reminderMinutes: editForm.reminderMinutes.length ? editForm.reminderMinutes : null,
     })
     editing.value = false
     toast.success('Habit updated')
@@ -441,6 +444,9 @@ function formatScheduleDays(days) {
 }
 
 function formatReminder(min) {
+  if (Array.isArray(min)) {
+    return min.sort((a, b) => b - a).map(m => m === 0 ? 'At time' : `${m}m before`).join(', ')
+  }
   if (min === 0) return 'At time'
   return `${min} min before`
 }

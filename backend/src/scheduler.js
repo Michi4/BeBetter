@@ -1,6 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
 const webpush = require('web-push');
-const { sendEmail } = require('./email');
 
 const prisma = new PrismaClient();
 
@@ -38,29 +37,59 @@ async function sendPushNotification(userId, title, body, url) {
 
 function getTodayHHMM() {
   const now = new Date();
-  const h = String(now.getHours()).padStart(2, '0');
-  const m = String(now.getMinutes()).padStart(2, '0');
-  return `${h}:${m}`;
+  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 }
 
 function getTodayDateStr() {
   const now = new Date();
-  const y = now.getFullYear();
-  const mo = String(now.getMonth() + 1).padStart(2, '0');
-  const d = String(now.getDate()).padStart(2, '0');
-  return `${y}-${mo}-${d}`;
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 }
 
 function subtractMinutes(timeStr, minutes) {
   const [h, m] = timeStr.split(':').map(Number);
-  const totalMinutes = h * 60 + m - minutes;
-  if (totalMinutes < 0) return null;
-  const newH = Math.floor(totalMinutes / 60);
-  const newM = totalMinutes % 60;
-  return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
+  const total = h * 60 + m - minutes;
+  if (total < 0) return null;
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
 }
 
-async function scheduledTimeReminders() {
+function parseReminders(val) {
+  if (!val) return [];
+  const arr = typeof val === 'string' ? JSON.parse(val) : val;
+  return Array.isArray(arr) ? arr.filter(v => typeof v === 'number' && v >= 0) : [];
+}
+
+function parseSchedules(val) {
+  if (!val) return [];
+  const arr = typeof val === 'string' ? JSON.parse(val) : val;
+  return Array.isArray(arr) ? arr : [];
+}
+
+async function alreadyNotified(userId, type, entityId, time, todayDate) {
+  const existing = await prisma.notification.findFirst({
+    where: {
+      userId,
+      type: 'scheduled_reminder',
+      data: { path: ['habitId'], equals: entityId },
+      createdAt: { gte: new Date(todayDate + 'T00:00:00'), lt: new Date(todayDate + 'T23:59:59') },
+    },
+  });
+  return existing && existing.data?.time === time;
+}
+
+async function sendReminder(userId, message, url, data) {
+  const todayDate = getTodayDateStr();
+  await prisma.notification.create({
+    data: {
+      userId,
+      type: 'scheduled_reminder',
+      message,
+      data,
+    },
+  }).catch(() => {});
+  await sendPushNotification(userId, 'BeBetter Reminder', message, url);
+}
+
+async function checkScheduledReminders() {
   const currentTime = getTodayHHMM();
   const todayDate = getTodayDateStr();
   const dayOfWeek = new Date().getDay();
@@ -70,11 +99,8 @@ async function scheduledTimeReminders() {
   });
 
   for (const pref of prefs) {
-    const user = await prisma.user.findUnique({ where: { id: pref.userId }, select: { username: true, bannedUntil: true } });
+    const user = await prisma.user.findUnique({ where: { id: pref.userId }, select: { id: true, bannedUntil: true } });
     if (!user || user.bannedUntil) continue;
-
-    const hasSubscription = await prisma.pushSubscription.findFirst({ where: { userId: pref.userId } });
-    if (!hasSubscription) continue;
 
     const isOnVacation = await prisma.vacation.findFirst({
       where: {
@@ -95,50 +121,27 @@ async function scheduledTimeReminders() {
     });
 
     for (const habit of habits) {
-      const schedules = typeof habit.schedules === 'string' ? JSON.parse(habit.schedules) : habit.schedules;
-      if (!Array.isArray(schedules)) continue;
+      const schedules = parseSchedules(habit.schedules);
+      const reminders = parseReminders(habit.reminderMinutes);
+      if (!schedules.length || !reminders.length) continue;
 
       for (const slot of schedules) {
         if (!Array.isArray(slot.days) || !slot.days.includes(dayOfWeek)) continue;
         if (!slot.time) continue;
 
-        const effectiveTime = habit.reminderMinutes > 0
-          ? subtractMinutes(slot.time, habit.reminderMinutes)
-          : slot.time;
+        for (const offset of reminders) {
+          const effectiveTime = offset > 0 ? subtractMinutes(slot.time, offset) : slot.time;
+          if (!effectiveTime || effectiveTime !== currentTime) continue;
 
-        if (!effectiveTime || effectiveTime !== currentTime) continue;
+          if (await alreadyNotified(pref.userId, 'scheduled_reminder', habit.id, slot.time, todayDate)) continue;
 
-        const existingNotif = await prisma.notification.findFirst({
-          where: {
-            userId: pref.userId,
-            type: 'scheduled_reminder',
-            data: { path: ['habitId'], equals: habit.id },
-            createdAt: { gte: new Date(todayDate + 'T00:00:00'), lt: new Date(todayDate + 'T23:59:59') },
-          },
-        });
+          const label = offset === 0 ? 'Now' : `in ${offset} min`;
+          const msg = offset === 0
+            ? `\u{1F514} Now: ${habit.emoji || '\u{1F3AF}'} ${habit.title}`
+            : `\u{23F0} ${habit.emoji || '\u{1F3AF}'} ${habit.title} ${label}`;
 
-        const existingTimeKey = existingNotif?.data?.time;
-        if (existingNotif && existingTimeKey === slot.time) continue;
-
-        let message;
-        if (habit.reminderMinutes === 0) {
-          message = `\u{1F514} Now: ${habit.emoji || '\u{1F3AF}'} ${habit.title}`;
-        } else if (habit.reminderMinutes > 0) {
-          message = `\u{23F0} ${habit.emoji || '\u{1F3AF}'} ${habit.title} in ${habit.reminderMinutes} minutes`;
-        } else {
-          message = `\u{23F0} Time for ${habit.emoji || '\u{1F3AF}'} ${habit.title}!`;
+          await sendReminder(pref.userId, msg, '/habits', { habitId: habit.id, time: slot.time, date: todayDate, reminderOffset: offset });
         }
-
-        await prisma.notification.create({
-          data: {
-            userId: pref.userId,
-            type: 'scheduled_reminder',
-            message,
-            data: { habitId: habit.id, time: slot.time, date: todayDate },
-          },
-        }).catch(() => {});
-
-        await sendPushNotification(pref.userId, 'BeBetter Reminder', message, '/habits');
       }
     }
 
@@ -153,6 +156,8 @@ async function scheduledTimeReminders() {
 
     for (const task of tasks) {
       if (!task.scheduledTime) continue;
+      const reminders = parseReminders(task.reminderMinutes);
+      if (!reminders.length) continue;
 
       let taskDays = null;
       if (task.scheduledDays) {
@@ -160,161 +165,33 @@ async function scheduledTimeReminders() {
       }
       if (Array.isArray(taskDays) && !taskDays.includes(dayOfWeek)) continue;
 
-      const effectiveTime = task.reminderMinutes > 0
-        ? subtractMinutes(task.scheduledTime, task.reminderMinutes)
-        : task.scheduledTime;
+      for (const offset of reminders) {
+        const effectiveTime = offset > 0 ? subtractMinutes(task.scheduledTime, offset) : task.scheduledTime;
+        if (!effectiveTime || effectiveTime !== currentTime) continue;
 
-      if (!effectiveTime || effectiveTime !== currentTime) continue;
+        if (await alreadyNotified(pref.userId, 'scheduled_reminder', task.id, task.scheduledTime, todayDate)) continue;
 
-      const existingNotif = await prisma.notification.findFirst({
-        where: {
-          userId: pref.userId,
-          type: 'scheduled_reminder',
-          data: { path: ['taskId'], equals: task.id },
-          createdAt: { gte: new Date(todayDate + 'T00:00:00'), lt: new Date(todayDate + 'T23:59:59') },
-        },
-      });
+        const label = offset === 0 ? 'Now' : `in ${offset} min`;
+        const msg = offset === 0
+          ? `\u{1F514} Now: ${task.emoji || '\u{1F4CB}'} ${task.title}`
+          : `\u{23F0} ${task.emoji || '\u{1F4CB}'} ${task.title} ${label}`;
 
-      const existingTimeKey = existingNotif?.data?.time;
-      if (existingNotif && existingTimeKey === task.scheduledTime) continue;
-
-      let message;
-      if (task.reminderMinutes === 0) {
-        message = `\u{1F514} Now: ${task.emoji || '\u{1F4CB}'} ${task.title}`;
-      } else if (task.reminderMinutes > 0) {
-        message = `\u{23F0} ${task.emoji || '\u{1F4CB}'} ${task.title} in ${task.reminderMinutes} minutes`;
-      } else {
-        message = `\u{23F0} Time for ${task.emoji || '\u{1F4CB}'} ${task.title}!`;
+        await sendReminder(pref.userId, msg, '/habits', { taskId: task.id, time: task.scheduledTime, date: todayDate, reminderOffset: offset });
       }
-
-      await prisma.notification.create({
-        data: {
-          userId: pref.userId,
-          type: 'scheduled_reminder',
-          message,
-          data: { taskId: task.id, time: task.scheduledTime, date: todayDate },
-        },
-      }).catch(() => {});
-
-      await sendPushNotification(pref.userId, 'BeBetter Reminder', message, '/tasks');
-    }
-  }
-}
-
-async function exactTimeReminders() {
-  const currentTime = getTodayHHMM();
-  const todayDate = getTodayDateStr();
-  const dayOfWeek = new Date().getDay();
-
-  const habits = await prisma.habit.findMany({
-    where: {
-      active: true,
-      schedules: { not: null },
-      reminderMinutes: 0,
-    },
-  });
-
-  const userHabitMap = {};
-  for (const habit of habits) {
-    if (!userHabitMap[habit.userId]) userHabitMap[habit.userId] = [];
-    userHabitMap[habit.userId].push(habit);
-  }
-
-  for (const [userId, habitsList] of Object.entries(userHabitMap)) {
-    const user = await prisma.user.findUnique({ where: { id: userId }, select: { username: true, bannedUntil: true } });
-    if (!user || user.bannedUntil) continue;
-
-    for (const habit of habitsList) {
-      const schedules = typeof habit.schedules === 'string' ? JSON.parse(habit.schedules) : habit.schedules;
-      if (!Array.isArray(schedules)) continue;
-
-      for (const slot of schedules) {
-        if (!Array.isArray(slot.days) || !slot.days.includes(dayOfWeek)) continue;
-        if (slot.time !== currentTime) continue;
-
-        const existingNotif = await prisma.notification.findFirst({
-          where: {
-            userId,
-            type: 'scheduled_reminder',
-            data: { path: ['habitId'], equals: habit.id },
-            createdAt: { gte: new Date(todayDate + 'T00:00:00'), lt: new Date(todayDate + 'T23:59:59') },
-          },
-        });
-        const existingTimeKey = existingNotif?.data?.time;
-        if (existingNotif && existingTimeKey === slot.time) continue;
-
-        const message = `\u{1F514} Now: ${habit.emoji || '\u{1F3AF}'} ${habit.title}`;
-
-        await prisma.notification.create({
-          data: {
-            userId,
-            type: 'scheduled_reminder',
-            message,
-            data: { habitId: habit.id, time: slot.time, date: todayDate },
-          },
-        }).catch(() => {});
-
-        await sendPushNotification(userId, 'BeBetter Reminder', message, '/habits');
-      }
-    }
-
-    const tasks = await prisma.task.findMany({
-      where: {
-        userId,
-        isActive: true,
-        scheduledTime: { not: null },
-        reminderMinutes: 0,
-      },
-    });
-
-    for (const task of tasks) {
-      if (!task.scheduledTime || task.scheduledTime !== currentTime) continue;
-
-      let taskDays = null;
-      if (task.scheduledDays) {
-        taskDays = typeof task.scheduledDays === 'string' ? JSON.parse(task.scheduledDays) : task.scheduledDays;
-      }
-      if (Array.isArray(taskDays) && !taskDays.includes(dayOfWeek)) continue;
-
-      const existingNotif = await prisma.notification.findFirst({
-        where: {
-          userId,
-          type: 'scheduled_reminder',
-          data: { path: ['taskId'], equals: task.id },
-          createdAt: { gte: new Date(todayDate + 'T00:00:00'), lt: new Date(todayDate + 'T23:59:59') },
-        },
-      });
-      const existingTimeKey = existingNotif?.data?.time;
-      if (existingNotif && existingTimeKey === task.scheduledTime) continue;
-
-      const message = `\u{1F514} Now: ${task.emoji || '\u{1F4CB}'} ${task.title}`;
-
-      await prisma.notification.create({
-        data: {
-          userId,
-          type: 'scheduled_reminder',
-          message,
-          data: { taskId: task.id, time: task.scheduledTime, date: todayDate },
-        },
-      }).catch(() => {});
-
-      await sendPushNotification(userId, 'BeBetter Reminder', message, '/tasks');
     }
   }
 }
 
 async function morningReminder() {
   const now = new Date();
-  const hour = now.getHours();
-  const minute = now.getMinutes();
-  const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+  const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
   const prefs = await prisma.notificationPreference.findMany({
     where: { morningEnabled: true, morningTime: timeStr },
   });
 
   for (const pref of prefs) {
-    const user = await prisma.user.findUnique({ where: { id: pref.userId }, select: { username: true, bannedUntil: true } });
+    const user = await prisma.user.findUnique({ where: { id: pref.userId }, select: { id: true, bannedUntil: true } });
     if (!user || user.bannedUntil) continue;
 
     const today = new Date();
@@ -322,11 +199,7 @@ async function morningReminder() {
     const dayOfWeek = today.getDay();
 
     const isOnVacation = await prisma.vacation.findFirst({
-      where: {
-        userId: pref.userId,
-        startDate: { lte: today },
-        OR: [{ endDate: null }, { endDate: { gte: today } }],
-      },
+      where: { userId: pref.userId, startDate: { lte: today }, OR: [{ endDate: null }, { endDate: { gte: today } }] },
     });
     if (isOnVacation) continue;
 
@@ -343,58 +216,41 @@ async function morningReminder() {
     });
 
     if (habits.length > 0) {
-      await sendPushNotification(
-        pref.userId,
-        '\u{1F305} Good morning!',
-        `You have ${habits.length} habit${habits.length > 1 ? 's' : ''} scheduled for today.`,
-        '/habits'
-      );
+      await sendPushNotification(pref.userId, '\u{1F305} Good morning!', `You have ${habits.length} habit${habits.length > 1 ? 's' : ''} scheduled for today.`, '/habits');
     }
   }
 }
 
 async function eveningReminder() {
   const now = new Date();
-  const hour = now.getHours();
-  const minute = now.getMinutes();
-  const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+  const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
   const prefs = await prisma.notificationPreference.findMany({
     where: { eveningEnabled: true, eveningTime: timeStr },
   });
 
   for (const pref of prefs) {
-    const user = await prisma.user.findUnique({ where: { id: pref.userId }, select: { username: true, bannedUntil: true } });
+    const user = await prisma.user.findUnique({ where: { id: pref.userId }, select: { id: true, bannedUntil: true } });
     if (!user || user.bannedUntil) continue;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const isOnVacation = await prisma.vacation.findFirst({
-      where: {
-        userId: pref.userId,
-        startDate: { lte: today },
-        OR: [{ endDate: null }, { endDate: { gte: today } }],
-      },
+      where: { userId: pref.userId, startDate: { lte: today }, OR: [{ endDate: null }, { endDate: { gte: today } }] },
     });
     if (isOnVacation) continue;
 
     const todayLogs = await prisma.habitLog.findMany({
       where: { userId: pref.userId, completedAt: today },
     });
-    const completedCount = todayLogs.length;
 
     const habits = await prisma.habit.findMany({
       where: { userId: pref.userId, active: true },
     });
 
-    if (completedCount < habits.length) {
-      await sendPushNotification(
-        pref.userId,
-        '\u{1F319} Day\'s not over yet!',
-        `You've completed ${completedCount}/${habits.length} habits today. Keep going!`,
-        '/habits'
-      );
+    if (todayLogs.length < habits.length) {
+      await sendPushNotification(pref.userId, '\u{1F319} Day\'s not over yet!', `You've completed ${todayLogs.length}/${habits.length} habits today. Keep going!`, '/habits');
     }
   }
 }
@@ -404,8 +260,7 @@ function startScheduler() {
     try {
       await morningReminder();
       await eveningReminder();
-      await scheduledTimeReminders();
-      await exactTimeReminders();
+      await checkScheduledReminders();
     } catch (e) {
       console.error('Scheduler error:', e);
     }

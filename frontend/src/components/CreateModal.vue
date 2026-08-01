@@ -63,15 +63,23 @@
               </button>
             </div>
             <div>
-              <label class="text-[10px] text-gray-500 mb-1 block">Reminder</label>
-              <select v-model="taskForm.reminderMinutes" class="input text-xs">
-                <option :value="null">No reminder</option>
-                <option :value="0">At time</option>
-                <option :value="5">5 min before</option>
-                <option :value="10">10 min before</option>
-                <option :value="15">15 min before</option>
-                <option :value="30">30 min before</option>
-              </select>
+              <label class="text-[10px] text-gray-500 mb-1 block">Reminders</label>
+              <div v-if="taskForm.reminderMinutes && taskForm.reminderMinutes.length" class="flex flex-wrap gap-1 mb-1.5">
+                <span v-for="(m, i) in taskForm.reminderMinutes" :key="i"
+                  class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px]">
+                  {{ m === 0 ? 'At time' : m + 'm' }}
+                  <button @click="removeTaskReminder(i)" class="hover:text-red-400"><X :size="8" /></button>
+                </span>
+              </div>
+              <div class="flex flex-wrap gap-1">
+                <button v-for="p in reminderPresets" :key="p.value" type="button" @click="addTaskReminder(p.value)"
+                  class="px-2 py-0.5 rounded text-[10px] font-medium transition-colors"
+                  :class="isTaskReminderActive(p.value) ? 'bg-emerald-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'">
+                  {{ p.label }}
+                </button>
+                <input v-model="customTaskReminderInput" type="number" min="1" max="1440" placeholder="Custom"
+                  class="input text-[10px] w-16" @keydown.enter="addCustomTaskReminder" />
+              </div>
             </div>
           </div>
 
@@ -140,16 +148,31 @@
             <!-- Reminder -->
             <div>
               <label class="text-xs font-medium text-gray-400 mb-1.5 flex items-center gap-1.5">
-                <Bell :size="12" /> Remind me
+                <Bell :size="12" /> Reminders
               </label>
-              <select v-model="habitForm.reminderMinutes" class="input text-xs">
-                <option :value="null">No reminder</option>
-                <option :value="0">At time</option>
-                <option :value="5">5 minutes before</option>
-                <option :value="10">10 minutes before</option>
-                <option :value="15">15 minutes before</option>
-                <option :value="30">30 minutes before</option>
-              </select>
+              <div v-if="habitForm.reminderMinutes && habitForm.reminderMinutes.length" class="flex flex-wrap gap-1.5 mb-2">
+                <span v-for="(m, i) in habitForm.reminderMinutes" :key="i"
+                  class="flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[11px] font-medium">
+                  {{ m === 0 ? 'At time' : m + 'm before' }}
+                  <button @click="removeHabitReminder(i)" class="hover:text-red-400"><X :size="10" /></button>
+                </span>
+              </div>
+              <div class="flex flex-wrap gap-1.5 mb-2">
+                <button v-for="p in reminderPresets" :key="p.value" type="button" @click="addHabitReminder(p.value)"
+                  class="px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors"
+                  :class="isHabitReminderActive(p.value) ? 'bg-emerald-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'">
+                  {{ p.label }}
+                </button>
+              </div>
+              <div class="flex gap-1.5">
+                <input v-model="customReminderInput" type="number" min="1" max="1440" placeholder="Custom"
+                  class="input text-xs flex-1" @keydown.enter="addCustomHabitReminder" />
+                <button type="button" @click="addCustomHabitReminder" class="btn-secondary text-xs px-3"
+                  :disabled="!customReminderInput || customReminderInput < 1">
+                  <Plus :size="12" />
+                </button>
+              </div>
+              <p class="text-[10px] text-gray-600 mt-1">Add multiple reminders. Last custom value is remembered.</p>
             </div>
 
             <!-- Publish as preset -->
@@ -247,14 +270,25 @@ const showAdvanced = ref(false)
 
 const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
+const reminderPresets = [
+  { label: 'At time', value: 0 },
+  { label: '5m', value: 5 },
+  { label: '10m', value: 10 },
+  { label: '15m', value: 15 },
+  { label: '30m', value: 30 },
+]
+
+const customReminderInput = ref('')
+const customTaskReminderInput = ref('')
+
 const taskForm = reactive({
   title: '', description: '', emoji: '📝', dueDate: '',
-  setScheduledTime: false, scheduledTime: '', scheduledDays: [1, 2, 3, 4, 5], reminderMinutes: null,
+  setScheduledTime: false, scheduledTime: '', scheduledDays: [1, 2, 3, 4, 5], reminderMinutes: [],
 })
 const habitForm = reactive({
   title: '', description: '', emoji: '🎯',
   schedules: [{ time: null, days: [0, 1, 2, 3, 4, 5, 6] }],
-  verificationType: 'honor', makePublic: false, reminderMinutes: null,
+  verificationType: 'honor', makePublic: false, reminderMinutes: [],
 })
 
 const selectedBuddies = ref([])
@@ -276,14 +310,14 @@ watch(() => props.show, (val) => {
     taskForm.setScheduledTime = false
     taskForm.scheduledTime = ''
     taskForm.scheduledDays = [1, 2, 3, 4, 5]
-    taskForm.reminderMinutes = null
+    taskForm.reminderMinutes = []
     habitForm.title = ''
     habitForm.description = ''
     habitForm.emoji = '🎯'
     habitForm.schedules = [{ time: null, days: [0, 1, 2, 3, 4, 5, 6] }]
     habitForm.verificationType = 'honor'
     habitForm.makePublic = false
-    habitForm.reminderMinutes = null
+    habitForm.reminderMinutes = []
     selectedBuddies.value = []
     buddySearch.value = ''
     buddyResults.value = []
@@ -291,6 +325,9 @@ watch(() => props.show, (val) => {
     challengerSearch.value = ''
     challengerResults.value = []
     challengeEndDate.value = ''
+    const lastReminder = localStorage.getItem('bebetter_lastReminder')
+    customReminderInput.value = lastReminder || ''
+    customTaskReminderInput.value = lastReminder || ''
     if (props.convertData) {
       mode.value = 'habit'
       habitForm.title = props.convertData.title || ''
@@ -362,6 +399,60 @@ function removeChallenger(friend) {
   selectedChallengers.value = selectedChallengers.value.filter(c => c.id !== friend.id)
 }
 
+function isHabitReminderActive(val) {
+  return (habitForm.reminderMinutes || []).includes(val)
+}
+function addHabitReminder(val) {
+  if (!habitForm.reminderMinutes) habitForm.reminderMinutes = []
+  if (habitForm.reminderMinutes.includes(val)) {
+    habitForm.reminderMinutes = habitForm.reminderMinutes.filter(v => v !== val)
+  } else {
+    habitForm.reminderMinutes.push(val)
+    habitForm.reminderMinutes.sort((a, b) => b - a)
+  }
+}
+function removeHabitReminder(i) {
+  habitForm.reminderMinutes.splice(i, 1)
+}
+function addCustomHabitReminder() {
+  const val = parseInt(customReminderInput.value)
+  if (!val || val < 0) return
+  if (!habitForm.reminderMinutes) habitForm.reminderMinutes = []
+  if (!habitForm.reminderMinutes.includes(val)) {
+    habitForm.reminderMinutes.push(val)
+    habitForm.reminderMinutes.sort((a, b) => b - a)
+  }
+  localStorage.setItem('bebetter_lastReminder', String(val))
+  customReminderInput.value = ''
+}
+
+function isTaskReminderActive(val) {
+  return (taskForm.reminderMinutes || []).includes(val)
+}
+function addTaskReminder(val) {
+  if (!taskForm.reminderMinutes) taskForm.reminderMinutes = []
+  if (taskForm.reminderMinutes.includes(val)) {
+    taskForm.reminderMinutes = taskForm.reminderMinutes.filter(v => v !== val)
+  } else {
+    taskForm.reminderMinutes.push(val)
+    taskForm.reminderMinutes.sort((a, b) => b - a)
+  }
+}
+function removeTaskReminder(i) {
+  taskForm.reminderMinutes.splice(i, 1)
+}
+function addCustomTaskReminder() {
+  const val = parseInt(customTaskReminderInput.value)
+  if (!val || val < 0) return
+  if (!taskForm.reminderMinutes) taskForm.reminderMinutes = []
+  if (!taskForm.reminderMinutes.includes(val)) {
+    taskForm.reminderMinutes.push(val)
+    taskForm.reminderMinutes.sort((a, b) => b - a)
+  }
+  localStorage.setItem('bebetter_lastReminder', String(val))
+  customTaskReminderInput.value = ''
+}
+
 function createTask() {
   if (!taskForm.title.trim()) return
   const data = { ...taskForm }
@@ -371,6 +462,7 @@ function createTask() {
     delete data.reminderMinutes
   } else {
     data.scheduledDays = data.scheduledDays.length ? data.scheduledDays : [1, 2, 3, 4, 5]
+    if (!data.reminderMinutes || !data.reminderMinutes.length) delete data.reminderMinutes
   }
   delete data.setScheduledTime
   emit('created', 'task', data)

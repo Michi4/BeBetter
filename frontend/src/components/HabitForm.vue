@@ -15,6 +15,35 @@
     <!-- Schedule -->
     <RecurrenceBuilder v-model="form.schedules" />
 
+    <!-- Reminders -->
+    <div>
+      <label class="text-xs font-medium text-gray-400 mb-1.5 flex items-center gap-1.5">
+        <Bell :size="12" /> Reminders
+      </label>
+      <div v-if="form.reminderMinutes && form.reminderMinutes.length" class="flex flex-wrap gap-1.5 mb-2">
+        <span v-for="(m, i) in form.reminderMinutes" :key="i"
+          class="flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[11px] font-medium">
+          {{ m === 0 ? 'At time' : m + 'm before' }}
+          <button @click="removeReminder(i)" class="hover:text-red-400"><X :size="10" /></button>
+        </span>
+      </div>
+      <div class="flex flex-wrap gap-1.5 mb-2">
+        <button v-for="p in reminderPresets" :key="p.value" type="button" @click="addReminder(p.value)"
+          class="px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors"
+          :class="isReminderActive(p.value) ? 'bg-emerald-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'">
+          {{ p.label }}
+        </button>
+      </div>
+      <div class="flex gap-1.5">
+        <input v-model="customReminderInput" type="number" min="1" max="1440" placeholder="Custom"
+          class="input text-xs flex-1" @keydown.enter="addCustomReminder" />
+        <button type="button" @click="addCustomReminder" class="btn-secondary text-xs px-3"
+          :disabled="!customReminderInput || customReminderInput < 1">
+          <Plus :size="12" />
+        </button>
+      </div>
+    </div>
+
     <!-- Advanced toggle -->
     <button type="button" @click="showAdvanced = !showAdvanced"
       class="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-300 transition-colors">
@@ -100,7 +129,7 @@
 
 <script setup>
 import { ref, reactive, watch } from 'vue'
-import { ChevronDown, Shield, Camera, Plus, X, Check, Globe } from 'lucide-vue-next'
+import { ChevronDown, Shield, Camera, Plus, X, Check, Globe, Bell } from 'lucide-vue-next'
 import RecurrenceBuilder from './RecurrenceBuilder.vue'
 
 const props = defineProps({
@@ -148,5 +177,43 @@ function addWager() {
 
 function removeWager(i) {
   form.wagers.splice(i, 1)
+}
+
+const reminderPresets = [
+  { label: 'At time', value: 0 },
+  { label: '5m', value: 5 },
+  { label: '10m', value: 10 },
+  { label: '15m', value: 15 },
+  { label: '30m', value: 30 },
+]
+const customReminderInput = ref('')
+
+if (!form.reminderMinutes) form.reminderMinutes = []
+
+function isReminderActive(val) {
+  return (form.reminderMinutes || []).includes(val)
+}
+function addReminder(val) {
+  if (!form.reminderMinutes) form.reminderMinutes = []
+  if (form.reminderMinutes.includes(val)) {
+    form.reminderMinutes = form.reminderMinutes.filter(v => v !== val)
+  } else {
+    form.reminderMinutes.push(val)
+    form.reminderMinutes.sort((a, b) => b - a)
+  }
+}
+function removeReminder(i) {
+  form.reminderMinutes.splice(i, 1)
+}
+function addCustomReminder() {
+  const val = parseInt(customReminderInput.value)
+  if (!val || val < 0) return
+  if (!form.reminderMinutes) form.reminderMinutes = []
+  if (!form.reminderMinutes.includes(val)) {
+    form.reminderMinutes.push(val)
+    form.reminderMinutes.sort((a, b) => b - a)
+  }
+  localStorage.setItem('bebetter_lastReminder', String(val))
+  customReminderInput.value = ''
 }
 </script>

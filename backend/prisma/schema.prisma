@@ -56,7 +56,7 @@ model Habit {
   frequencyType    String      @default("daily")
   daysPerWeek      Json        @default("[1,2,3,4,5,6,7]")
   schedules        Json?       // [{ time: "15:00", days: [0,1,2,3,4,5,6] }] — time-based scheduling
-  reminderMinutes  Int?        // null=no reminder, 0=at time, 5/10/15/30=minutes before
+  reminderMinutes  Json?       // [0, 5, 15] — array of reminder offsets in minutes
   config           Json?
   verificationType String      @default("honor")
   active           Boolean     @default(true)
@@ -268,7 +268,7 @@ model Task {
   isActive     Boolean   @default(true)
   scheduledTime String?  // "HH:MM" — specific time of day
   scheduledDays Json?    // [0,1,2,3,4,5,6] — which days (null = everyday if isEveryday)
-  reminderMinutes Int?   // null=no reminder, 0=at time, 5/10/15/30=minutes before
+  reminderMinutes Json?    // [0, 5, 15] — array of reminder offsets in minutes
   createdAt    DateTime  @default(now())
 
   logs        TaskLog[]
