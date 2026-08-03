@@ -43,6 +43,11 @@
 
     <router-view />
 
+    <!-- Push prompt (authenticated, first-run) -->
+    <div class="max-w-3xl mx-auto px-4">
+      <PushPrompt v-if="auth.user" />
+    </div>
+
     <!-- Bottom nav (mobile only, authenticated) -->
     <nav v-if="auth.user" class="fixed bottom-0 inset-x-0 z-50 border-t border-gray-800/60 bg-gray-900/95 backdrop-blur-xl safe-bottom md:hidden">
       <div class="flex items-center justify-around h-16 max-w-lg mx-auto">
@@ -63,6 +68,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
 import { LogOut, LayoutDashboard, ListTodo, Users, Trophy, BookOpen, Shield, Sun, Moon } from 'lucide-vue-next'
 import Logo from './components/Logo.vue'
+import PushPrompt from './components/PushPrompt.vue'
 
 const auth = useAuthStore()
 const route = useRoute()

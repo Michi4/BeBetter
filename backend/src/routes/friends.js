@@ -57,7 +57,6 @@ router.get('/search', authMiddleware, async (req, res) => {
           { username: { contains: q, mode: 'insensitive' } },
         ],
         id: { not: req.userId },
-        isPublic: true,
       },
       select: { id: true, username: true, avatar: true, bio: true },
       take: 10,

@@ -171,20 +171,23 @@ const weeks = computed(() => {
       const dateStr = cursor.toISOString().slice(0, 10)
       const inYear = cursor.getUTCFullYear() === year
       if (inYear) {
-        const data = dayMap[dateStr]
-        if (data) {
-          week.push({
-            date: dateStr,
-            scheduled: data.scheduled || 0,
-            completed: data.completed || 0,
-            ratio: data.scheduled > 0 ? data.habits / data.scheduled : (data.habits > 0 ? 1 : null),
-            items: data.items || [],
-            habits: data.habits || 0,
-            tasks: data.tasks || 0,
-          })
-        } else {
-          week.push({ date: dateStr, scheduled: 0, completed: 0, ratio: null, items: [] })
-        }
+          const data = dayMap[dateStr]
+          if (data) {
+            const habits = data.habits ?? data.completed ?? 0
+            const scheduled = data.scheduled ?? 0
+            const ratio = scheduled > 0 ? habits / scheduled : (habits > 0 ? 1 : null)
+            week.push({
+              date: dateStr,
+              scheduled,
+              completed: data.completed || 0,
+              ratio: (ratio !== null && !isNaN(ratio)) ? ratio : null,
+              items: data.items || [],
+              habits,
+              tasks: data.tasks || 0,
+            })
+          } else {
+            week.push({ date: dateStr, scheduled: 0, completed: 0, ratio: null, items: [], habits: 0, tasks: 0 })
+          }
       } else {
         week.push(null)
       }
@@ -284,9 +287,13 @@ function getCellClass(day) {
   if (!day) return 'bg-transparent'
   const today = isToday(day.date)
   const todayRing = today ? ' ring-2 ring-emerald-400/60 ring-offset-1 ring-offset-transparent' : ''
-  if (day.scheduled === 0 && day.habits === 0 && day.tasks === 0) return 'bg-gray-800/40 hover:bg-gray-700/40 cursor-default' + todayRing
-  if (day.ratio === null || day.ratio === 0) return 'bg-gray-800/80 hover:bg-gray-700/60 cursor-pointer' + todayRing
-  if (day.ratio <= 0.33) return 'bg-emerald-950 hover:brightness-110 cursor-pointer' + todayRing
+  if (day.scheduled === 0 && day.habits === 0 && day.tasks === 0 && day.completed === 0) {
+    return 'bg-gray-800/40 hover:bg-gray-700/40 cursor-default' + todayRing
+  }
+  if (day.ratio === null || isNaN(day.ratio) || day.ratio === 0) {
+    return 'bg-gray-800/80 hover:bg-gray-700/60 cursor-pointer' + todayRing
+  }
+  if (day.ratio > 0 && day.ratio <= 0.33) return 'bg-emerald-950 hover:brightness-110 cursor-pointer' + todayRing
   if (day.ratio <= 0.66) return 'bg-emerald-700 hover:brightness-110 cursor-pointer' + todayRing
   if (day.ratio < 1.0) return 'bg-emerald-500 hover:brightness-110 cursor-pointer' + todayRing
   return 'bg-emerald-400 shadow-[0_0_6px_rgba(74,222,128,0.3)] hover:brightness-110 cursor-pointer' + todayRing

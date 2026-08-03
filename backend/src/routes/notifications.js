@@ -1,8 +1,19 @@
 const { Router } = require('express');
 const prisma = require('../lib/prisma');
 const { authMiddleware } = require('../middleware/auth');
+const { getVapidKeys } = require('../lib/vapid');
 
 const router = Router();
+
+router.get('/vapid-public-key', async (req, res) => {
+  try {
+    const keys = getVapidKeys();
+    res.json({ publicKey: keys.publicKey });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 
 router.get('/', authMiddleware, async (req, res) => {
   try {

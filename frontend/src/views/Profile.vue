@@ -437,12 +437,18 @@ async function togglePush() {
       pushLoading.value = false
       return
     }
+    
+    // Fetch dynamic VAPID public key from backend
+    const vapidRes = await api.get('/notifications/vapid-public-key')
+    const publicKey = vapidRes.data.publicKey
+    if (!publicKey) {
+      throw new Error('VAPID public key not configured on server')
+    }
+
     const reg = await navigator.serviceWorker.ready
     const sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(
-        'BImnH7v-c9NQZJlO0KjC3HsKp2W2vQ8R3J6M4X5Y7Z9aB1cD3eF5gH7iJ9kL1mN3oP5qR7sT9uV1wX3yZ'
-      ),
+      applicationServerKey: urlBase64ToUint8Array(publicKey),
     })
     const keys = sub.toJSON().keys
     await api.post('/notifications/subscribe', {
@@ -453,7 +459,9 @@ async function togglePush() {
     pushEnabled.value = true
     toast.success('Push notifications enabled')
   } catch (err) {
-    toast.error('Push setup failed: ' + err.message)
+    console.error(err)
+    toast.error('Push setup failed: ' + (err.response?.data?.error || err.message))
+    pushEnabled.value = false
   }
   pushLoading.value = false
 }
@@ -580,9 +588,18 @@ async function loadProfileGrid() {
       const data = gridRaw[ds]
       const isVacation = vacationDays.includes(ds)
       if (data) {
-        days.push({ date: ds, count: data.completed || 0, items: data.items || [], isVacation, scheduled: data.scheduled || 0, completed: data.completed || 0 })
+        days.push({
+          date: ds,
+          count: data.completed || 0,
+          items: data.items || [],
+          isVacation,
+          scheduled: data.scheduled || 0,
+          completed: data.completed || 0,
+          habits: data.habits || 0,
+          tasks: data.tasks || 0
+        })
       } else {
-        days.push({ date: ds, count: 0, items: [], isVacation, scheduled: 0, completed: 0 })
+        days.push({ date: ds, count: 0, items: [], isVacation, scheduled: 0, completed: 0, habits: 0, tasks: 0 })
       }
       cur.setDate(cur.getDate() + 1)
     }

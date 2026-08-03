@@ -29,7 +29,7 @@
         </button>
         <p class="text-center text-sm text-gray-500">
           Already have an account?
-          <router-link to="/login" class="text-emerald-400 hover:text-emerald-300 transition-colors duration-150">Sign in</router-link>
+          <router-link :to="{ path: '/login', query: route.query.redirect ? { redirect: route.query.redirect } : {} }" class="text-emerald-400 hover:text-emerald-300 transition-colors duration-150">Sign in</router-link>
         </p>
       </form>
     </div>

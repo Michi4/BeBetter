@@ -72,7 +72,7 @@
             <Pause :size="14" /> Pause
           </button>
           <button @click="showFinishForm = !showFinishForm" class="btn flex-1 min-w-0">
-            <CheckCircle :size="14" /> Finish
+            <CheckCircle :size="14" /> Complete
           </button>
           <button @click="confirmDelete = true" class="btn-danger flex-1 min-w-0">
             <Trash2 :size="14" /> Delete
@@ -93,16 +93,35 @@
       </div>
 
       <div v-if="showFinishForm" class="card space-y-3">
-        <p class="section-title">Finish Habit</p>
-        <textarea
-          v-model="finishNote"
-          class="input min-h-[80px]"
-          placeholder="Add a note about completing this habit..."
-          rows="3"
-        ></textarea>
+        <p class="section-title">Complete This Habit</p>
+        <div class="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 space-y-2">
+          <p class="text-sm font-medium text-amber-300">This is permanent</p>
+          <p class="text-xs text-gray-400 leading-relaxed">
+            Completing this habit will <strong class="text-gray-300">stop all future reminders</strong> and
+            <strong class="text-gray-300">remove it from your daily list</strong>. It will move to your
+            completed habits and be archived. You won't be able to log it anymore.
+          </p>
+          <p class="text-xs text-gray-500">
+            Use this when you've reached your goal or no longer need this habit.
+          </p>
+        </div>
+        <div>
+          <label class="text-xs font-medium text-gray-400 mb-1 block">Reflection note (optional)</label>
+          <textarea
+            v-model="finishNote"
+            class="input min-h-[80px]"
+            placeholder="How did it go? What did you learn?"
+            rows="3"
+          ></textarea>
+        </div>
+        <label class="flex items-start gap-2 cursor-pointer">
+          <input v-model="finishConfirmed" type="checkbox"
+            class="w-4 h-4 mt-0.5 rounded border-gray-600 bg-gray-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0 cursor-pointer" />
+          <span class="text-xs text-gray-400">I understand this habit will be permanently completed and removed from my daily tracking</span>
+        </label>
         <div class="flex gap-2">
-          <button @click="finishHabit" class="btn flex-1">
-            <CheckCircle :size="14" /> Finish Habit
+          <button @click="finishHabit" class="btn flex-1" :disabled="!finishConfirmed">
+            <CheckCircle :size="14" /> Complete Habit
           </button>
           <button @click="showFinishForm = false" class="btn-secondary flex-1">Cancel</button>
         </div>
@@ -275,6 +294,7 @@ const editing = ref(false)
 const showBreakForm = ref(false)
 const showFinishForm = ref(false)
 const finishNote = ref('')
+const finishConfirmed = ref(false)
 const confirmDelete = ref(false)
 const breakReason = ref('')
 const showBuddyForm = ref(false)
@@ -392,7 +412,7 @@ async function endBreak() {
 async function finishHabit() {
   try {
     await api.post(`/habits/${route.params.id}/finish`, { note: finishNote.value })
-    toast.success('Habit finished')
+    toast.success('Habit completed! It has been archived.')
     router.push('/dashboard')
   } catch {
     toast.error('Failed to finish habit')

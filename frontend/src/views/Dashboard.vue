@@ -270,7 +270,7 @@ async function loadStats() {
 async function loadTasks() {
   try {
     const res = await api.get('/tasks')
-    todayTasks.value = (res.data.tasks || []).filter(t => !t.isCompletedToday)
+    todayTasks.value = (res.data.tasks || []).filter(t => !t.isCompletedToday && t.isDueToday !== false)
   } catch {
     toast.error('Failed to load tasks')
   }
@@ -295,7 +295,7 @@ async function loadGrid() {
     const to = `${year}-12-31`
     const gridRes = await api.get('/grid', { params: { from, to } })
     const gridRaw = gridRes.data.grid || {}
-    const vacationSet = new Set(vacationDays)
+    const vacationSet = new Set(gridRes.data.vacationDays || [])
     const days = []
     const cur = new Date(from + 'T12:00:00Z')
     const end = new Date(to + 'T12:00:00Z')
@@ -394,8 +394,15 @@ async function deleteTask(task) {
 
 async function editTask(task) {
   try {
-    await api.put(`/tasks/${task.id}`, { title: task.title, description: task.description || undefined, dueDate: task.dueDate || undefined })
-    todayTasks.value = todayTasks.value.map(t => t.id === task.id ? { ...t, title: task.title, description: task.description, dueDate: task.dueDate } : t)
+    const payload = {
+      title: task.title,
+      description: task.description || undefined,
+      dueDate: task.dueDate || undefined,
+      scheduledTime: task.scheduledTime || undefined,
+    }
+    if (task.reminderMinutes != null) payload.reminderMinutes = task.reminderMinutes
+    await api.put(`/tasks/${task.id}`, payload)
+    todayTasks.value = todayTasks.value.map(t => t.id === task.id ? { ...t, title: task.title, description: task.description, dueDate: task.dueDate, scheduledTime: task.scheduledTime, reminderMinutes: task.reminderMinutes } : t)
     toast.success('Task updated')
   } catch {
     toast.error('Failed to update')

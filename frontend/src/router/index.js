@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 
 const routes = [
-  { path: '/', redirect: '/dashboard' },
+  { path: '/', name: 'landing', component: () => import('../views/Landing.vue') },
   { path: '/login', name: 'login', component: () => import('../views/Login.vue'), meta: { guest: true } },
   { path: '/register', name: 'register', component: () => import('../views/Register.vue'), meta: { guest: true } },
   { path: '/forgot-password', name: 'forgot-password', component: () => import('../views/ForgotPassword.vue'), meta: { guest: true } },
@@ -31,6 +31,7 @@ router.beforeEach(async (to, from, next) => {
   if (auth.token && !auth.user) {
     try { await auth.fetchUser() } catch { auth.logout() }
   }
+  if (to.path === '/' && auth.user) return next('/dashboard')
   if (to.meta.auth && !auth.user) return next({ path: '/login', query: { redirect: to.fullPath } })
   if (to.meta.guest && auth.user) return next('/dashboard')
   next()

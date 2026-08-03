@@ -6,6 +6,19 @@ import App from './App.vue'
 import router from './router'
 import './assets/main.css'
 
+// Register Service Worker for Push Notifications
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then((reg) => {
+        console.log('Service Worker registered successfully with scope:', reg.scope);
+      })
+      .catch((err) => {
+        console.error('Service Worker registration failed:', err);
+      });
+  });
+}
+
 const app = createApp(App)
 app.use(createPinia())
 app.use(router)

@@ -30,7 +30,7 @@
         </p>
         <p class="text-center text-sm text-gray-500">
           Don't have an account?
-          <router-link to="/register" class="text-emerald-400 hover:text-emerald-300 transition-colors duration-150">Sign up</router-link>
+          <router-link :to="{ path: '/register', query: route.query.redirect ? { redirect: route.query.redirect } : {} }" class="text-emerald-400 hover:text-emerald-300 transition-colors duration-150">Sign up</router-link>
         </p>
       </form>
     </div>

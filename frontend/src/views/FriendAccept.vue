@@ -45,8 +45,8 @@
         <h2 class="text-xl font-bold">BeBetter</h2>
         <p class="text-sm text-gray-400">Sign in or create an account to accept this friend request</p>
         <div class="flex gap-2">
-          <router-link to="/login" class="btn flex-1">Sign In</router-link>
-          <router-link to="/register" class="btn-secondary flex-1">Sign Up</router-link>
+          <router-link :to="{ path: '/login', query: { redirect: `/friend/accept/${route.params.token}` } }" class="btn flex-1">Sign In</router-link>
+          <router-link :to="{ path: '/register', query: { redirect: `/friend/accept/${route.params.token}` } }" class="btn-secondary flex-1">Sign Up</router-link>
         </div>
       </div>
     </div>
@@ -99,5 +99,6 @@ onMounted(async () => {
   }
 
   loading.value = false
+  acceptFriend()
 })
 </script>

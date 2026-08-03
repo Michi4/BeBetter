@@ -52,16 +52,10 @@
               <Clock :size="14" />
               {{ taskForm.setScheduledTime ? 'Scheduled for ' + (taskForm.scheduledTime || 'selected time') : 'Set a time' }}
             </button>
+            <p v-if="taskForm.setScheduledTime" class="text-[10px] text-gray-600 mt-1">One-time only — you'll be reminded this once, not every week.</p>
           </div>
           <div v-if="taskForm.setScheduledTime" class="space-y-2 pl-5 border-l-2 border-gray-700">
             <input type="time" v-model="taskForm.scheduledTime" class="input text-sm" />
-            <div class="flex gap-1.5">
-              <button v-for="(day, i) in weekDays" :key="i" type="button" @click="toggleTaskDay(i)"
-                class="flex-1 h-8 rounded-lg text-[11px] font-medium transition-colors"
-                :class="taskForm.scheduledDays.includes(i) ? 'bg-emerald-600 text-white' : 'bg-gray-700/50 text-gray-400 hover:bg-gray-700'">
-                {{ day }}
-              </button>
-            </div>
             <div>
               <label class="text-[10px] text-gray-500 mb-1 block">Reminders</label>
               <div v-if="taskForm.reminderMinutes && taskForm.reminderMinutes.length" class="flex flex-wrap gap-1 mb-1.5">
@@ -115,7 +109,6 @@
 
           <!-- Schedule (new schedules format) -->
           <div>
-            <label class="text-xs font-medium text-gray-400 mb-2 block">Schedule</label>
             <RecurrenceBuilder v-model="habitForm.schedules" />
           </div>
 
@@ -268,8 +261,6 @@ const modalEl = ref(null)
 const mode = ref(props.initialMode)
 const showAdvanced = ref(false)
 
-const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-
 const reminderPresets = [
   { label: 'At time', value: 0 },
   { label: '5m', value: 5 },
@@ -338,12 +329,6 @@ watch(() => props.show, (val) => {
     })
   }
 })
-
-function toggleTaskDay(i) {
-  const idx = taskForm.scheduledDays.indexOf(i)
-  if (idx >= 0) taskForm.scheduledDays.splice(idx, 1)
-  else taskForm.scheduledDays.push(i)
-}
 
 let buddyTimeout = null
 function searchBuddies() {
@@ -455,16 +440,13 @@ function addCustomTaskReminder() {
 
 function createTask() {
   if (!taskForm.title.trim()) return
-  const data = { ...taskForm }
-  if (!data.setScheduledTime) {
-    delete data.scheduledTime
-    delete data.scheduledDays
-    delete data.reminderMinutes
-  } else {
-    data.scheduledDays = data.scheduledDays.length ? data.scheduledDays : [1, 2, 3, 4, 5]
-    if (!data.reminderMinutes || !data.reminderMinutes.length) delete data.reminderMinutes
-  }
+  const data = { ...taskForm, setScheduledTime: undefined }
   delete data.setScheduledTime
+  delete data.scheduledDays
+  if (!taskForm.setScheduledTime) {
+    delete data.scheduledTime
+    delete data.reminderMinutes
+  }
   emit('created', 'task', data)
 }
 

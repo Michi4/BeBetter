@@ -30,13 +30,30 @@ router.get('/', authMiddleware, async (req, res) => {
     });
     const completedIds = new Set(todayLogs.map((l) => l.taskId));
 
+    const dayStart = new Date(d);
+    const dayEnd = new Date(d);
+    dayEnd.setHours(23, 59, 59, 999);
+
     const result = tasks.map((t) => {
+      let dueToday = true;
+
       if (t.scheduledDays) {
         const days = typeof t.scheduledDays === 'string' ? JSON.parse(t.scheduledDays) : t.scheduledDays;
         if (Array.isArray(days) && !days.includes(dayOfWeek)) {
-          return { ...t, isCompletedToday: false, isDueToday: false };
+          dueToday = false;
         }
       }
+
+      if (t.dueDate) {
+        const due = new Date(t.dueDate);
+        due.setHours(0, 0, 0, 0);
+        const s = (v) => String(v).padStart(2, '0');
+        const dueStr = `${due.getFullYear()}-${s(due.getMonth() + 1)}-${s(due.getDate())}`;
+        const todayStr = `${d.getFullYear()}-${s(d.getMonth() + 1)}-${s(d.getDate())}`;
+        if (dueStr > todayStr) dueToday = false;
+      }
+
+      if (!dueToday) return { ...t, isCompletedToday: false, isDueToday: false };
 
       const isCompletedToday = t.scheduledTime
         ? todayLogs.some(l => l.taskId === t.id)

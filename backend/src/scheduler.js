@@ -1,11 +1,13 @@
 const prisma = require('./lib/prisma');
 const webpush = require('web-push');
 
-if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+const { getVapidKeys } = require('./lib/vapid');
+const keys = getVapidKeys();
+if (keys.publicKey && keys.privateKey) {
   webpush.setVapidDetails(
     'mailto:' + (process.env.SMTP_USER || 'office@websters.at'),
-    process.env.VAPID_PUBLIC_KEY,
-    process.env.VAPID_PRIVATE_KEY
+    keys.publicKey,
+    keys.privateKey
   );
 }
 
@@ -163,6 +165,12 @@ async function checkScheduledReminders() {
         taskDays = typeof task.scheduledDays === 'string' ? JSON.parse(task.scheduledDays) : task.scheduledDays;
       }
       if (Array.isArray(taskDays) && !taskDays.includes(dayOfWeek)) continue;
+
+      if (task.dueDate) {
+        const t = new Date(task.dueDate);
+        const dueStr = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+        if (dueStr !== todayDate) continue;
+      }
 
       for (const offset of reminders) {
         const effectiveTime = offset > 0 ? subtractMinutes(task.scheduledTime, offset) : task.scheduledTime;

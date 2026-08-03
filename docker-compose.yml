@@ -30,6 +30,7 @@ services:
       TZ: Europe/Vienna
     volumes:
       - ./uploads:/app/uploads
+      - ./vapid-keys.json:/app/vapid-keys.json
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik"

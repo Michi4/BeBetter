@@ -5,6 +5,34 @@
       <input v-model="editForm.title" class="input" placeholder="Title" ref="titleInput" />
       <textarea v-model="editForm.description" class="input min-h-[60px]" placeholder="Description" rows="2"></textarea>
       <input v-model="editForm.dueDate" type="date" class="input text-sm" />
+      <div>
+        <button type="button" @click="editForm.setScheduledTime = !editForm.setScheduledTime"
+          class="flex items-center gap-2 text-xs transition-colors"
+          :class="editForm.setScheduledTime ? 'text-emerald-400' : 'text-gray-500 hover:text-gray-300'">
+          <Clock :size="14" />
+          {{ editForm.setScheduledTime ? 'Scheduled for ' + (editForm.scheduledTime || 'selected time') : 'Set a time' }}
+        </button>
+      </div>
+      <div v-if="editForm.setScheduledTime" class="space-y-2 pl-4 border-l-2 border-gray-700">
+        <input v-model="editForm.scheduledTime" type="time" class="input text-sm" />
+        <div>
+          <label class="text-[10px] text-gray-500 mb-1 block">Reminders</label>
+          <div v-if="editForm.reminderMinutes.length" class="flex flex-wrap gap-1 mb-1.5">
+            <span v-for="(m, i) in editForm.reminderMinutes" :key="i"
+              class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px]">
+              {{ m === 0 ? 'At time' : m + 'm' }}
+              <button @click="editForm.reminderMinutes.splice(i, 1)" class="hover:text-red-400"><X :size="8" /></button>
+            </span>
+          </div>
+          <div class="flex flex-wrap gap-1">
+            <button v-for="p in reminderPresets" :key="p.value" type="button" @click="toggleReminder(p.value)"
+              class="px-2 py-0.5 rounded text-[10px] font-medium transition-colors"
+              :class="isReminderActive(p.value) ? 'bg-emerald-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'">
+              {{ p.label }}
+            </button>
+          </div>
+        </div>
+      </div>
       <div class="flex items-center gap-2 pt-1">
         <button @click="saveEdit" class="btn flex-1 text-xs">Save</button>
         <button @click="cancelEdit" class="btn-secondary flex-1 text-xs">Cancel</button>
@@ -67,7 +95,7 @@
 
 <script setup>
 import { ref, reactive, computed, nextTick } from 'vue'
-import { Check, X, Pencil, ArrowRightLeft, Trash2 } from 'lucide-vue-next'
+import { Check, X, Pencil, ArrowRightLeft, Trash2, Clock } from 'lucide-vue-next'
 
 const props = defineProps({ task: { type: Object, required: true } })
 const emit = defineEmits(['complete', 'delete', 'edit', 'convert'])
@@ -76,10 +104,18 @@ const showMenu = ref(false)
 const menuPos = ref({ top: '50%', left: '50%' })
 const editing = ref(false)
 const titleInput = ref(null)
-const editForm = reactive({ title: '', description: '', dueDate: '' })
+const editForm = reactive({ title: '', description: '', dueDate: '', setScheduledTime: false, scheduledTime: '', reminderMinutes: [] })
 let longPressTimer = null
 
 const dayAbbr = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+
+const reminderPresets = [
+  { label: 'At time', value: 0 },
+  { label: '5m', value: 5 },
+  { label: '10m', value: 10 },
+  { label: '15m', value: 15 },
+  { label: '30m', value: 30 },
+]
 
 function formatTime(t) {
   if (!t) return ''
@@ -118,6 +154,9 @@ function startEdit() {
   editForm.title = props.task.title
   editForm.description = props.task.description || ''
   editForm.dueDate = props.task.dueDate ? props.task.dueDate.slice(0, 10) : ''
+  editForm.scheduledTime = props.task.scheduledTime || ''
+  editForm.setScheduledTime = !!props.task.scheduledTime
+  editForm.reminderMinutes = Array.isArray(props.task.reminderMinutes) ? [...props.task.reminderMinutes] : []
   editing.value = true
   nextTick(() => titleInput.value?.focus())
 }
@@ -126,9 +165,35 @@ function cancelEdit() {
   editing.value = false
 }
 
+function toggleReminder(val) {
+  const i = editForm.reminderMinutes.indexOf(val)
+  if (i >= 0) editForm.reminderMinutes.splice(i, 1)
+  else {
+    editForm.reminderMinutes.push(val)
+    editForm.reminderMinutes.sort((a, b) => b - a)
+  }
+}
+
+function isReminderActive(val) {
+  return editForm.reminderMinutes.includes(val)
+}
+
 function saveEdit() {
   if (!editForm.title.trim()) return
-  emit('edit', { ...props.task, title: editForm.title, description: editForm.description, dueDate: editForm.dueDate || null })
+  const payload = {
+    ...props.task,
+    title: editForm.title,
+    description: editForm.description,
+    dueDate: editForm.dueDate || null,
+  }
+  if (editForm.setScheduledTime && editForm.scheduledTime) {
+    payload.scheduledTime = editForm.scheduledTime
+    payload.reminderMinutes = editForm.reminderMinutes.length ? editForm.reminderMinutes : undefined
+  } else {
+    payload.scheduledTime = null
+    payload.reminderMinutes = undefined
+  }
+  emit('edit', payload)
   editing.value = false
 }
 
