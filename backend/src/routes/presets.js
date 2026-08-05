@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const prisma = require('../lib/prisma');
-const { authMiddleware } = require('../middleware/auth');
+const { authMiddleware, demoGuard } = require('../middleware/auth');
 
 const router = Router();
 router.use(authMiddleware);
@@ -50,7 +50,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', demoGuard, async (req, res) => {
   try {
     const { title, description, config, category, emoji, frequencyType, daysPerWeek, verificationType } = req.body;
     if (!title) return res.status(400).json({ error: 'title is required' });

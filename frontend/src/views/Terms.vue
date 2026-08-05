@@ -32,7 +32,7 @@
 
           <section>
             <h2 class="text-lg font-semibold text-emerald-400 mb-2">2. The Service</h2>
-            <p>BeBetter is a habit tracking, task management, and social accountability application. It is provided "as is" without warranties of any kind. The service may be modified, suspended, or discontinued at any time.</p>
+            <p>BeBetter is a habit tracking, task management, and social competition application. It is provided "as is" without warranties of any kind. The service may be modified, suspended, or discontinued at any time.</p>
           </section>
 
           <section>
@@ -69,12 +69,17 @@
           </section>
 
           <section>
-            <h2 class="text-lg font-semibold text-emerald-400 mb-2">7. Self-Hosted Instances</h2>
+            <h2 class="text-lg font-semibold text-emerald-400 mb-2">7. Demo Account</h2>
+            <p>BeBetter offers a shared demo account for evaluation purposes. The demo account is provided "as is" with limited functionality (social and write actions are disabled), may be unavailable at any time, and is reset periodically. Content created in the demo account is public and not persistent; it must not contain personal, confidential, or unlawful information.</p>
+          </section>
+
+          <section>
+            <h2 class="text-lg font-semibold text-emerald-400 mb-2">8. Self-Hosted Instances</h2>
             <p>If you self-host BeBetter, you are the data controller. These terms apply to your use of the software. You are responsible for compliance with applicable laws in your jurisdiction.</p>
           </section>
 
           <section>
-            <h2 class="text-lg font-semibold text-emerald-400 mb-2">8. Disclaimer of Warranties</h2>
+            <h2 class="text-lg font-semibold text-emerald-400 mb-2">9. Disclaimer of Warranties</h2>
             <p>THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.</p>
           </section>
 

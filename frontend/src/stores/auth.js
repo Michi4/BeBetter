@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import api from '../api'
 
 export const useAuthStore = defineStore('auth', () => {
@@ -24,6 +24,14 @@ export const useAuthStore = defineStore('auth', () => {
   async function login(emailOrUsername, password, stayLoggedIn = true) {
     const res = await api.post('/auth/login', { email: emailOrUsername, password })
     setToken(res.data.token, stayLoggedIn)
+    api.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`
+    await fetchUser()
+    return res.data
+  }
+
+  async function demoLogin() {
+    const res = await api.post('/auth/demo')
+    setToken(res.data.token, false)
     api.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`
     await fetchUser()
     return res.data
@@ -66,5 +74,5 @@ export const useAuthStore = defineStore('auth', () => {
     logout()
   }
 
-  return { user, token, login, register, fetchUser, logout, deleteAccount }
+  return { user, token, login, demoLogin, register, fetchUser, logout, deleteAccount, isDemo: computed(() => user.value?.isDemo === true) }
 })

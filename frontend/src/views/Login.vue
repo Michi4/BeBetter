@@ -25,13 +25,22 @@
             class="w-4 h-4 rounded border-gray-600 bg-gray-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0 cursor-pointer" />
           <span class="text-sm text-gray-400">Stay logged in</span>
         </label>
-        <button type="submit" class="btn w-full" :disabled="loading">
+        <button type="submit" class="btn w-full" :disabled="loading || demoLoading">
           <Loader2 v-if="loading" :size="18" class="animate-spin" />
           <span v-else>Sign In</span>
         </button>
         <p class="text-center text-sm text-gray-500">
           <router-link to="/forgot-password" class="text-emerald-400 hover:text-emerald-300 transition-colors duration-150">Forgot password?</router-link>
         </p>
+        <div class="relative flex items-center gap-3 text-xs text-gray-600" aria-hidden="true">
+          <span class="flex-1 h-px bg-gray-800"></span>
+          <span>or</span>
+          <span class="flex-1 h-px bg-gray-800"></span>
+        </div>
+        <button type="button" class="btn-secondary w-full" :disabled="loading || demoLoading" @click="handleDemo">
+          <Loader2 v-if="demoLoading" :size="18" class="animate-spin" />
+          <span v-else>Try the Demo</span>
+        </button>
         <p class="text-center text-sm text-gray-500">
           Don't have an account?
           <router-link :to="{ path: '/register', query: route.query.redirect ? { redirect: route.query.redirect } : {} }" class="text-emerald-400 hover:text-emerald-300 transition-colors duration-150">Sign up</router-link>
@@ -42,7 +51,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useToast } from 'vue-toastification'
@@ -61,6 +70,7 @@ const password = ref('')
 const stayLoggedIn = ref(true)
 const error = ref('')
 const loading = ref(false)
+const demoLoading = ref(false)
 const showPw = ref(false)
 
 async function handleLogin() {
@@ -77,4 +87,22 @@ async function handleLogin() {
     loading.value = false
   }
 }
+
+async function handleDemo() {
+  demoLoading.value = true
+  error.value = ''
+  try {
+    await auth.demoLogin()
+    toast.success('Welcome to the demo! Everything is safe to try.')
+    router.push('/dashboard')
+  } catch (e) {
+    error.value = e.response?.data?.error || 'Demo is temporarily unavailable'
+  } finally {
+    demoLoading.value = false
+  }
+}
+
+onMounted(() => {
+  if (route.query.demo === '1') handleDemo()
+})
 </script>

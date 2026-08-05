@@ -1,5 +1,8 @@
 <template>
-  <div class="min-h-screen bg-[var(--bb-bg)] text-[var(--bb-ink)] flex flex-col selection:bg-emerald-500/30 selection:text-emerald-300 overflow-x-hidden">
+  <div class="min-h-screen text-[var(--bb-ink)] flex flex-col selection:bg-emerald-500/30 selection:text-emerald-300 overflow-x-hidden">
+    <AmbientGlow />
+
+    <div class="relative z-10 flex flex-col flex-1">
     <LandingNavbar />
 
     <main class="flex-1">
@@ -7,16 +10,16 @@
       <section id="hero" class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 sm:pt-24 pb-16 sm:pb-24">
         <div class="text-center max-w-4xl mx-auto space-y-7">
           <ScrollReveal variant="fade-up">
-            <p class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[var(--bb-line)] bg-[var(--bb-bg-soft)] text-xs font-medium tracking-wide uppercase text-[var(--bb-muted)]">
+            <p class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[var(--bb-line)] bg-[var(--bb-bg-soft)]/80 text-xs font-medium tracking-wide uppercase text-[var(--bb-muted)]">
               <span class="w-1.5 h-1.5 rounded-full bg-[var(--bb-accent)]" aria-hidden="true"></span>
-              Privacy-first habit system
+              Social competition&middot;real streaks
             </p>
           </ScrollReveal>
 
           <ScrollReveal variant="fade-up" :delay="100">
             <h1 class="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.08]">
               <span class="text-[var(--bb-ink)]">Build habits</span><br />
-              <span class="text-[var(--bb-ink)]">that actually</span>
+              <span class="text-[var(--bb-ink)]">that</span>
               <em class="not-italic bg-gradient-to-r from-[var(--bb-accent)] via-[var(--bb-accent-strong)] to-[var(--bb-accent)] bg-clip-text text-transparent"> last.</em>
               <br />
               <span class="text-[var(--bb-ink)]">Together.</span>
@@ -25,25 +28,24 @@
 
           <ScrollReveal variant="fade-up" :delay="200">
             <p class="text-base sm:text-lg text-[var(--bb-muted)] max-w-2xl mx-auto leading-relaxed">
-              Habit tracking, task management, and social accountability in one privacy-first app.
-              Host it yourself, own your data, build routines that stick.
+              Habit tracking, task management, and social competition in one app.
+              Challenge your friends, compare streaks, and build routines that stick.
             </p>
           </ScrollReveal>
 
           <ScrollReveal variant="fade-up" :delay="300">
             <div class="flex flex-col sm:flex-row gap-4 justify-center pt-2">
               <a href="/register" class="btn px-8 py-4 bg-emerald-700 hover:bg-emerald-600 shadow-[0_0_25px_rgba(16,185,129,0.3)] text-lg font-semibold group">
-                Start Free
+                Sign Up
                 <ArrowRight :size="18" class="group-hover:translate-x-0.5 transition-transform" />
               </a>
               <a href="/login" class="btn-secondary px-8 py-4 border border-[var(--bb-line)] text-lg font-medium">
                 Sign In
               </a>
+              <a href="/login?demo=1" class="btn-ghost px-8 py-4 text-lg font-medium">
+                Try the Demo
+              </a>
             </div>
-          </ScrollReveal>
-
-          <ScrollReveal variant="fade-up" :delay="400">
-            <p class="text-xs text-[var(--bb-faint)] pt-1">No credit card &middot; Self-hostable &middot; No ads</p>
           </ScrollReveal>
         </div>
       </section>
@@ -51,7 +53,7 @@
       <!-- Year grid artifact -->
       <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 sm:pb-28">
         <ScrollReveal variant="fade-up">
-          <div class="rounded-2xl border border-[var(--bb-line)] bg-[var(--bb-bg-soft)] p-5 sm:p-8">
+          <div class="rounded-2xl border border-[var(--bb-line)] bg-[var(--bb-bg-soft)]/70 p-5 sm:p-8">
             <div class="flex items-center justify-between flex-wrap gap-2 mb-6">
               <p class="text-xs font-bold tracking-[0.2em] uppercase text-[var(--bb-muted)]">Your year, one day per dot</p>
               <span class="flex items-center gap-2.5 text-[10px] text-[var(--bb-faint)] uppercase tracking-wider">
@@ -70,24 +72,32 @@
       <MarqueeBand :items="tickerItems" />
 
       <!-- ============ STATS BAND ============ -->
-      <section class="border-b border-[var(--bb-line)] bg-[var(--bb-bg)] py-12 sm:py-16">
+      <section class="border-b border-[var(--bb-line)] py-12 sm:py-16">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div class="space-y-1">
-              <p class="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[var(--bb-accent)] to-[var(--bb-accent-strong)]"><StatCounter :value="2400" suffix="+" /></p>
+              <p class="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[var(--bb-accent)] to-[var(--bb-accent-strong)]">
+                <StatCounter v-if="loaded" :value="stats.habits" :suffix="stats.habits >= 1000 ? 'k+' : '+'" />
+              </p>
               <p class="text-xs text-[var(--bb-muted)] font-medium uppercase tracking-wider">Habits created</p>
             </div>
             <div class="space-y-1">
-              <p class="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[var(--bb-accent)] to-[var(--bb-accent-strong)]"><StatCounter :value="180" suffix="k+" /></p>
+              <p class="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[var(--bb-accent)] to-[var(--bb-accent-strong)]">
+                <StatCounter v-if="loaded" :value="stats.completionsValue" :suffix="stats.completionsSuffix" />
+              </p>
               <p class="text-xs text-[var(--bb-muted)] font-medium uppercase tracking-wider">Completions</p>
             </div>
             <div class="space-y-1">
-              <p class="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[var(--bb-accent)] to-[var(--bb-accent-strong)]"><StatCounter :value="96" suffix="%" /></p>
+              <p class="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[var(--bb-accent)] to-[var(--bb-accent-strong)]">
+                <StatCounter v-if="loaded" :value="stats.streakRetention" suffix="%" />
+              </p>
               <p class="text-xs text-[var(--bb-muted)] font-medium uppercase tracking-wider">Streak retention</p>
             </div>
             <div class="space-y-1">
-              <p class="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[var(--bb-accent)] to-[var(--bb-accent-strong)]"><StatCounter :value="12" suffix="s" /></p>
-              <p class="text-xs text-[var(--bb-muted)] font-medium uppercase tracking-wider">Avg. setup time</p>
+              <p class="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[var(--bb-accent)] to-[var(--bb-accent-strong)]">
+                <StatCounter v-if="loaded" :value="stats.newHabits" />
+              </p>
+              <p class="text-xs text-[var(--bb-muted)] font-medium uppercase tracking-wider">New habits &middot; 30 days</p>
             </div>
           </div>
         </div>
@@ -95,7 +105,7 @@
 
       <!-- ============ FEATURES ============ -->
       <section id="features" class="border-b border-[var(--bb-line)] py-20 sm:py-28 relative overflow-hidden">
-        <div class="absolute top-0 right-0 w-[500px] h-[500px] bg-[var(--bb-accent)]/5 rounded-full blur-[160px] pointer-events-none" aria-hidden="true"></div>
+        <div class="absolute top-0 right-0 w-[300px] h-[300px] bg-[var(--bb-accent)]/5 rounded-full blur-[120px] pointer-events-none" aria-hidden="true"></div>
 
         <ScrollReveal variant="fade-up" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex items-end justify-between gap-6 mb-16">
@@ -109,7 +119,7 @@
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-            <div v-for="(f, i) in features" :key="f.title" class="group rounded-2xl border border-[var(--bb-line)] bg-[var(--bb-card)] p-7 sm:p-8 space-y-4 hover:border-[var(--bb-accent)]/40 transition-all duration-300 relative overflow-hidden">
+            <div v-for="(f, i) in features" :key="f.title" class="group rounded-2xl border border-[var(--bb-line)] bg-[var(--bb-bg-soft)]/60 p-7 sm:p-8 space-y-4 hover:border-[var(--bb-accent)]/40 transition-all duration-300 relative overflow-hidden">
               <span class="font-mono text-xs font-bold text-[var(--bb-accent)] absolute top-5 right-6" aria-hidden="true">0{{ i + 1 }}</span>
               <div class="w-12 h-12 rounded-xl bg-[var(--bb-accent)]/10 border border-[var(--bb-accent)]/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                 <component :is="f.icon" :size="22" class="text-[var(--bb-accent)]" :stroke-width="1.75" />
@@ -121,9 +131,9 @@
 
           <!-- Secondary feature row -->
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
-            <div v-for="(f, i) in miniFeatures" :key="f.title" class="card p-5 flex items-start gap-4 border border-[var(--bb-line)] bg-[var(--bb-card)] hover:border-[var(--bb-accent)]/40 transition-colors">
+            <div v-for="f in miniFeatures" :key="f.title" class="rounded-2xl border border-[var(--bb-line)] bg-[var(--bb-bg-soft)]/60 p-5 flex items-start gap-4 hover:border-[var(--bb-accent)]/40 transition-colors">
               <div class="w-10 h-10 rounded-lg bg-[var(--bb-accent)]/10 border border-[var(--bb-accent)]/20 flex items-center justify-center shrink-0">
-                <component :is="f.icon" :size="18" class="text-[var(--bb-accent)]" :class="i % 2 ? 'text-[var(--bb-accent)]' : ''" />
+                <component :is="f.icon" :size="18" class="text-[var(--bb-accent)]" />
               </div>
               <div>
                 <h3 class="font-semibold text-sm">{{ f.title }}</h3>
@@ -135,13 +145,13 @@
       </section>
 
       <!-- ============ HOW IT WORKS ============ -->
-      <section id="how" class="border-b border-[var(--bb-line)] bg-[var(--bb-bg-soft)] py-20 sm:py-28 relative overflow-hidden">
+      <section id="how" class="border-b border-[var(--bb-line)] py-20 sm:py-28 relative overflow-hidden">
         <div class="absolute inset-0 bb-dots opacity-50" aria-hidden="true"></div>
         <ScrollReveal variant="fade-up" class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex items-end justify-between gap-6 mb-16">
             <div class="space-y-4 max-w-2xl">
               <p class="text-xs font-bold tracking-[0.25em] uppercase text-[var(--bb-accent)]">02 &mdash; How it works</p>
-              <h2 class="text-3xl sm:text-5xl font-extrabold tracking-tight">Three steps to habits<br class="hidden sm:inline" /> that actually stick</h2>
+              <h2 class="text-3xl sm:text-5xl font-extrabold tracking-tight">Three steps to habits<br class="hidden sm:inline" /> that finally stick</h2>
             </div>
           </div>
 
@@ -161,12 +171,12 @@
 
       <!-- ============ COMPETITIVE TEASER ============ -->
       <section id="challenges" class="border-b border-[var(--bb-line)] py-20 sm:py-28 relative overflow-hidden">
-        <div class="absolute top-0 left-0 w-[400px] h-[400px] bg-[var(--bb-accent)]/5 rounded-full blur-[160px] pointer-events-none" aria-hidden="true"></div>
+        <div class="absolute top-0 left-0 w-[300px] h-[300px] bg-[var(--bb-accent)]/5 rounded-full blur-[120px] pointer-events-none" aria-hidden="true"></div>
         <ScrollReveal variant="fade-up" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             <div class="space-y-6">
-              <p class="text-xs font-bold tracking-[0.25em] uppercase text-[var(--bb-accent)]">03 &mdash; Head-to-head</p>
-              <h2 class="text-3xl sm:text-5xl font-extrabold tracking-tight">Turn every day into<br class="hidden sm:inline" /> a head-to-head</h2>
+              <p class="text-xs font-bold tracking-[0.25em] uppercase text-[var(--bb-accent)]">03 &mdash; Competition</p>
+              <h2 class="text-3xl sm:text-5xl font-extrabold tracking-tight">Turn whatever<br class="hidden sm:inline" /> you want into a competition</h2>
               <p class="text-[var(--bb-muted)] leading-relaxed">
                 Challenge a friend to a 7-day streak battle. Live progress bars, streak counters, and a shared leaderboard.
                 The loser buys coffee. The winner rubs it in &mdash; right inside the app.
@@ -180,14 +190,14 @@
                 </li>
               </ul>
               <a href="/register" class="inline-flex items-center gap-2 text-sm font-semibold text-[var(--bb-accent)] hover:text-[var(--bb-accent-strong)] transition-colors">
-                Start your first challenge
+                Find a worthy opponent
                 <ArrowRight :size="16" />
               </a>
             </div>
 
             <!-- Mini leaderboard -->
             <ScrollReveal variant="fade-right" :delay="150">
-              <div class="rounded-2xl border border-[var(--bb-line)] bg-[var(--bb-card)] p-6">
+              <div class="rounded-2xl border border-[var(--bb-line)] bg-[var(--bb-bg-soft)]/70 p-6">
                 <div class="flex items-center justify-between pb-4 border-b border-[var(--bb-line)] mb-5">
                   <p class="text-sm font-bold">Weekly Challenge</p>
                   <span class="text-[10px] px-2 py-1 rounded-full bg-[var(--bb-accent)]/15 text-[var(--bb-accent)] font-semibold uppercase tracking-wider">Day 4 / 7</span>
@@ -213,20 +223,29 @@
       </section>
 
       <!-- ============ SHOWCASE ============ -->
-      <section id="showcase" class="border-b border-[var(--bb-line)] bg-[var(--bb-bg-soft)] py-20 sm:py-28">
+      <section id="showcase" class="border-b border-[var(--bb-line)] py-20 sm:py-28">
         <ScrollReveal variant="fade-up" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex items-end justify-between gap-6 mb-16">
             <div class="space-y-4 max-w-2xl">
               <p class="text-xs font-bold tracking-[0.25em] uppercase text-[var(--bb-accent)]">04 &mdash; In the wild</p>
               <h2 class="text-3xl sm:text-5xl font-extrabold tracking-tight">Real habits from<br class="hidden sm:inline" /> real people</h2>
             </div>
-            <p class="hidden lg:block text-sm text-[var(--bb-muted)] max-w-xs leading-relaxed pb-1">Clean, focused, distraction-free.</p>
+            <p v-if="showcaseHabits.length" class="hidden lg:block text-sm text-[var(--bb-muted)] max-w-xs leading-relaxed pb-1">Public habits, shared by people who actually use the app.</p>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <HabitShowcaseCard :habit="showcaseHabits[0]" />
-            <HabitShowcaseCard :habit="showcaseHabits[1]" />
-            <HabitShowcaseCard :habit="showcaseHabits[2]" />
+          <div v-if="showcaseHabits.length" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <HabitShowcaseCard v-for="habit in showcaseHabits" :key="habit.id || habit.title" :habit="habit" />
+          </div>
+
+          <div v-else class="rounded-2xl border border-[var(--bb-line)] bg-[var(--bb-bg-soft)]/60 p-10 sm:p-14 text-center">
+            <p class="text-4xl mb-4" aria-hidden="true">🌱</p>
+            <h3 class="text-xl font-bold mb-2">No public habits yet &mdash; be the first</h3>
+            <p class="text-sm text-[var(--bb-muted)] max-w-md mx-auto mb-6 leading-relaxed">
+              Public habits appear here as soon as people start sharing them. Create your first habit, make it public, and you could be the face of the leaderboard.
+            </p>
+            <a href="/register" class="btn px-8 py-3 bg-emerald-700 hover:bg-emerald-600 text-base font-semibold shadow-[0_0_20px_rgba(16,185,129,0.25)]">
+              Get started in 2 minutes
+            </a>
           </div>
         </ScrollReveal>
       </section>
@@ -239,7 +258,7 @@
             <h2 class="text-3xl sm:text-5xl font-extrabold tracking-tight">Loved by people who tried everything</h2>
           </div>
           <div class="grid md:grid-cols-3 gap-6">
-            <figure v-for="t in testimonials" :key="t.name" class="card p-6 space-y-4 border border-[var(--bb-line)] bg-[var(--bb-card)] hover:border-[var(--bb-accent)]/40 transition-colors">
+            <figure v-for="t in testimonials" :key="t.name" class="rounded-2xl border border-[var(--bb-line)] bg-[var(--bb-bg-soft)]/60 p-6 space-y-4 hover:border-[var(--bb-accent)]/40 transition-colors">
               <div class="flex gap-1" aria-hidden="true">
                 <Star v-for="s in 5" :key="s" :size="14" class="text-amber-400 fill-amber-400" />
               </div>
@@ -257,9 +276,8 @@
       </section>
 
       <!-- ============ FINAL CTA ============ -->
-      <section id="cta" class="border-b border-[var(--bb-line)] py-20 sm:py-28 relative overflow-hidden">
+      <section id="cta" class="py-20 sm:py-28 relative overflow-hidden">
         <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--bb-accent)]/50 to-transparent" aria-hidden="true"></div>
-        <div class="absolute bottom-0 right-1/2 translate-x-1/2 w-[600px] h-[600px] bg-[var(--bb-accent)]/10 rounded-full blur-[180px] pointer-events-none" aria-hidden="true"></div>
 
         <ScrollReveal variant="scale-up" class="relative max-w-3xl mx-auto px-4 text-center space-y-8">
           <h2 class="text-4xl sm:text-6xl font-black tracking-tight text-[var(--bb-ink)] leading-[1.08]">
@@ -268,13 +286,14 @@
           </h2>
           <p class="text-[var(--bb-muted)] text-base max-w-lg mx-auto leading-relaxed">
             Create your account today, invite your friends, and start tracking immediately.
-            Free. Self-hostable. No ads. Your data, your server.
+            Bragging rights are on the line.
           </p>
           <div class="pt-4 flex flex-col sm:flex-row gap-4 justify-center">
             <a href="/register" class="btn px-10 py-4 bg-emerald-700 hover:bg-emerald-600 shadow-[0_0_35px_rgba(16,185,129,0.35)] text-lg font-semibold">
-              Start Free
+              Sign Up
             </a>
             <a href="/login" class="btn-secondary px-10 py-4 text-lg font-medium">Sign In</a>
+            <a href="/login?demo=1" class="btn-ghost px-10 py-4 text-lg font-medium">Try the Demo</a>
           </div>
           <p class="text-xs text-[var(--bb-faint)]">
             <a href="/privacy" class="underline underline-offset-2 hover:text-[var(--bb-accent)] transition-colors">Privacy</a>
@@ -288,6 +307,7 @@
     </main>
 
     <LandingFooter />
+    </div>
   </div>
 </template>
 
@@ -300,38 +320,37 @@ import HabitShowcaseCard from '../components/HabitShowcaseCard.vue'
 import StatCounter from '../components/StatCounter.vue'
 import YearGrid from '../components/YearGrid.vue'
 import MarqueeBand from '../components/MarqueeBand.vue'
+import AmbientGlow from '../components/AmbientGlow.vue'
 import {
   Target, ListTodo, Users, CheckCircle2, BarChart2, ArrowRight, Bell,
-  Check, Star, Zap, Camera, Globe, Smartphone, Timer
+  Check, Star, Zap, Camera, Swords, Smartphone, Timer
 } from 'lucide-vue-next'
 
+const loaded = ref(false)
+const stats = ref({ habits: 0, completionsValue: 0, completionsSuffix: '', streakRetention: 0, newHabits: 0 })
+
 const tickerItems = [
-  'Streaks that reset with you',
+  'Head-to-head streak battles',
   'Precise push reminders',
   'Photo verification',
-  'Head-to-head challenges',
-  'Friends & accountability',
-  'Self-host in one command',
-  'Zero telemetry',
+  'Friends & rivals',
+  'Live progress bars',
   'PWA & offline ready',
+  'Your year, one day per dot',
 ]
 
-const showcaseHabits = ref([
-  { title: 'Morning Run', streak: 23, scheduleDisplay: '06:30', completionCount: 156 },
-  { title: 'Read 30 Pages', streak: 12, scheduleDisplay: 'Anytime', completionCount: 89 },
-  { title: 'Deep Work Block', streak: 7, scheduleDisplay: '09:00', completionCount: 42 },
-])
+const showcaseHabits = ref([])
 
 const features = [
   { title: 'Habits that adapt to you', description: 'Multiple schedules per habit. Precise reminders at exact times. Photo or honor verification. Automatic streaks, breaks, and consistency stats. Your habits, your rules.', icon: Target },
   { title: 'Tasks that respect your time', description: 'One-time scheduled tasks with precise reminders. No weekly repeat unless you want it. Completed tasks feed your contribution grid. Overdue tasks never clutter your day.', icon: ListTodo },
-  { title: 'Accountability that works', description: 'Invite friends with a link — they join, you\'re connected. Challenge anyone head-to-head. Add accountability buddies who co-sign completions. See each other\'s streaks in real time.', icon: Users },
+  { title: 'Competition that keeps you going', description: 'Invite friends with a link — they join, you\'re connected. Challenge anyone head-to-head. Add accountability buddies who co-sign completions. Watch each other\'s streaks in real time.', icon: Users },
 ]
 
 const miniFeatures = [
   { title: 'Precise push reminders', description: 'Browser push notifications at the exact minute you choose. Never miss a habit again.', icon: Bell },
   { title: 'Photo verification', description: 'Snap a photo to prove it. Perfect for workouts, meals, or morning runs.', icon: Camera },
-  { title: 'Privacy first', description: 'Self-hostable with no telemetry. Your data lives on your server, full stop.', icon: Globe },
+  { title: 'Head-to-head battles', description: 'Challenge a friend to a streak battle with live progress bars.', icon: Swords },
   { title: 'Offline-ready PWA', description: 'Installable app that works offline. Progress syncs when you reconnect.', icon: Smartphone },
   { title: 'Contribution grid', description: 'Your year at a glance — a heatmap of every completion, GitHub-style.', icon: BarChart2 },
   { title: 'Consistency insights', description: 'Streaks, breaks, and trends computed automatically. Know what works.', icon: Zap },
@@ -358,20 +377,35 @@ const steps = [
 const testimonials = [
   { quote: 'I have tried every habit app on the market. BeBetter is the first one my friends actually stayed on for more than a week.', name: 'Sophie F.', role: 'Product Designer', initials: 'SF' },
   { quote: 'The streak battles with my buddy are brutal. I have run more mornings in 30 days than in the last 2 years.', name: 'Jonas F.', role: 'Developer', initials: 'JF' },
-  { quote: 'Self-hosting my own instance and having zero telemetry sealed the deal. It is fast, clean, and genuinely free.', name: 'Manuel P.', role: 'Ops Engineer', initials: 'MP' },
+  { quote: 'Competing with my friends is what finally got me out of bed. The live leaderboards are addictive in the best way.', name: 'Manuel P.', role: 'Ops Engineer', initials: 'MP' },
 ]
 
+function formatCompletions(n) {
+  if (n >= 1000) return { value: Math.round(n / 1000), suffix: 'k+' }
+  return { value: n, suffix: '+' }
+}
+
 onMounted(() => {
-  const featured = showcaseHabits.value
-  fetch('/api/habits/featured/public', { headers: { Accept: 'application/json' } })
+  fetch('/api/public/landing', { headers: { Accept: 'application/json' } })
     .then((res) => (res.ok ? res.json() : Promise.reject()))
     .then((data) => {
-      if (Array.isArray(data?.habits) && data.habits.length >= 3) {
-        showcaseHabits.value = data.habits.slice(0, 3)
+      const s = data?.stats
+      if (!s) throw new Error('no stats')
+      const completions = formatCompletions(s.completions || 0)
+      stats.value = {
+        habits: Math.round((s.habitsCreated || 0) / 1000 * 10) / 10,
+        completionsValue: completions.value,
+        completionsSuffix: completions.suffix,
+        streakRetention: s.streakRetention || 0,
+        newHabits: s.avgSetup || 0,
+      }
+      loaded.value = true
+      if (Array.isArray(data?.featured) && data.featured.length) {
+        showcaseHabits.value = data.featured.slice(0, 3)
       }
     })
     .catch(() => {
-      if (featured.length) return
+      loaded.value = true
     })
 })
 </script>
@@ -382,5 +416,8 @@ onMounted(() => {
   background-size: 22px 22px;
   mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 30%, transparent 75%);
   -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 30%, transparent 75%);
+}
+@media (max-width: 639px) {
+  .bb-dots { background-size: 16px 16px; }
 }
 </style>

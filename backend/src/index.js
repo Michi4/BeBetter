@@ -19,6 +19,7 @@ const taskRoutes = require('./routes/tasks');
 const notificationRoutes = require('./routes/notifications');
 const leaderboardRoutes = require('./routes/leaderboard');
 const publicPresetRoutes = require('./routes/presets-public');
+const publicRoutes = require('./routes/public');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -59,6 +60,7 @@ app.use('/api/vacation', vacationRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
+app.use('/api/public', publicRoutes);
 app.use('/api/admin', adminRoutes);
 
 app.get('/api/health', (_, res) => res.json({ ok: true }));

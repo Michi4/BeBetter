@@ -38,7 +38,7 @@
 
           <section>
             <h2 class="text-lg font-semibold text-emerald-400 mb-2">Project Information</h2>
-            <p><strong>BeBetter</strong> is a habit tracking, task management, and social accountability application developed by Websters.</p>
+            <p><strong>BeBetter</strong> is a habit tracking, task management, and social competition application developed by Websters.</p>
             <p>Source code: <a href="https://github.com/Michi4/BeBetter" target="_blank" rel="noopener" class="text-emerald-400 hover:text-emerald-300 underline underline-offset-2">github.com/Michi4/BeBetter</a></p>
             <p>License: MIT License — free to use, modify, and distribute.</p>
           </section>

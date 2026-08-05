@@ -1,7 +1,7 @@
 const { Router } = require('express');
 const crypto = require('crypto');
 const prisma = require('../lib/prisma');
-const { authMiddleware, JWT_SECRET } = require('../middleware/auth');
+const { authMiddleware, JWT_SECRET, demoGuard } = require('../middleware/auth');
 const { sendPushNotification } = require('../scheduler');
 
 const router = Router();
@@ -58,6 +58,7 @@ router.get('/search', authMiddleware, async (req, res) => {
           { username: { contains: q, mode: 'insensitive' } },
         ],
         id: { not: req.userId },
+        isDemo: false,
       },
       select: { id: true, username: true, avatar: true, bio: true },
       take: 10,
@@ -98,7 +99,7 @@ router.get('/lookup', authMiddleware, async (req, res) => {
   }
 });
 
-router.post('/request', authMiddleware, async (req, res) => {
+router.post('/request', authMiddleware, demoGuard, async (req, res) => {
   try {
     const { userId: receiverId } = req.body;
     if (!receiverId) return res.status(400).json({ error: 'userId required' });
@@ -363,7 +364,7 @@ router.get('/profile/:userIdOrUsername', async (req, res) => {
   }
 });
 
-router.post('/link', authMiddleware, async (req, res) => {
+router.post('/link', authMiddleware, demoGuard, async (req, res) => {
   try {
     const existing = await prisma.friendLink.findFirst({
       where: { senderId: req.userId, used: false },

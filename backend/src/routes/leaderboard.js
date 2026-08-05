@@ -7,7 +7,7 @@ const router = Router();
 router.get('/global', authMiddleware, async (req, res) => {
   try {
     const users = await prisma.user.findMany({
-      where: { isPublic: true, bannedUntil: null },
+      where: { isPublic: true, isDemo: false, bannedUntil: null },
       select: { id: true, username: true, avatar: true },
     });
 

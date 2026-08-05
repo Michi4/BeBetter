@@ -39,7 +39,7 @@ services:
       # Primary router: bebetter.websters.at
       - "traefik.http.routers.bebetter.entrypoints=websecure"
       - "traefik.http.routers.bebetter.rule=Host(`${DOMAIN:-bebetter.websters.at}`)"
-      - "traefik.http.routers.bebetter.middlewares=crowdsec@docker,strip-xframe@file"
+      - "traefik.http.routers.bebetter.middlewares=crowdsec@docker,bebetter-security@file"
       - "traefik.http.routers.bebetter.tls.certresolver=myresolver"
       # Legacy domain router with 301 redirect to bebetter.websters.at
       - "traefik.http.routers.bebetter-legacy.entrypoints=websecure"

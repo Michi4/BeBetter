@@ -1,7 +1,7 @@
 const { Router } = require('express');
 const multer = require('multer');
 const path = require('path');
-const { authMiddleware } = require('../middleware/auth');
+const { authMiddleware, demoGuard } = require('../middleware/auth');
 
 const router = Router();
 
@@ -29,7 +29,7 @@ const upload = multer({
   },
 });
 
-router.post('/', authMiddleware, upload.single('photo'), (req, res) => {
+router.post('/', authMiddleware, demoGuard, upload.single('photo'), (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     res.json({ url: `/uploads/${req.file.filename}` });

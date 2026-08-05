@@ -9,6 +9,20 @@
     <!-- Inline Notifications -->
     <NotificationAlerts />
 
+    <!-- Demo Banner -->
+    <div v-if="auth.isDemo" class="card bg-emerald-500/10 border border-emerald-500/20">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">🧪</span>
+          <div>
+            <p class="text-sm font-medium text-emerald-300">You're in the demo account</p>
+            <p class="text-xs text-emerald-400/80">Shared public account — data resets hourly. Sign up to save your own streaks.</p>
+          </div>
+        </div>
+        <router-link to="/register" class="text-xs text-emerald-300 hover:text-emerald-100 transition-colors">Sign up free ↔</router-link>
+      </div>
+    </div>
+
     <!-- Vacation Banner -->
     <div v-if="isOnVacation" class="card bg-amber-500/10 border border-amber-500/20">
       <div class="flex items-center justify-between">
@@ -156,7 +170,9 @@ import TaskCard from '../components/TaskCard.vue'
 import BeBetterCam from '../components/BeBetterCam.vue'
 import CreateModal from '../components/CreateModal.vue'
 import NotificationAlerts from '../components/NotificationAlerts.vue'
+import { useAuthStore } from '../stores/auth'
 
+const auth = useAuthStore()
 const toast = useToast()
 
 const showAllTasks = ref(false)

@@ -1,7 +1,7 @@
 {
   "name": "BeBetter",
   "short_name": "BeBetter",
-  "description": "Habit builder, task manager and social challenges — mobile-first and self-hosted.",
+  "description": "Habit builder, task manager and head-to-head challenges — mobile-first.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

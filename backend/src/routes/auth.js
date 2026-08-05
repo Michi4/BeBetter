@@ -2,9 +2,30 @@ const { Router } = require('express');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const prisma = require('../lib/prisma');
-const { signToken, authMiddleware } = require('../middleware/auth');
+const { signToken, authMiddleware, demoGuard, isDemoUser, DEMO_USERNAME } = require('../middleware/auth');
 
 const router = Router();
+
+// Simple in-memory rate limiter for the demo endpoint (per IP)
+const demoRateLimit = new Map();
+function checkDemoRateLimit(ip) {
+  const now = Date.now();
+  const windowMs = 60 * 60 * 1000;
+  const max = 10;
+  const entry = demoRateLimit.get(ip) || { count: 0, resetAt: now + windowMs };
+  if (entry.resetAt < now) {
+    entry.count = 0;
+    entry.resetAt = now + windowMs;
+  }
+  entry.count += 1;
+  demoRateLimit.set(ip, entry);
+  if (demoRateLimit.size > 5000) {
+    for (const [k, v] of demoRateLimit) {
+      if (v.resetAt < now) demoRateLimit.delete(k);
+    }
+  }
+  return entry.count <= max;
+}
 
 const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -12,6 +33,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const userSelect = {
   id: true, email: true, username: true, avatar: true,
   bio: true, role: true, isPublic: true, createdAt: true,
+  isDemo: true,
 };
 
 router.post('/register', async (req, res) => {
@@ -103,6 +125,37 @@ router.post('/login', async (req, res) => {
   }
 });
 
+router.post('/demo', async (req, res) => {
+  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || 'unknown';
+  if (!checkDemoRateLimit(ip)) {
+    return res.status(429).json({ error: 'Too many demo sessions. Try again later.' });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({ where: { username: DEMO_USERNAME } });
+    if (!user || !user.isDemo) {
+      return res.status(404).json({ error: 'Demo account is not available right now' });
+    }
+    if (user.bannedUntil && user.bannedUntil > new Date()) {
+      return res.status(403).json({ error: 'Demo account is unavailable' });
+    }
+
+    const token = signToken(user.id);
+    res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 24 * 60 * 60 * 1000 });
+    res.json({
+      token,
+      user: {
+        id: user.id, email: user.email, username: user.username,
+        role: user.role, avatar: user.avatar,
+        bio: user.bio, isPublic: user.isPublic, isDemo: true,
+      },
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 router.get('/me', authMiddleware, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({ where: { id: req.userId }, select: userSelect });
@@ -114,7 +167,7 @@ router.get('/me', authMiddleware, async (req, res) => {
   }
 });
 
-router.put('/me', authMiddleware, async (req, res) => {
+router.put('/me', authMiddleware, demoGuard, async (req, res) => {
   try {
     const { bio, isPublic, avatar, username } = req.body;
     const data = {};
@@ -207,7 +260,7 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
-router.post('/change-password', authMiddleware, async (req, res) => {
+router.post('/change-password', authMiddleware, demoGuard, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
     if (!currentPassword || !newPassword) return res.status(400).json({ error: 'Current and new password are required' });
@@ -230,7 +283,7 @@ router.post('/change-password', authMiddleware, async (req, res) => {
   }
 });
 
-router.delete('/account', authMiddleware, async (req, res) => {
+router.delete('/account', authMiddleware, demoGuard, async (req, res) => {
   try {
     const { confirm } = req.body;
     if (confirm !== 'DELETE_MY_ACCOUNT') {
@@ -271,3 +324,4 @@ router.delete('/account', authMiddleware, async (req, res) => {
 });
 
 module.exports = router;
+ 

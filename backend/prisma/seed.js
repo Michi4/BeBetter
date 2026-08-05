@@ -29,6 +29,7 @@ async function main() {
       passwordHash: hash,
       username: 'demo',
       role: 'user',
+      isDemo: true,
       isPublic: true,
       bio: 'Building better habits every day',
     },

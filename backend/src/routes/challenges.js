@@ -1,7 +1,7 @@
 const { Router } = require('express');
 const crypto = require('crypto');
 const prisma = require('../lib/prisma');
-const { authMiddleware } = require('../middleware/auth');
+const { authMiddleware, demoGuard } = require('../middleware/auth');
 const { sendPushNotification } = require('../scheduler');
 
 const router = Router();
@@ -104,7 +104,7 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 });
 
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/', authMiddleware, demoGuard, async (req, res) => {
   try {
     const { habitId, opponentId, endDate } = req.body;
     if (!habitId || !opponentId) return res.status(400).json({ error: 'habitId and opponentId required' });
@@ -161,7 +161,7 @@ router.post('/', authMiddleware, async (req, res) => {
   }
 });
 
-router.post('/invite-link', authMiddleware, async (req, res) => {
+router.post('/invite-link', authMiddleware, demoGuard, async (req, res) => {
   try {
     const { habitId, endDate } = req.body;
     if (!habitId) return res.status(400).json({ error: 'habitId required' });

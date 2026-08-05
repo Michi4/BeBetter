@@ -61,17 +61,22 @@
           </section>
 
           <section>
-            <h2 class="text-lg font-semibold text-emerald-400 mb-2">4. Self-Hosted Option</h2>
-            <p>BeBetter is designed to be self-hosted. When you run your own instance, you have complete control over your data. No data ever leaves your infrastructure unless you configure it to.</p>
+            <h2 class="text-lg font-semibold text-emerald-400 mb-2">4. Demo Account</h2>
+            <p>BeBetter provides a shared public demo account so you can explore the app before signing up. The demo account contains sample data that is reset automatically, and account actions (uploading photos, creating challenges, changing settings, etc.) are disabled. Anything you do in the demo account is visible to other visitors and is deleted on reset — do not enter personal information while using it.</p>
           </section>
 
           <section>
-            <h2 class="text-lg font-semibold text-emerald-400 mb-2">5. Data Deletion</h2>
+            <h2 class="text-lg font-semibold text-emerald-400 mb-2">5. Self-Hosted Option</h2>
+            <p>BeBetter can be self-hosted. When you run your own instance, you have complete control over your data. No data ever leaves your infrastructure unless you configure it to.</p>
+          </section>
+
+          <section>
+            <h2 class="text-lg font-semibold text-emerald-400 mb-2">6. Data Deletion</h2>
             <p>You can delete your account at any time from the Profile page. This permanently removes all your personal data, habits, tasks, logs, and social connections. This action is irreversible.</p>
           </section>
 
           <section>
-            <h2 class="text-lg font-semibold text-emerald-400 mb-2">5. Your Rights</h2>
+            <h2 class="text-lg font-semibold text-emerald-400 mb-2">7. Your Rights</h2>
             <p>Under GDPR and similar regulations, you have the right to:</p>
             <ul class="list-disc list-inside space-y-1 ml-4">
               <li>Access your personal data</li>
@@ -84,7 +89,7 @@
           </section>
 
           <section>
-            <h2 class="text-lg font-semibold text-emerald-400 mb-2">6. Contact</h2>
+            <h2 class="text-lg font-semibold text-emerald-400 mb-2">8. Contact</h2>
             <p>For privacy questions or data requests, contact the instance administrator or visit <a href="https://websters.at" target="_blank" rel="noopener" class="text-emerald-400 hover:text-emerald-300 underline underline-offset-2">websters.at</a>.</p>
           </section>
         </div>

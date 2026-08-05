@@ -1,7 +1,5 @@
 <template>
-  <div class="year-grid select-none" role="img" :aria-label="ariaLabel">
-    <div v-for="(cell, i) in cells" :key="i" class="dot" :class="{ lit: cell > 0 }" :style="dotStyle(cell)"></div>
-  </div>
+  <div class="year-grid" role="img" :aria-label="ariaLabel" v-html="svg"></div>
 </template>
 
 <script setup>
@@ -14,12 +12,23 @@ const props = defineProps({
   ariaLabel: { type: String, default: 'A year of habit completions shown as a grid of days, most of them filled in' },
 })
 
-const cells = computed(() => {
-  const total = props.width * props.height
-  const list = []
-  for (let i = 0; i < total; i++) {
-    let v = 0
+const shades = ['#0e1f18', '#14532d', '#166534', '#15803d', '#10b981', '#34d399']
+
+// Deterministic pseudo-random so the pattern is stable across re-renders
+function seeded(n) {
+  const x = Math.sin(n + 1) * 10000
+  return x - Math.floor(x)
+}
+
+const svg = computed(() => {
+  const w = props.width
+  const h = props.height
+  let rects = ''
+  for (let i = 0; i < w * h; i++) {
+    const col = i % w
+    const row = Math.floor(i / w)
     const streak = i % 11
+    let v = 0
     if (streak < 3) v = 1
     else if (streak < 5) v = 2
     else if (streak < 6) v = 3
@@ -28,42 +37,43 @@ const cells = computed(() => {
     if (i % 29 === 0) v = 5
     const week = Math.floor(i / props.width)
     if ((week + day) % 6 === 0) v = 0
-    list.push(Math.random() < props.litRatio && v > 0 ? v : 0)
+    if (seeded(i) < props.litRatio && v > 0) {
+      const color = shades[Math.min(v, shades.length - 1)]
+      rects += `<rect x="${col * 10}" y="${row * 10}" width="7" height="7" rx="1.5" fill="${color}" class="dot"/>`
+    }
   }
-  return list
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w * 10 - 3}" height="${h * 10 - 3}" viewBox="0 0 ${w * 10 - 3} ${h * 10 - 3}">${rects}</svg>`
 })
-
-const shades = ['#0e1f18', '#14532d', '#166534', '#15803d', '#10b981', '#34d399']
-
-function dotStyle(v) {
-  if (v <= 0) return {}
-  return { backgroundColor: shades[Math.min(v, shades.length - 1)] }
-}
 </script>
 
 <style scoped>
-.year-grid {
-  display: grid;
-  grid-template-columns: repeat(52, minmax(0, 1fr));
-  gap: clamp(3px, 0.5vw, 7px);
+.year-grid :deep(svg) {
+  display: block;
+  width: 100%;
+  height: auto;
+  animation: grid-in 0.6s ease both;
 }
-.dot {
-  aspect-ratio: 1;
-  border-radius: 3px;
-  background: color-mix(in srgb, var(--bb-grid) 60%, transparent);
-  transition: background-color 0.3s ease, transform 0.3s ease;
+.year-grid :deep(.dot) {
+  transition: fill 0.15s ease, transform 0.15s ease;
+  transform-box: fill-box;
+  transform-origin: center;
+  cursor: pointer;
 }
-.dot.lit {
-  animation: dot-pop 0.4s ease both;
+.year-grid :deep(.dot:hover),
+.year-grid :deep(.dot:focus-visible) {
+  fill: #f9fafb !important;
+  transform: scale(1.25);
 }
-.dot:hover {
-  transform: scale(1.35);
+html.light .year-grid :deep(.dot:hover),
+html.light .year-grid :deep(.dot:focus-visible) {
+  fill: #065f46 !important;
 }
-@keyframes dot-pop {
-  from { transform: scale(0.2); opacity: 0.4; }
-  to { transform: scale(1); opacity: 1; }
+@keyframes grid-in {
+  from { opacity: 0.2; }
+  to { opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .dot.lit { animation: none; }
+  .year-grid :deep(svg) { animation: none; }
+  .year-grid :deep(.dot) { transition: none; transform: none !important; }
 }
 </style>

@@ -1,14 +1,14 @@
 # BeBetter
 
-BeBetter is a self-hosted habit tracking, task management, and social accountability application. Built with Vue 3, Node.js, and PostgreSQL.
+BeBetter is a habit tracking, task management, and social competition application. Built with Vue 3, Node.js, and PostgreSQL.
 
 ## Features
 - Habit tracking with flexible scheduling
 - Task management with one-time scheduling
-- Social accountability (friends, challenges, buddies)
+- Social competition (friends, streak battles, buddies)
 - Push notifications with Web Push protocol
 - Contribution grid analytics
-- Self-hosted with Docker
+- PWA support (installable, offline-capable)
 
 ## Links
 - [Homepage](https://bebetter.websters.at/)

@@ -318,8 +318,8 @@ html.light {
   --bb-muted: #57534e;
   --bb-faint: #78716c;
   --bb-line: #e3ded6;
-  --bb-accent: #059669;
-  --bb-accent-strong: #047857;
+  --bb-accent: #047857;
+  --bb-accent-strong: #065f46;
   --bb-accent-ink: #ffffff;
   --bb-grid: rgba(28, 25, 23, 0.07);
 }
