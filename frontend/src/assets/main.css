@@ -292,3 +292,41 @@ html.light .border-white\/10 { border-color: rgba(0,0,0,0.08) !important; }
 html.light .text-emerald-500 { color: #059669 !important; }
 html.light .to-gray-950 { --tw-gradient-to: #f9fafb !important; }
 html.light .from-gray-950 { --tw-gradient-from: #f9fafb !important; }
+
+/* ============================================
+   Landing page v2 - theme tokens
+   (dark-first; flip via html.light)
+   ============================================ */
+:root {
+  --bb-bg: #0b0c0f;
+  --bb-bg-soft: #101217;
+  --bb-card: #14171d;
+  --bb-ink: #f2f4f8;
+  --bb-muted: #a3abb8;
+  --bb-faint: #7c8494;
+  --bb-line: #232833;
+  --bb-accent: #34d399;
+  --bb-accent-strong: #10b981;
+  --bb-accent-ink: #052e21;
+  --bb-grid: rgba(148, 163, 184, 0.06);
+}
+html.light {
+  --bb-bg: #faf9f6;
+  --bb-bg-soft: #f2f0ea;
+  --bb-card: #ffffff;
+  --bb-ink: #1c1917;
+  --bb-muted: #57534e;
+  --bb-faint: #78716c;
+  --bb-line: #e3ded6;
+  --bb-accent: #059669;
+  --bb-accent-strong: #047857;
+  --bb-accent-ink: #ffffff;
+  --bb-grid: rgba(28, 25, 23, 0.07);
+}
+/* fix landing navs clobbered by global html.light nav rules */
+html.light nav.bb-nav { background: color-mix(in srgb, var(--bb-bg) 92%, transparent) !important; border-color: var(--bb-line) !important; }
+html.light nav.bb-nav a, html.light nav.bb-nav button { color: var(--bb-muted) !important; }
+html.light nav.bb-nav a:hover, html.light nav.bb-nav button:hover { color: var(--bb-ink) !important; background: var(--bb-line) !important; }
+html.light footer nav { background: transparent !important; border: none !important; box-shadow: none !important; }
+html.light footer nav a { color: var(--bb-muted) !important; }
+html.light footer nav a:hover { color: var(--bb-ink) !important; }
