@@ -165,8 +165,7 @@
                 <div class="text-[10px] text-gray-500">Get notified to start your day</div>
               </div>
               <div class="flex items-center gap-2">
-                <input v-if="notifPrefs.morningEnabled" v-model="notifPrefs.morningTime" type="time"
-                  class="input w-24 text-xs text-center" />
+                <TimeInput v-if="notifPrefs.morningEnabled" v-model="notifPrefs.morningTime" />
                 <button @click="notifPrefs.morningEnabled = !notifPrefs.morningEnabled; saveNotifPrefs()"
                   class="relative w-12 h-6 rounded-full transition-colors duration-200"
                   :class="notifPrefs.morningEnabled ? 'bg-emerald-600' : 'bg-gray-700'">
@@ -183,8 +182,7 @@
                 <div class="text-[10px] text-gray-500">Review your day before bed</div>
               </div>
               <div class="flex items-center gap-2">
-                <input v-if="notifPrefs.eveningEnabled" v-model="notifPrefs.eveningTime" type="time"
-                  class="input w-24 text-xs text-center" />
+                <TimeInput v-if="notifPrefs.eveningEnabled" v-model="notifPrefs.eveningTime" />
                 <button @click="notifPrefs.eveningEnabled = !notifPrefs.eveningEnabled; saveNotifPrefs()"
                   class="relative w-12 h-6 rounded-full transition-colors duration-200"
                   :class="notifPrefs.eveningEnabled ? 'bg-emerald-600' : 'bg-gray-700'">
@@ -364,6 +362,8 @@ import {
   LogOut
 } from 'lucide-vue-next'
 import ContributionGrid from '../components/ContributionGrid.vue'
+import TimeInput from '../components/TimeInput.vue'
+import { setTimeFormat as setTimeFormatGlobal, getTimeFormat } from '../utils/timeFormat'
 import { useTheme } from '../composables/useTheme'
 
 const { isDark, toggleTheme } = useTheme()
@@ -400,7 +400,7 @@ const profileGrid = ref([])
 const gridYear = ref(new Date().getFullYear())
 const gridYearRange = ref({ firstYear: new Date().getFullYear(), lastYear: new Date().getFullYear() })
 
-const timeFormat = ref(localStorage.getItem('bebetter_timeFormat') || '24h')
+const timeFormat = ref(getTimeFormat())
 
 const isOwn = computed(() => {
   const param = route.params.id
@@ -627,8 +627,7 @@ function formatDate(dateStr) {
 }
 
 function setTimeFormat(fmt) {
-  timeFormat.value = fmt
-  localStorage.setItem('bebetter_timeFormat', fmt)
+  timeFormat.value = setTimeFormatGlobal(fmt)
   toast.success(`Time format set to ${fmt === '12h' ? '12h (AM/PM)' : '24h'}`)
 }
 

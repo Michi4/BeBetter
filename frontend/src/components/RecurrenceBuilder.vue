@@ -26,9 +26,9 @@
         <!-- Time input -->
         <div class="flex items-center gap-2">
           <Clock :size="14" class="text-gray-500 shrink-0" />
-          <input type="time" :value="entry.time || ''" @input="e => updateTime(idx, e.target.value || null)"
-            class="input flex-1 text-sm" />
-          <span class="text-[10px] text-gray-500 shrink-0">{{ entry.time ? 'At ' + entry.time : 'Any time' }}</span>
+          <TimeInput :model-value="entry.time" :allow-clear="true" empty-label="Anytime"
+            @update:model-value="time => updateTime(idx, time || null)" class="flex-1" />
+          <span class="text-[10px] text-gray-500 shrink-0">{{ entry.time ? 'At ' + formatTime(entry.time) : 'Any time' }}</span>
         </div>
 
         <!-- Day picker -->
@@ -54,6 +54,8 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { Clock, Plus, X } from 'lucide-vue-next'
+import TimeInput from './TimeInput.vue'
+import { formatTime } from '../utils/timeFormat'
 
 const props = defineProps({
   modelValue: {

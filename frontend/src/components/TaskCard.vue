@@ -10,11 +10,11 @@
           class="flex items-center gap-2 text-xs transition-colors"
           :class="editForm.setScheduledTime ? 'text-emerald-400' : 'text-gray-500 hover:text-gray-300'">
           <Clock :size="14" />
-          {{ editForm.setScheduledTime ? 'Scheduled for ' + (editForm.scheduledTime || 'selected time') : 'Set a time' }}
+          {{ editForm.setScheduledTime ? 'Scheduled for ' + (editForm.scheduledTime ? formatTime(editForm.scheduledTime) : 'selected time') : 'Set a time' }}
         </button>
       </div>
       <div v-if="editForm.setScheduledTime" class="space-y-2 pl-4 border-l-2 border-gray-700">
-        <input v-model="editForm.scheduledTime" type="time" class="input text-sm" />
+        <TimeInput v-model="editForm.scheduledTime" class="flex-1" />
         <div>
           <label class="text-[10px] text-gray-500 mb-1 block">Reminders</label>
           <div v-if="editForm.reminderMinutes.length" class="flex flex-wrap gap-1 mb-1.5">
@@ -97,6 +97,7 @@
 import { ref, reactive, computed, nextTick } from 'vue'
 import { Check, X, Pencil, ArrowRightLeft, Trash2, Clock } from 'lucide-vue-next'
 import { formatTime } from '../utils/timeFormat'
+import TimeInput from './TimeInput.vue'
 
 const props = defineProps({ task: { type: Object, required: true } })
 const emit = defineEmits(['complete', 'delete', 'edit', 'convert'])

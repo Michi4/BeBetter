@@ -50,12 +50,12 @@
               class="flex items-center gap-2 text-xs transition-colors"
               :class="taskForm.setScheduledTime ? 'text-emerald-400' : 'text-gray-500 hover:text-gray-300'">
               <Clock :size="14" />
-              {{ taskForm.setScheduledTime ? 'Scheduled for ' + (taskForm.scheduledTime || 'selected time') : 'Set a time' }}
+              {{ taskForm.setScheduledTime ? 'Scheduled for ' + (taskForm.scheduledTime ? formatTime(taskForm.scheduledTime) : 'selected time') : 'Set a time' }}
             </button>
             <p v-if="taskForm.setScheduledTime" class="text-[10px] text-gray-600 mt-1">One-time only — you'll be reminded this once, not every week.</p>
           </div>
           <div v-if="taskForm.setScheduledTime" class="space-y-2 pl-5 border-l-2 border-gray-700">
-            <input type="time" v-model="taskForm.scheduledTime" class="input text-sm" />
+            <TimeInput v-model="taskForm.scheduledTime" class="flex-1" />
             <div>
               <label class="text-[10px] text-gray-500 mb-1 block">Reminders</label>
               <div v-if="taskForm.reminderMinutes && taskForm.reminderMinutes.length" class="flex flex-wrap gap-1 mb-1.5">
@@ -248,6 +248,8 @@ import { ref, reactive, nextTick, watch } from 'vue'
 import { Plus, X, ListTodo, Target, ChevronDown, Shield, Camera, Check, Globe, ArrowRightLeft, Clock, Bell } from 'lucide-vue-next'
 import api from '../api'
 import RecurrenceBuilder from './RecurrenceBuilder.vue'
+import TimeInput from './TimeInput.vue'
+import { formatTime } from '../utils/timeFormat'
 
 const props = defineProps({
   show: Boolean,
