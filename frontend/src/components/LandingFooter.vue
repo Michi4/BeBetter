@@ -11,7 +11,7 @@
         </div>
 
         <div class="space-y-3">
-          <h4 class="font-semibold text-gray-300">Product</h4>
+          <h3 class="font-semibold text-gray-300 text-base">Product</h3>
           <nav class="space-y-2 text-sm">
             <a href="#features" class="text-gray-400 hover:text-white underline underline-offset-2 transition-colors block">Features</a>
             <a href="#showcase" class="text-gray-400 hover:text-white underline underline-offset-2 transition-colors block">Showcase</a>
@@ -21,7 +21,7 @@
         </div>
 
         <div class="space-y-3">
-          <h4 class="font-semibold text-gray-300">Company</h4>
+          <h3 class="font-semibold text-gray-300 text-base">Company</h3>
           <nav class="space-y-2 text-sm">
             <a href="https://github.com/Michi4/BeBetter" target="_blank" rel="noopener" class="text-gray-400 hover:text-white underline underline-offset-2 transition-colors block">GitHub</a>
             <a href="https://websters.at" target="_blank" rel="noopener" class="text-gray-400 hover:text-white underline underline-offset-2 transition-colors block">Websters</a>
@@ -29,7 +29,7 @@
         </div>
 
         <div class="space-y-3">
-          <h4 class="font-semibold text-gray-300">Legal</h4>
+          <h3 class="font-semibold text-gray-300 text-base">Legal</h3>
           <nav class="space-y-2 text-sm">
             <a href="/privacy" class="text-gray-400 hover:text-white underline underline-offset-2 transition-colors block">Privacy Policy</a>
             <a href="/terms" class="text-gray-400 hover:text-white underline underline-offset-2 transition-colors block">Terms of Service</a>
@@ -39,8 +39,8 @@
       </div>
 
       <div class="border-t border-gray-900 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-        <p class="text-xs text-gray-500">&copy; 2026 Websters. All rights reserved.</p>
-        <p class="text-xs text-gray-500">BeBetter is a project by <a href="https://websters.at" target="_blank" rel="noopener" class="text-emerald-400 hover:text-emerald-300 underline underline-offset-2">Websters</a>.</p>
+        <p class="text-xs text-gray-400">&copy; 2026 Websters. All rights reserved.</p>
+        <p class="text-xs text-gray-400">BeBetter is a project by <a href="https://websters.at" target="_blank" rel="noopener" class="text-emerald-400 hover:text-emerald-300 underline underline-offset-2">Websters</a>.</p>
         <a href="https://github.com/Michi4/BeBetter" target="_blank" rel="noopener" class="flex items-center gap-1.5 text-xs text-gray-400 hover:text-emerald-400 transition-colors">
           <Github :size="14" />
           View on GitHub

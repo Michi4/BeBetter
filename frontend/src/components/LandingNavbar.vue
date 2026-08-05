@@ -19,7 +19,7 @@
           <Moon v-else :size="18" />
         </button>
         <a href="/login" class="hidden sm:block text-sm font-medium text-gray-400 hover:text-white px-4 py-2 rounded-lg transition-colors underline underline-offset-2">Sign In</a>
-        <a href="/register" class="btn text-sm px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.2)] font-semibold">
+        <a href="/register" class="btn text-sm px-6 py-2.5 bg-emerald-700 hover:bg-emerald-600 shadow-[0_0_15px_rgba(16,185,129,0.2)] font-semibold">
           Get Started Free
         </a>
         <button @click="mobileOpen = !mobileOpen" class="md:hidden p-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors touch-target" aria-label="Menu" :aria-expanded="mobileOpen">

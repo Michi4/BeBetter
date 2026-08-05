@@ -37,7 +37,7 @@
             </p>
 
             <div class="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-              <a href="/register" class="btn px-8 py-4 text-base bg-emerald-600 hover:bg-emerald-500 shadow-[0_0_25px_rgba(16,185,129,0.3)] text-lg font-semibold group">
+              <a href="/register" class="btn px-8 py-4 text-base bg-emerald-700 hover:bg-emerald-600 shadow-[0_0_25px_rgba(16,185,129,0.3)] text-lg font-semibold group">
                 Start Free
                 <ArrowRight :size="18" class="group-hover:translate-x-0.5 transition-transform" />
               </a>
@@ -305,7 +305,7 @@
             Free. Self-hostable. No ads. Your data, your server.
           </p>
           <div class="pt-4 flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="/register" class="btn px-10 py-4 bg-emerald-600 hover:bg-emerald-500 shadow-[0_0_35px_rgba(16,185,129,0.35)] text-lg font-semibold">
+            <a href="/register" class="btn px-10 py-4 bg-emerald-700 hover:bg-emerald-600 shadow-[0_0_35px_rgba(16,185,129,0.35)] text-lg font-semibold">
               Start Free
             </a>
             <a href="/login" class="btn-secondary px-10 py-4 text-lg font-medium">Sign In</a>

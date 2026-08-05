@@ -5,7 +5,7 @@
         <span class="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-500/70 to-teal-500/70 flex items-center justify-center text-sm font-bold text-white shrink-0">
           {{ initial }}
         </span>
-        <h4 class="font-bold text-sm text-white truncate flex-1">{{ habit.title }}</h4>
+        <p class="font-bold text-sm text-white truncate flex-1">{{ habit.title }}</p>
         <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-medium shrink-0">{{ habit.streak }} day streak</span>
       </div>
       <p class="text-xs text-gray-400">{{ scheduleText }}</p>
