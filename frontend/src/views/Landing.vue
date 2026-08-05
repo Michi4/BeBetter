@@ -46,7 +46,7 @@
       <!-- Year grid artifact -->
       <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 sm:pb-28">
         <ScrollReveal variant="fade-up">
-          <div class="rounded-2xl border border-[var(--bb-line)] bg-[var(--bb-bg-soft)]/70 p-5 sm:p-8">
+          <div class="rounded-2xl border border-[var(--bb-line)] bg-[var(--bb-bg-soft)] p-5 sm:p-8">
             <div class="flex items-center justify-between flex-wrap gap-2 mb-6">
               <p class="text-xs font-bold tracking-[0.2em] uppercase text-[var(--bb-muted)]">Your year, one day per dot</p>
               <span class="flex items-center gap-2.5 text-[10px] text-[var(--bb-faint)] uppercase tracking-wider">
@@ -65,7 +65,7 @@
       <MarqueeBand :items="tickerItems" />
 
       <!-- ============ STATS BAND ============ -->
-      <section class="border-b border-[var(--bb-line)] py-12 sm:py-16">
+      <section class="border-b border-[var(--bb-line)] bg-[var(--bb-bg)] py-12 sm:py-16">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div class="space-y-1">
@@ -97,7 +97,7 @@
       </section>
 
       <!-- ============ FEATURES ============ -->
-      <section id="features" class="border-b border-[var(--bb-line)] py-20 sm:py-28 relative overflow-hidden">
+      <section id="features" class="border-b border-[var(--bb-line)] bg-[var(--bb-bg)] py-20 sm:py-28 relative overflow-hidden">
         <div class="absolute top-0 right-0 w-[300px] h-[300px] bg-[var(--bb-accent)]/5 rounded-full blur-[120px] pointer-events-none" aria-hidden="true"></div>
 
         <ScrollReveal variant="fade-up" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -112,7 +112,7 @@
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-            <div v-for="(f, i) in features" :key="f.title" class="group rounded-2xl border border-[var(--bb-line)] bg-[var(--bb-bg-soft)]/60 p-7 sm:p-8 space-y-4 hover:border-[var(--bb-accent)]/40 transition-all duration-300 relative overflow-hidden">
+            <div v-for="(f, i) in features" :key="f.title" class="group rounded-2xl border border-[var(--bb-line)] bg-[var(--bb-card)] p-7 sm:p-8 space-y-4 hover:border-[var(--bb-accent)]/40 transition-all duration-300 relative overflow-hidden">
               <span class="font-mono text-xs font-bold text-[var(--bb-accent)] absolute top-5 right-6" aria-hidden="true">0{{ i + 1 }}</span>
               <div class="w-12 h-12 rounded-xl bg-[var(--bb-accent)]/10 border border-[var(--bb-accent)]/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                 <component :is="f.icon" :size="22" class="text-[var(--bb-accent)]" :stroke-width="1.75" />
@@ -124,7 +124,7 @@
 
           <!-- Secondary feature row -->
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
-            <div v-for="f in miniFeatures" :key="f.title" class="rounded-2xl border border-[var(--bb-line)] bg-[var(--bb-bg-soft)]/60 p-5 flex items-start gap-4 hover:border-[var(--bb-accent)]/40 transition-colors">
+            <div v-for="f in miniFeatures" :key="f.title" class="rounded-2xl border border-[var(--bb-line)] bg-[var(--bb-card)] p-5 flex items-start gap-4 hover:border-[var(--bb-accent)]/40 transition-colors">
               <div class="w-10 h-10 rounded-lg bg-[var(--bb-accent)]/10 border border-[var(--bb-accent)]/20 flex items-center justify-center shrink-0">
                 <component :is="f.icon" :size="18" class="text-[var(--bb-accent)]" />
               </div>
@@ -138,7 +138,7 @@
       </section>
 
       <!-- ============ HOW IT WORKS ============ -->
-      <section id="how" class="border-b border-[var(--bb-line)] py-20 sm:py-28 relative overflow-hidden">
+      <section id="how" class="border-b border-[var(--bb-line)] bg-[var(--bb-bg-soft)] py-20 sm:py-28 relative overflow-hidden">
         <div class="absolute inset-0 bb-dots opacity-50" aria-hidden="true"></div>
         <ScrollReveal variant="fade-up" class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex items-end justify-between gap-6 mb-16">
@@ -163,7 +163,7 @@
       </section>
 
       <!-- ============ COMPETITIVE TEASER ============ -->
-      <section id="challenges" class="border-b border-[var(--bb-line)] py-20 sm:py-28 relative overflow-hidden">
+      <section id="challenges" class="border-b border-[var(--bb-line)] bg-[var(--bb-bg)] py-20 sm:py-28 relative overflow-hidden">
         <div class="absolute top-0 left-0 w-[300px] h-[300px] bg-[var(--bb-accent)]/5 rounded-full blur-[120px] pointer-events-none" aria-hidden="true"></div>
         <ScrollReveal variant="fade-up" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
@@ -190,7 +190,7 @@
 
             <!-- Mini leaderboard -->
             <ScrollReveal variant="fade-right" :delay="150">
-              <div class="rounded-2xl border border-[var(--bb-line)] bg-[var(--bb-bg-soft)]/70 p-6">
+              <div class="rounded-2xl border border-[var(--bb-line)] bg-[var(--bb-bg-soft)] p-6">
                 <div class="flex items-center justify-between pb-4 border-b border-[var(--bb-line)] mb-5">
                   <p class="text-sm font-bold">Weekly Challenge</p>
                   <span class="text-[10px] px-2 py-1 rounded-full bg-[var(--bb-accent)]/15 text-[var(--bb-accent)] font-semibold uppercase tracking-wider">Day 4 / 7</span>
@@ -216,7 +216,7 @@
       </section>
 
       <!-- ============ SHOWCASE ============ -->
-      <section id="showcase" class="border-b border-[var(--bb-line)] py-20 sm:py-28">
+      <section id="showcase" class="border-b border-[var(--bb-line)] bg-[var(--bb-bg-soft)] py-20 sm:py-28">
         <ScrollReveal variant="fade-up" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex items-end justify-between gap-6 mb-16">
             <div class="space-y-4 max-w-2xl">
@@ -230,7 +230,7 @@
             <HabitShowcaseCard v-for="habit in showcaseHabits" :key="habit.id || habit.title" :habit="habit" />
           </div>
 
-          <div v-else class="rounded-2xl border border-[var(--bb-line)] bg-[var(--bb-bg-soft)]/60 p-10 sm:p-14 text-center">
+          <div v-else class="rounded-2xl border border-[var(--bb-line)] bg-[var(--bb-card)] p-10 sm:p-14 text-center">
             <p class="text-4xl mb-4" aria-hidden="true">🌱</p>
             <h3 class="text-xl font-bold mb-2">No public habits yet &mdash; be the first</h3>
             <p class="text-sm text-[var(--bb-muted)] max-w-md mx-auto mb-6 leading-relaxed">
@@ -244,14 +244,14 @@
       </section>
 
       <!-- ============ TESTIMONIALS ============ -->
-      <section class="border-b border-[var(--bb-line)] py-20 sm:py-28">
+      <section class="border-b border-[var(--bb-line)] bg-[var(--bb-bg)] py-20 sm:py-28">
         <ScrollReveal variant="fade-up" class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="text-center max-w-3xl mx-auto mb-14 space-y-4">
             <p class="text-xs font-bold tracking-[0.25em] uppercase text-[var(--bb-accent)]">05 &mdash; Word on the street</p>
             <h2 class="text-3xl sm:text-5xl font-extrabold tracking-tight">Loved by people who tried everything</h2>
           </div>
           <div class="grid md:grid-cols-3 gap-6">
-            <figure v-for="t in testimonials" :key="t.name" class="rounded-2xl border border-[var(--bb-line)] bg-[var(--bb-bg-soft)]/60 p-6 space-y-4 hover:border-[var(--bb-accent)]/40 transition-colors">
+            <figure v-for="t in testimonials" :key="t.name" class="rounded-2xl border border-[var(--bb-line)] bg-[var(--bb-card)] p-6 space-y-4 hover:border-[var(--bb-accent)]/40 transition-colors">
               <div class="flex gap-1" aria-hidden="true">
                 <Star v-for="s in 5" :key="s" :size="14" class="text-amber-400 fill-amber-400" />
               </div>
