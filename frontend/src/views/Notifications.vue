@@ -29,10 +29,21 @@
           <p class="text-[10px] text-gray-500 mt-1">{{ formatTime(n.createdAt) }}</p>
 
           <div v-if="n.type === 'challenge_invite' && n.data?.challengeId && !n.read" class="flex gap-2 mt-2">
-            <router-link v-if="n.data.challengeId" :to="`/challenges/${n.data.challengeId}`"
-              class="btn text-xs px-3 py-1.5" @click="markRead(n.id)">
-              <Eye :size="12" /> View
-            </router-link>
+            <button @click="acceptChallenge(n)" class="btn text-xs px-3 py-1.5">
+              <Check :size="12" /> Accept
+            </button>
+            <button @click="declineChallenge(n)" class="btn-secondary text-xs px-3 py-1.5">
+              <X :size="12" /> Decline
+            </button>
+          </div>
+
+          <div v-if="n.type === 'friend_request' && n.data?.requestId && !n.read" class="flex gap-2 mt-2">
+            <button @click="acceptFriendRequest(n)" class="btn text-xs px-3 py-1.5">
+              <Check :size="12" /> Accept
+            </button>
+            <button @click="declineFriendRequest(n)" class="btn-secondary text-xs px-3 py-1.5">
+              <X :size="12" /> Decline
+            </button>
           </div>
 
           <div v-if="n.type === 'buddy_request' && !n.read" class="mt-2">
@@ -51,8 +62,13 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import api from '../api'
-import { Bell, Trophy, Users, Eye, Shield, Megaphone } from 'lucide-vue-next'
+import { useToast } from 'vue-toastification'
+import { Bell, Trophy, Users, Eye, Shield, Megaphone, Check, X } from 'lucide-vue-next'
+
+const toast = useToast()
+const router = useRouter()
 
 const notifications = ref([])
 const unread = ref(0)
@@ -84,6 +100,49 @@ async function markAllRead() {
     unread.value = 0
   } catch {
     // silent
+  }
+}
+
+async function acceptChallenge(n) {
+  try {
+    await api.post(`/challenges/${n.data.challengeId}/accept`)
+    toast.success('Challenge accepted!')
+    markRead(n.id)
+    router.push(`/challenges/${n.data.challengeId}`)
+  } catch (e) {
+    toast.error(e.response?.data?.error || 'Failed to accept challenge')
+  }
+}
+
+async function declineChallenge(n) {
+  if (!confirm('Decline this challenge?')) return
+  try {
+    await api.post(`/challenges/${n.data.challengeId}/decline`)
+    toast.success('Challenge declined')
+    markRead(n.id)
+  } catch (e) {
+    toast.error(e.response?.data?.error || 'Failed to decline challenge')
+  }
+}
+
+async function acceptFriendRequest(n) {
+  try {
+    await api.post(`/friends/request/${n.data.requestId}/accept`)
+    toast.success('Friend request accepted')
+    markRead(n.id)
+  } catch (e) {
+    toast.error(e.response?.data?.error || 'Failed to accept friend request')
+  }
+}
+
+async function declineFriendRequest(n) {
+  if (!confirm('Decline this friend request?')) return
+  try {
+    await api.post(`/friends/request/${n.data.requestId}/decline`)
+    toast.success('Request declined')
+    markRead(n.id)
+  } catch (e) {
+    toast.error(e.response?.data?.error || 'Failed to decline request')
   }
 }
 

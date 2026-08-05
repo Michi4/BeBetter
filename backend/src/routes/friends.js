@@ -2,6 +2,7 @@ const { Router } = require('express');
 const crypto = require('crypto');
 const prisma = require('../lib/prisma');
 const { authMiddleware, JWT_SECRET } = require('../middleware/auth');
+const { sendPushNotification } = require('../scheduler');
 
 const router = Router();
 
@@ -136,6 +137,17 @@ router.post('/request', authMiddleware, async (req, res) => {
       },
     });
 
+    const requester = await prisma.user.findUnique({ where: { id: req.userId }, select: { username: true } });
+    await prisma.notification.create({
+      data: {
+        userId: receiverId,
+        type: 'friend_request',
+        message: `${requester?.username || 'Someone'} sent you a friend request.`,
+        data: { requestId: request.id, requesterId: req.userId, requesterName: requester?.username },
+      },
+    }).catch(() => {});
+    await sendPushNotification(receiverId, 'Friend request', `${requester?.username || 'Someone'} wants to be your friend`, '/friends').catch(() => {});
+
     res.json({ request });
   } catch (e) {
     console.error(e);
@@ -152,6 +164,10 @@ router.post('/request/:id/accept', authMiddleware, async (req, res) => {
     const [smaller, larger] = [request.requesterId, request.receiverId].sort();
     await prisma.friendship.create({ data: { user1Id: smaller, user2Id: larger } });
     await prisma.friendRequest.delete({ where: { id } });
+    await prisma.notification.updateMany({
+      where: { userId: req.userId, type: 'friend_request', data: { path: ['requestId'], equals: id } },
+      data: { read: true },
+    }).catch(() => {});
 
     await prisma.activity.create({
       data: {
@@ -176,6 +192,10 @@ router.post('/request/:id/decline', authMiddleware, async (req, res) => {
     if (!request || request.receiverId !== req.userId) return res.status(404).json({ error: 'Not found' });
 
     await prisma.friendRequest.delete({ where: { id } });
+    await prisma.notification.updateMany({
+      where: { userId: req.userId, type: 'friend_request', data: { path: ['requestId'], equals: id } },
+      data: { read: true },
+    }).catch(() => {});
     res.json({ ok: true });
   } catch (e) {
     console.error(e);

@@ -2,6 +2,7 @@ const { Router } = require('express');
 const crypto = require('crypto');
 const prisma = require('../lib/prisma');
 const { authMiddleware } = require('../middleware/auth');
+const { sendPushNotification } = require('../scheduler');
 
 const router = Router();
 
@@ -142,6 +143,7 @@ router.post('/', authMiddleware, async (req, res) => {
         data: { challengeId: challenge.id, habitTitle: habit.title, creatorName: creatorUser?.username },
       },
     }).catch(() => {});
+    await sendPushNotification(opponentId, 'New challenge!', `${creatorUser?.username || 'Someone'} challenged you to "${habit.title}"`, `/challenges/${challenge.id}`).catch(() => {});
 
     await prisma.activity.create({
       data: {
@@ -246,6 +248,10 @@ router.post('/invite/:token/accept', authMiddleware, async (req, res) => {
         data: { challengeId: challenge.id },
       },
     }).catch(() => {});
+    await prisma.notification.updateMany({
+      where: { userId: req.userId, type: 'challenge_invite', data: { path: ['challengeId'], equals: challenge.id } },
+      data: { read: true },
+    }).catch(() => {});
 
     res.json({ challenge: updated });
   } catch (e) {
@@ -281,6 +287,10 @@ router.post('/:id/accept', authMiddleware, async (req, res) => {
         data: { challengeId: id },
       },
     }).catch(() => {});
+    await prisma.notification.updateMany({
+      where: { userId: req.userId, type: 'challenge_invite', data: { path: ['challengeId'], equals: id } },
+      data: { read: true },
+    }).catch(() => {});
 
     res.json({ challenge: updated });
   } catch (e) {
@@ -306,6 +316,10 @@ router.post('/:id/decline', authMiddleware, async (req, res) => {
         message: `${declineUser?.username || 'Someone'} declined your challenge "${challenge.title}".`,
         data: { challengeId: id },
       },
+    }).catch(() => {});
+    await prisma.notification.updateMany({
+      where: { userId: req.userId, type: 'challenge_invite', data: { path: ['challengeId'], equals: id } },
+      data: { read: true },
     }).catch(() => {});
 
     res.json({ ok: true });

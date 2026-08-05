@@ -15,11 +15,13 @@
         <p class="text-sm leading-snug" :class="n.type === 'announcement' ? 'text-gray-400' : ''">{{ n.message }}</p>
         <div class="flex items-center gap-2 mt-2 flex-wrap">
           <template v-if="n.type === 'challenge_invite' && n.data?.challengeId">
-            <router-link :to="`/challenges/${n.data.challengeId}`"
-              class="btn text-xs px-3 py-1.5" @click="dismiss(n.id)">
-              View Challenge
-            </router-link>
-            <button @click="dismiss(n.id)" class="text-[10px] text-gray-500 hover:text-gray-300 transition-colors">Dismiss</button>
+            <button @click="acceptChallenge(n)" class="btn text-xs px-3 py-1.5"><Check :size="13" /> Accept</button>
+            <button @click="declineChallenge(n)" class="btn-secondary text-xs px-3 py-1.5"><X :size="13" /> Decline</button>
+            <button @click="dismiss(n.id)" class="text-[10px] text-gray-500 hover:text-gray-300 transition-colors">Later</button>
+          </template>
+          <template v-else-if="n.type === 'friend_request' && n.data?.requestId">
+            <button @click="acceptFriendRequest(n)" class="btn text-xs px-3 py-1.5"><Check :size="13" /> Accept</button>
+            <button @click="declineFriendRequest(n)" class="btn-secondary text-xs px-3 py-1.5"><X :size="13" /> Decline</button>
           </template>
           <template v-else-if="n.type === 'buddy_request'">
             <button @click="dismiss(n.id)" class="btn text-xs px-3 py-1.5">Got it</button>
@@ -35,8 +37,13 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { Trophy, Users, Bell, Megaphone } from 'lucide-vue-next'
+import { Trophy, Users, Bell, Megaphone, Check, X } from 'lucide-vue-next'
 import api from '../api'
+import { useRouter } from 'vue-router'
+import { useToast } from 'vue-toastification'
+
+const router = useRouter()
+const toast = useToast()
 
 const alerts = ref([])
 let pollInterval = null
@@ -55,6 +62,52 @@ async function dismiss(id) {
     alerts.value = alerts.value.filter(n => n.id !== id)
   } catch {}
 }
+
+async function acceptChallenge(n) {
+  try {
+    await api.post(`/challenges/${n.data.challengeId}/accept`)
+    toastSuccess('Challenge accepted!')
+    dismiss(n.id)
+    router.push(`/challenges/${n.data.challengeId}`)
+  } catch {
+    toastError('Failed to accept challenge')
+  }
+}
+
+async function declineChallenge(n) {
+  if (!confirm('Decline this challenge?')) return
+  try {
+    await api.post(`/challenges/${n.data.challengeId}/decline`)
+    toastSuccess('Challenge declined')
+    dismiss(n.id)
+  } catch {
+    toastError('Failed to decline challenge')
+  }
+}
+
+async function acceptFriendRequest(n) {
+  try {
+    await api.post(`/friends/request/${n.data.requestId}/accept`)
+    toastSuccess('Friend request accepted')
+    dismiss(n.id)
+  } catch {
+    toastError('Failed to accept friend request')
+  }
+}
+
+async function declineFriendRequest(n) {
+  if (!confirm('Decline this friend request?')) return
+  try {
+    await api.post(`/friends/request/${n.data.requestId}/decline`)
+    toastSuccess('Request declined')
+    dismiss(n.id)
+  } catch {
+    toastError('Failed to decline request')
+  }
+}
+
+const toastSuccess = (m) => toast(m, { type: 'success' })
+const toastError = (m) => toast(m, { type: 'error' })
 
 function iconFor(type) {
   if (type === 'announcement') return Megaphone
