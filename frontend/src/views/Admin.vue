@@ -151,6 +151,77 @@
       </div>
     </div>
 
+    <!-- NOTIFICATIONS TAB -->
+    <div v-if="activeTab === 'Notifications'" class="space-y-4">
+      <div class="card space-y-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm font-semibold">Send test notification</div>
+            <div class="text-[10px] text-gray-500">Verifies push delivery to your own device</div>
+          </div>
+          <button @click="sendTestNotification" :disabled="testLoading" class="btn text-xs min-h-[36px]">
+            <Loader2 v-if="testLoading" :size="12" class="animate-spin" />
+            <Bell v-else :size="12" />
+            Test push
+          </button>
+        </div>
+        <div class="flex flex-wrap gap-1">
+          <span v-for="(s, i) in testStatus" :key="i" class="text-[10px] px-1.5 py-0.5 rounded" :class="s.type === 'ok' ? 'bg-emerald-500/10 text-emerald-400' : s.type === 'warn' ? 'bg-amber-500/10 text-amber-400' : 'bg-gray-700 text-gray-400'">
+            {{ s.text }}
+          </span>
+        </div>
+      </div>
+
+      <div class="card space-y-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm font-semibold">Send to a user</div>
+            <div class="text-[10px] text-gray-500">Test push to a specific user</div>
+          </div>
+        </div>
+        <input v-model="testTargetSearch" @input="searchTestTargets" type="text" placeholder="Search user by username or email..." class="input" />
+        <div v-if="testTargetResults.length" class="space-y-1 max-h-40 overflow-y-auto">
+          <button v-for="u in testTargetResults" :key="u.id" @click="sendTestNotification(u.id)"
+            class="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-800 transition-colors text-left">
+            <div class="w-7 h-7 rounded-full bg-emerald-600 flex items-center justify-center text-[10px] font-bold shrink-0">
+              {{ (u.username || 'U')[0].toUpperCase() }}
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-xs truncate">{{ u.username }}</div>
+              <div class="text-[10px] text-gray-500 truncate">{{ u.email }}</div>
+            </div>
+            <Bell :size="12" class="text-gray-500 shrink-0" />
+          </button>
+        </div>
+        <div v-else class="text-[10px] text-gray-500">Type at least 2 characters to search users</div>
+      </div>
+
+      <div class="card space-y-3 border-amber-500/30">
+        <div>
+          <div class="text-sm font-semibold">Broadcast announcement</div>
+          <div class="text-[10px] text-gray-500">Sent to all users (except those who opted out). Use sparingly for product updates.</div>
+        </div>
+        <input v-model="announcementForm.title" type="text" maxlength="80" placeholder="Title, e.g. New: streak battles" class="input" />
+        <textarea v-model="announcementForm.message" maxlength="500" rows="3" placeholder="Message body..." class="input resize-none"></textarea>
+        <div class="flex items-center gap-3">
+          <label class="flex items-center gap-2 text-xs text-gray-400 cursor-pointer select-none">
+            <input v-model="announcementForm.sendPush" type="checkbox" class="accent-emerald-500 w-4 h-4" />
+            Also send push notification
+          </label>
+          <span class="text-[10px] text-gray-500">{{ announcementForm.message.length }}/500</span>
+        </div>
+        <button @click="sendAnnouncement" :disabled="announceLoading || !announcementForm.title || !announcementForm.message"
+          class="btn text-xs min-h-[36px] w-full sm:w-auto">
+          <Loader2 v-if="announceLoading" :size="12" class="animate-spin" />
+          <Megaphone v-else :size="12" />
+          Broadcast
+        </button>
+        <div v-if="announceResult" class="text-[10px] px-2 py-1.5 rounded bg-emerald-500/10 text-emerald-400">
+          Delivered to {{ announceResult.delivered }} users{{ announceResult.pushTargets ? `, push sent to ${announceResult.pushTargets}` : '' }}{{ announceResult.optedOutSkipped ? `, ${announceResult.optedOutSkipped} opted out` : '' }}
+        </div>
+      </div>
+    </div>
+
     <!-- Ban dialog -->
     <Teleport to="body">
       <div v-if="showBanDialog" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60" @click.self="showBanDialog = false">
@@ -180,18 +251,25 @@
 import { ref, computed, onMounted } from 'vue'
 import api from '../api'
 import { useToast } from 'vue-toastification'
-import { Inbox, Loader2, Ban, ShieldCheck, Trash2, EyeOff, CheckCircle } from 'lucide-vue-next'
+import { Inbox, Loader2, Ban, ShieldCheck, Trash2, EyeOff, CheckCircle, Bell, Megaphone } from 'lucide-vue-next'
 
 const toast = useToast()
 
 const activeTab = ref('Reports')
-const tabs = ['Reports', 'Users']
+const tabs = ['Reports', 'Users', 'Notifications']
 const adminStats = ref({})
 const reports = ref([])
 const users = ref([])
 const userSearch = ref('')
 const loadingReports = ref(false)
 const loadingUsers = ref(false)
+const testLoading = ref(false)
+const testStatus = ref([])
+const testTargetSearch = ref('')
+const testTargetResults = ref([])
+const announceLoading = ref(false)
+const announceResult = ref(null)
+const announcementForm = ref({ title: '', message: '', sendPush: false })
 
 const showBanDialog = ref(false)
 const banTarget = ref(null)
@@ -324,6 +402,72 @@ async function deleteReport(r) {
 function formatDate(d) {
   if (!d) return ''
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+async function sendTestNotification(userId = null) {
+  testLoading.value = true
+  testStatus.value = []
+  try {
+    const res = await api.post('/admin/test-notification', { userId })
+    if (userId) {
+      const u = testTargetResults.value.find(x => x.id === userId)
+      testStatus.value = [{ type: 'ok', text: `Push sent to ${u ? u.username : 'user'} (in-app + push if subscribed)` }]
+    } else {
+      testStatus.value = [
+        { type: 'ok', text: 'Test notification sent' },
+        { type: 'warn', text: 'If you have push enabled, it appears now' },
+      ]
+    }
+    toast.success('Test notification sent')
+  } catch (e) {
+    testStatus.value = [{ type: 'warn', text: e.response?.data?.error || 'Failed to send' }]
+    toast.error('Failed to send test notification')
+  } finally {
+    testLoading.value = false
+  }
+}
+
+let testDebounce = null
+function searchTestTargets() {
+  clearTimeout(testDebounce)
+  if (testTargetSearch.value.length < 2) {
+    testTargetResults.value = []
+    return
+  }
+  testDebounce = setTimeout(async () => {
+    try {
+      const res = await api.get('/admin/users', { params: { q: testTargetSearch.value } })
+      testTargetResults.value = (res.data.users || res.data || []).slice(0, 6)
+    } catch {
+      testTargetResults.value = []
+    }
+  }, 300)
+}
+
+async function sendAnnouncement() {
+  if (!announcementForm.value.title.trim() || !announcementForm.value.message.trim()) return
+  const title = announcementForm.value.title.trim()
+  const message = announcementForm.value.message.trim()
+  if (!confirm(`Broadcast "${title}" to all users? This cannot be undone.`)) return
+
+  announceLoading.value = true
+  announceResult.value = null
+  try {
+    const res = await api.post('/admin/announcements', {
+      title,
+      message,
+      sendPush: announcementForm.value.sendPush,
+    })
+    announceResult.value = res.data
+    announcementForm.value.title = ''
+    announcementForm.value.message = ''
+    announcementForm.value.sendPush = false
+    toast.success(`Announcement delivered to ${res.data.delivered} users`)
+  } catch (e) {
+    toast.error(e.response?.data?.error || 'Failed to broadcast')
+  } finally {
+    announceLoading.value = false
+  }
 }
 
 onMounted(async () => {

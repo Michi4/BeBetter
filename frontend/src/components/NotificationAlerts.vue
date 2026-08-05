@@ -11,7 +11,8 @@
         <component :is="iconFor(n.type)" :size="13" />
       </div>
       <div class="flex-1 min-w-0">
-        <p class="text-sm leading-snug">{{ n.message }}</p>
+        <p v-if="n.type === 'announcement'" class="text-sm font-semibold">{{ n.data?.title || 'Announcement' }}</p>
+        <p class="text-sm leading-snug" :class="n.type === 'announcement' ? 'text-gray-400' : ''">{{ n.message }}</p>
         <div class="flex items-center gap-2 mt-2 flex-wrap">
           <template v-if="n.type === 'challenge_invite' && n.data?.challengeId">
             <router-link :to="`/challenges/${n.data.challengeId}`"
@@ -34,7 +35,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { Trophy, Users, Bell } from 'lucide-vue-next'
+import { Trophy, Users, Bell, Megaphone } from 'lucide-vue-next'
 import api from '../api'
 
 const alerts = ref([])
@@ -56,6 +57,7 @@ async function dismiss(id) {
 }
 
 function iconFor(type) {
+  if (type === 'announcement') return Megaphone
   if (type?.includes('challenge')) return Trophy
   if (type?.includes('buddy')) return Users
   if (type?.includes('friend')) return Users
@@ -63,6 +65,7 @@ function iconFor(type) {
 }
 
 function iconBg(type) {
+  if (type === 'announcement') return 'bg-purple-500/20 text-purple-400'
   if (type?.includes('challenge_invite')) return 'bg-amber-500/20 text-amber-400'
   if (type?.includes('challenge_accepted')) return 'bg-emerald-500/20 text-emerald-400'
   if (type?.includes('challenge_declined')) return 'bg-red-500/20 text-red-400'

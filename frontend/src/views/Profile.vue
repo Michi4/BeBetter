@@ -220,6 +220,20 @@
                   :class="pushEnabled ? 'translate-x-6' : ''"></span>
               </button>
             </div>
+
+            <!-- Announcements -->
+            <div class="flex items-center justify-between min-h-[44px]">
+              <div>
+                <div class="text-sm text-gray-300">Announcements</div>
+                <div class="text-[10px] text-gray-500">Product updates from the BeBetter team</div>
+              </div>
+              <button @click="notifPrefs.announcementsEnabled = !notifPrefs.announcementsEnabled; saveNotifPrefs()"
+                class="relative w-12 h-6 rounded-full transition-colors duration-200"
+                :class="notifPrefs.announcementsEnabled ? 'bg-emerald-600' : 'bg-gray-700'">
+                <span class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200"
+                  :class="notifPrefs.announcementsEnabled ? 'translate-x-6' : ''"></span>
+              </button>
+            </div>
           </div>
           <div v-else class="text-center py-4">
             <Loader2 :size="16" class="animate-spin mx-auto text-gray-500" />

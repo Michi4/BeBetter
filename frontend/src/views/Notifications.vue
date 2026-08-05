@@ -24,7 +24,8 @@
           <component :is="iconComponent(n.type)" :size="14" />
         </div>
         <div class="flex-1 min-w-0">
-          <p class="text-sm">{{ n.message }}</p>
+          <p v-if="n.type === 'announcement'" class="text-sm font-semibold">{{ n.data?.title || 'Announcement' }}</p>
+          <p class="text-sm" :class="n.type === 'announcement' ? 'text-gray-400 mt-0.5' : ''">{{ n.message }}</p>
           <p class="text-[10px] text-gray-500 mt-1">{{ formatTime(n.createdAt) }}</p>
 
           <div v-if="n.type === 'challenge_invite' && n.data?.challengeId && !n.read" class="flex gap-2 mt-2">
@@ -51,7 +52,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import api from '../api'
-import { Bell, Trophy, Users, Eye, Shield } from 'lucide-vue-next'
+import { Bell, Trophy, Users, Eye, Shield, Megaphone } from 'lucide-vue-next'
 
 const notifications = ref([])
 const unread = ref(0)
@@ -87,12 +88,14 @@ async function markAllRead() {
 }
 
 function iconComponent(type) {
+  if (type === 'announcement') return Megaphone
   if (type?.includes('challenge')) return Trophy
   if (type?.includes('buddy')) return Users
   return Bell
 }
 
 function iconClass(type) {
+  if (type === 'announcement') return 'bg-purple-500/20 text-purple-400'
   if (type?.includes('challenge_invite')) return 'bg-amber-500/20 text-amber-400'
   if (type?.includes('challenge_accepted')) return 'bg-emerald-500/20 text-emerald-400'
   if (type?.includes('challenge_declined')) return 'bg-red-500/20 text-red-400'

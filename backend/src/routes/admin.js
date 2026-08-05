@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const prisma = require('../lib/prisma');
 const { authMiddleware } = require('../middleware/auth');
+const { sendPushNotification } = require('../scheduler');
 
 const router = Router();
 
@@ -221,6 +222,79 @@ router.delete('/reports/:id', async (req, res) => {
     res.json({ ok: true });
   } catch (e) {
     console.error('admin delete report error:', e.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.post('/announcements', async (req, res) => {
+  try {
+    const { title, message, sendPush } = req.body || {};
+    if (!title || !message) return res.status(400).json({ error: 'title and message are required' });
+
+    // Only users with an explicit opt-out record are skipped; everyone else defaults to announcements ON
+    const optedOut = await prisma.notificationPreference.findMany({
+      where: { announcementsEnabled: false },
+      select: { userId: true },
+    });
+    const optedOutIds = new Set(optedOut.map((p) => p.userId));
+
+    // Includes users with no preference record (defaults apply) unless they have opted out
+    const users = await prisma.user.findMany({
+      where: { bannedUntil: null },
+      select: { id: true },
+    });
+
+    let pushTargets = 0;
+    let savedCount = 0;
+    let skipped = 0;
+
+    for (const user of users) {
+      if (optedOutIds.has(user.id)) {
+        skipped++;
+        continue;
+      }
+
+      await prisma.notification.create({
+        data: { userId: user.id, type: 'announcement', message, data: { title } },
+      });
+      savedCount++;
+
+      if (sendPush) {
+        await sendPushNotification(user.id, title, message, '/notifications');
+        pushTargets++;
+      }
+    }
+
+    res.json({
+      ok: true,
+      delivered: savedCount,
+      pushTargets,
+      optedOutSkipped: skipped,
+    });
+  } catch (e) {
+    console.error('announcements error:', e.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.post('/test-notification', async (req, res) => {
+  try {
+    const targetUserId = req.body?.userId || req.userId;
+    const title = req.body?.title || 'BeBetter Test';
+    const body = req.body?.body || 'This is a test notification. If you see this, push is working correctly.';
+
+    const target = await prisma.user.findUnique({ where: { id: targetUserId }, select: { id: true } });
+    if (!target) return res.status(404).json({ error: 'User not found' });
+
+    const notification = await prisma.notification.create({
+      data: { userId: targetUserId, type: 'test', message: body, data: { title } },
+    });
+
+    await sendPushNotification(targetUserId, title, body, '/');
+
+    res.json({ ok: true, notification });
+  } catch (e) {
+    console.error('test-notification error:', e.message);
     res.status(500).json({ error: 'Server error' });
   }
 });

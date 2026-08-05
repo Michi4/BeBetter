@@ -68,16 +68,16 @@ router.get('/preferences', authMiddleware, async (req, res) => {
 
 router.put('/preferences', authMiddleware, async (req, res) => {
   try {
-    const { morningEnabled, morningTime, habitRemindersEnabled, eveningEnabled, eveningTime } = req.body;
+    const { morningEnabled, morningTime, habitRemindersEnabled, eveningEnabled, eveningTime, announcementsEnabled } = req.body;
 
     const prefs = await prisma.notificationPreference.upsert({
       where: { userId: req.userId },
       update: {
-        morningEnabled, morningTime, habitRemindersEnabled, eveningEnabled, eveningTime,
+        morningEnabled, morningTime, habitRemindersEnabled, eveningEnabled, eveningTime, announcementsEnabled,
       },
       create: {
         userId: req.userId,
-        morningEnabled, morningTime, habitRemindersEnabled, eveningEnabled, eveningTime,
+        morningEnabled, morningTime, habitRemindersEnabled, eveningEnabled, eveningTime, announcementsEnabled,
       },
     });
 

@@ -329,6 +329,7 @@ model NotificationPreference {
   habitRemindersEnabled Boolean  @default(true)
   eveningEnabled        Boolean  @default(true)
   eveningTime           String   @default("21:00")
+  announcementsEnabled  Boolean  @default(true)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @default(now())
 }
