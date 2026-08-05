@@ -180,6 +180,7 @@ import TaskCard from '../components/TaskCard.vue'
 import BeBetterCam from '../components/BeBetterCam.vue'
 import CreateModal from '../components/CreateModal.vue'
 import NotificationAlerts from '../components/NotificationAlerts.vue'
+import { formatTime } from '../utils/timeFormat'
 
 const toast = useToast()
 
@@ -206,14 +207,6 @@ function nextDay() {
   const d = new Date(selectedDate.value)
   d.setDate(d.getDate() + 1)
   selectedDate.value = d.toISOString().slice(0, 10)
-}
-
-function formatTime(t) {
-  if (!t) return ''
-  const [h, m] = t.split(':').map(Number)
-  const ampm = h >= 12 ? 'pm' : 'am'
-  const hour = h % 12 || 12
-  return m === 0 ? `${hour}${ampm}` : `${hour}:${String(m).padStart(2, '0')}${ampm}`
 }
 
 async function loadHistory() {

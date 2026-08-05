@@ -7,7 +7,7 @@
 
 set +e
 
-BASE="https://bebetter.home.websters.at/api"
+BASE="https://bebetter.websters.at/api"
 PASS=0; FAIL=0; TOTAL=0
 ADMIN_TOKEN=""; ALICE_TOKEN=""; BOB_TOKEN=""
 ADMIN_ID=""; ALICE_ID=""; BOB_ID=""

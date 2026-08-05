@@ -26,6 +26,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { CheckCircle2, Camera } from 'lucide-vue-next'
+import { formatTime } from '../utils/timeFormat'
 
 const props = defineProps({
   habit: { type: Object, required: true },
@@ -44,14 +45,6 @@ const isCompleted = computed(() => {
   }
   return props.habit.completedToday
 })
-
-function formatTime(t) {
-  if (!t) return ''
-  const [h, m] = t.split(':').map(Number)
-  const ampm = h >= 12 ? 'pm' : 'am'
-  const hour = h % 12 || 12
-  return m === 0 ? `${hour}${ampm}` : `${hour}:${String(m).padStart(2, '0')}${ampm}`
-}
 
 function handleCardClick() {
   if (props.habit.challengeId) {

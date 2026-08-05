@@ -4,6 +4,31 @@ const { authMiddleware } = require('../middleware/auth');
 
 const router = Router();
 
+function normalizeJson(val) {
+  if (val == null) return null;
+  if (typeof val === 'object') return val;
+  if (typeof val === 'string') {
+    try {
+      const parsed = JSON.parse(val);
+      if (typeof parsed === 'string') {
+        try { return JSON.parse(parsed); } catch { return parsed; }
+      }
+      return parsed;
+    } catch { return null; }
+  }
+  return null;
+}
+
+function normalizeSchedules(val) {
+  const parsed = normalizeJson(val);
+  return Array.isArray(parsed) ? parsed : null;
+}
+
+function normalizeDaysPerWeek(val) {
+  const parsed = normalizeJson(val);
+  return Array.isArray(parsed) ? parsed : [0, 1, 2, 3, 4, 5, 6];
+}
+
 const habitInclude = {
   tags: { select: { id: true, name: true, color: true } },
   breaks: { orderBy: { startDate: 'desc' } },
@@ -31,16 +56,16 @@ router.get('/', authMiddleware, async (req, res) => {
     const enriched = habits.map((h) => {
       const activeBreak = h.breaks.find((b) => !b.endDate);
       const isActive = !activeBreak && h.active;
-      const sched = JSON.parse(typeof h.daysPerWeek === 'string' ? h.daysPerWeek : JSON.stringify(h.daysPerWeek || '[]'));
-      const schedules = h.schedules ? (typeof h.schedules === 'string' ? JSON.parse(h.schedules) : h.schedules) : null;
+      const sched = normalizeDaysPerWeek(h.daysPerWeek);
+      const schedules = normalizeSchedules(h.schedules);
       return { ...h, scheduledDays: sched, schedules, activeBreak, isActive, challengeId: null };
     });
 
     for (const ch of challengeData) {
       const h = ch.habit;
       if (!enriched.find(e => e.id === h.id)) {
-        const sched = JSON.parse(typeof h.daysPerWeek === 'string' ? h.daysPerWeek : JSON.stringify(h.daysPerWeek || '[]'));
-        const schedules = h.schedules ? (typeof h.schedules === 'string' ? JSON.parse(h.schedules) : h.schedules) : null;
+        const sched = normalizeDaysPerWeek(h.daysPerWeek);
+        const schedules = normalizeSchedules(h.schedules);
         enriched.push({ ...h, scheduledDays: sched, schedules, activeBreak: null, isActive: true, challengeId: ch.id, challengeOpponent: ch.creator });
       }
     }
@@ -92,7 +117,7 @@ router.get('/scheduled', authMiddleware, async (req, res) => {
     const buildScheduledEntries = (h, challengeId, challengeOpponent) => {
       const activeBreak = h.breaks.find((b) => !b.endDate);
       const hasBreak = !!activeBreak;
-      const schedules = h.schedules ? (typeof h.schedules === 'string' ? JSON.parse(h.schedules) : h.schedules) : null;
+      const schedules = normalizeSchedules(h.schedules);
 
       if (hasBreak || isOnVacation) return [];
 
@@ -116,7 +141,7 @@ router.get('/scheduled', authMiddleware, async (req, res) => {
         return entries;
       }
 
-      const sched = JSON.parse(typeof h.daysPerWeek === 'string' ? h.daysPerWeek : JSON.stringify(h.daysPerWeek || '[]'));
+      const sched = normalizeDaysPerWeek(h.daysPerWeek);
       let isScheduled = false;
       if (h.frequencyType === 'daily' || h.frequencyType === 'always') isScheduled = true;
       else if (Array.isArray(sched) && sched.includes(dayOfWeek)) isScheduled = true;
@@ -174,9 +199,9 @@ router.post('/', authMiddleware, async (req, res) => {
           for (const d of entry.days) unionDays.add(d);
         }
       }
-      finalDaysPerWeek = JSON.stringify([...unionDays].sort((a, b) => a - b));
+      finalDaysPerWeek = [...unionDays].sort((a, b) => a - b);
     } else {
-      finalDaysPerWeek = Array.isArray(schedArray) ? JSON.stringify(schedArray) : schedArray;
+      finalDaysPerWeek = Array.isArray(schedArray) ? schedArray : schedArray;
     }
 
     const habit = await prisma.habit.create({
@@ -187,7 +212,7 @@ router.post('/', authMiddleware, async (req, res) => {
         emoji: emoji || '🎯',
         frequencyType: finalFreqType,
         daysPerWeek: finalDaysPerWeek,
-        schedules: Array.isArray(schedules) && schedules.length > 0 ? JSON.stringify(schedules) : undefined,
+        schedules: Array.isArray(schedules) && schedules.length > 0 ? schedules : undefined,
         reminderMinutes: reminderMinutes !== undefined ? reminderMinutes : undefined,
         config: config || undefined,
         verificationType: verificationType || 'honor',
@@ -313,7 +338,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     };
 
     if (Array.isArray(schedules) && schedules.length > 0) {
-      updateData.schedules = JSON.stringify(schedules);
+      updateData.schedules = schedules;
       updateData.frequencyType = 'daily';
       const unionDays = new Set();
       for (const entry of schedules) {
@@ -321,14 +346,14 @@ router.put('/:id', authMiddleware, async (req, res) => {
           for (const d of entry.days) unionDays.add(d);
         }
       }
-      updateData.daysPerWeek = JSON.stringify([...unionDays].sort((a, b) => a - b));
+      updateData.daysPerWeek = [...unionDays].sort((a, b) => a - b);
     } else if (schedules !== undefined && schedules !== null) {
       updateData.schedules = null;
       if (frequencyType !== undefined) updateData.frequencyType = frequencyType;
-      if (sched !== undefined) updateData.daysPerWeek = Array.isArray(sched) ? JSON.stringify(sched) : sched;
+      if (sched !== undefined) updateData.daysPerWeek = sched;
     } else {
       if (frequencyType !== undefined) updateData.frequencyType = frequencyType;
-      if (sched !== undefined) updateData.daysPerWeek = Array.isArray(sched) ? JSON.stringify(sched) : sched;
+      if (sched !== undefined) updateData.daysPerWeek = sched;
     }
 
     const updated = await prisma.habit.update({
@@ -500,7 +525,14 @@ router.get('/:id', authMiddleware, async (req, res) => {
       })
     );
 
-    res.json({ habit: { ...habit, buddyProgress } });
+    const normalizedHabit = {
+      ...habit,
+      schedules: normalizeSchedules(habit.schedules),
+      daysPerWeek: normalizeDaysPerWeek(habit.daysPerWeek),
+      buddyProgress,
+    };
+
+    res.json({ habit: normalizedHabit });
   } catch (e) {
     console.error('habit GET :id error:', e.message);
     res.status(500).json({ error: 'Server error' });
@@ -555,6 +587,40 @@ router.delete('/:id/buddy/:buddyId', authMiddleware, async (req, res) => {
     res.json({ ok: true });
   } catch (e) {
     console.error('buddy DELETE error:', e.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.get('/featured/public', async (req, res) => {
+  try {
+    const habits = await prisma.habit.findMany({
+      where: { isPublic: true, active: true },
+      orderBy: { logs: { _count: 'desc' } },
+      take: 3,
+      select: {
+        id: true,
+        title: true,
+        emoji: true,
+        bestStreak: true,
+        schedules: true,
+        _count: { select: { logs: true } },
+      },
+    });
+
+    const formatted = habits.map(h => ({
+      id: h.id,
+      title: h.title,
+      emoji: h.emoji || '🎯',
+      streak: h.bestStreak || 0,
+      scheduleDisplay: h.schedules && h.schedules.length > 0 && h.schedules[0].time
+        ? h.schedules[0].time
+        : 'Anytime',
+      completionCount: h._count?.logs || 0,
+    }));
+
+    res.json({ habits: formatted });
+  } catch (e) {
+    console.error('featured public habits error:', e.message);
     res.status(500).json({ error: 'Server error' });
   }
 });

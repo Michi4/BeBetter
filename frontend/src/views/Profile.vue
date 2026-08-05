@@ -1,10 +1,34 @@
 <template>
   <div class="page">
-    <div v-if="loading" class="text-center py-16">
-      <Loader2 :size="24" class="animate-spin mx-auto text-gray-500" />
-    </div>
+    <header class="border-b border-gray-800/60 dark:border-gray-700/60 bg-gray-900/80 dark:bg-gray-900/80 backdrop-blur-xl sticky top-0 z-50 safe-top">
+      <div class="max-w-3xl mx-auto px-4 h-12 flex items-center justify-between">
+        <a href="/" class="flex items-center gap-2 font-bold text-lg">
+          <Logo :size="28" />
+          <span class="bg-gradient-to-r from-emerald-400 to-emerald-300 bg-clip-text text-transparent">BeBetter</span>
+        </a>
+        <div class="flex items-center gap-1 shrink-0">
+          <button @click="toggleTheme" class="p-2.5 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 dark:hover:bg-gray-700 transition-colors touch-target" aria-label="Toggle theme">
+            <Sun v-if="isDark" :size="18" />
+            <Moon v-else :size="18" />
+          </button>
+          <template v-if="auth.user">
+            <router-link :to="`/profile/${auth.user.username || auth.user.id}`"
+              class="w-8 h-8 rounded-full bg-emerald-600/20 flex items-center justify-center text-xs font-bold text-emerald-400 ring-1 ring-emerald-500/30">
+              {{ (auth.user?.username || '?')[0]?.toUpperCase() || '?' }}
+            </router-link>
+            <button @click="handleLogout" class="p-2.5 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 dark:hover:bg-gray-700 transition-colors touch-target">
+              <LogOut :size="18" />
+            </button>
+          </template>
+          <template v-else>
+            <a href="/login" class="text-xs font-medium text-emerald-400 hover:text-emerald-300 px-2 py-1 rounded-lg hover:bg-gray-800 transition-colors underline underline-offset-2">Sign In</a>
+            <a href="/register" class="text-xs font-medium bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-500 transition-colors">Sign Up</a>
+          </template>
+        </div>
+      </div>
+    </header>
 
-    <template v-else-if="profile">
+    <template v-if="profile">
       <!-- Profile header (own or other) -->
       <div class="card text-center space-y-4">
         <div class="relative inline-block">
@@ -93,6 +117,32 @@
           <button @click="saveProfile" class="btn w-full">
             <Save :size="14" /> Save Profile
           </button>
+        </div>
+
+        <!-- Display Settings -->
+        <div class="card space-y-4">
+          <div class="flex items-center gap-2">
+            <Clock :size="16" class="text-emerald-400" />
+            <h3 class="section-title">Display Settings</h3>
+          </div>
+          <div class="flex items-center justify-between min-h-[44px]">
+            <div>
+              <div class="text-sm text-gray-300">Time Format</div>
+              <div class="text-[10px] text-gray-500">Choose how times are displayed</div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button @click="setTimeFormat('12h')" :disabled="timeFormat === '12h'"
+                class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                :class="timeFormat === '12h' ? 'bg-emerald-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'">
+                12h (AM/PM)
+              </button>
+              <button @click="setTimeFormat('24h')" :disabled="timeFormat === '24h'"
+                class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                :class="timeFormat === '24h' ? 'bg-emerald-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'">
+                24h
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- Notification Settings -->
@@ -310,13 +360,20 @@ import { useAuthStore } from '../stores/auth'
 import { useToast } from 'vue-toastification'
 import {
   UserPlus, Swords, Trash2, Camera, X, AlertTriangle, Loader2, Clock, Check,
-  User, Bell, Palmtree, Play, KeyRound, Save, RefreshCw, ChevronLeft, ChevronRight
+  User, Bell, Palmtree, Play, KeyRound, Save, RefreshCw, ChevronLeft, ChevronRight,
+  LogOut
 } from 'lucide-vue-next'
 import ContributionGrid from '../components/ContributionGrid.vue'
+import { useTheme } from '../composables/useTheme'
 
-const route = useRoute()
+const { isDark, toggleTheme } = useTheme()
 const router = useRouter()
 const auth = useAuthStore()
+
+function handleLogout() {
+  auth.logout()
+  router.push('/login')
+}
 const toast = useToast()
 
 const profile = ref(null)
@@ -342,6 +399,8 @@ const pushLoading = ref(false)
 const profileGrid = ref([])
 const gridYear = ref(new Date().getFullYear())
 const gridYearRange = ref({ firstYear: new Date().getFullYear(), lastYear: new Date().getFullYear() })
+
+const timeFormat = ref(localStorage.getItem('bebetter_timeFormat') || '24h')
 
 const isOwn = computed(() => {
   const param = route.params.id
@@ -565,6 +624,12 @@ function formatDate(dateStr) {
   if (diff === 1) return 'Yesterday'
   if (diff < 7) return `${diff} days ago`
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+function setTimeFormat(fmt) {
+  timeFormat.value = fmt
+  localStorage.setItem('bebetter_timeFormat', fmt)
+  toast.success(`Time format set to ${fmt === '12h' ? '12h (AM/PM)' : '24h'}`)
 }
 
 async function loadProfileGrid() {

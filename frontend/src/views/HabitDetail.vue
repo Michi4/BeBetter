@@ -282,6 +282,7 @@ import { useToast } from 'vue-toastification'
 import { useAuthStore } from '../stores/auth'
 import { ArrowLeft, Pencil, Save, Pause, Play, CheckCircle, Trash2, ChevronRight, Copy, Link, Loader2, Clock, Bell } from 'lucide-vue-next'
 import HabitForm from '../components/HabitForm.vue'
+import { formatTime } from '../utils/timeFormat'
 
 const route = useRoute()
 const router = useRouter()
@@ -328,7 +329,29 @@ const editForm = reactive({
 async function loadHabit() {
   try {
     const res = await api.get(`/habits/${route.params.id}`)
-    habit.value = res.data.habit || res.data
+    const loadedHabit = res.data.habit || res.data
+
+    // Frontend defensive parsing for double-stringified JS JSONs
+    if (loadedHabit) {
+      if (typeof loadedHabit.schedules === 'string') {
+        try {
+          loadedHabit.schedules = JSON.parse(loadedHabit.schedules);
+          if (typeof loadedHabit.schedules === 'string') {
+            loadedHabit.schedules = JSON.parse(loadedHabit.schedules);
+          }
+        } catch { loadedHabit.schedules = null; }
+      }
+      if (typeof loadedHabit.daysPerWeek === 'string') {
+        try {
+          loadedHabit.daysPerWeek = JSON.parse(loadedHabit.daysPerWeek);
+          if (typeof loadedHabit.daysPerWeek === 'string') {
+            loadedHabit.daysPerWeek = JSON.parse(loadedHabit.daysPerWeek);
+          }
+        } catch { loadedHabit.daysPerWeek = null; }
+      }
+    }
+
+    habit.value = loadedHabit
     editForm.title = habit.value.title
     editForm.description = habit.value.description || ''
     editForm.emoji = habit.value.emoji || '🎯'
@@ -336,13 +359,17 @@ async function loadHabit() {
     editForm.config = habit.value.config || null
     editForm.reminderMinutes = Array.isArray(habit.value.reminderMinutes) ? [...habit.value.reminderMinutes] : (habit.value.reminderMinutes != null ? [habit.value.reminderMinutes] : [])
 
-    if (habit.value.schedules?.length) {
+    if (Array.isArray(habit.value.schedules) && habit.value.schedules.length) {
       editForm.schedules = habit.value.schedules.map(s => ({
         time: s.time || null,
         days: Array.isArray(s.days) ? [...s.days] : [0, 1, 2, 3, 4, 5, 6],
       }))
     } else {
-      const sched = JSON.parse(typeof habit.value.daysPerWeek === 'string' ? habit.value.daysPerWeek : JSON.stringify(habit.value.daysPerWeek || '[]'))
+      const sched = Array.isArray(habit.value.daysPerWeek)
+        ? habit.value.daysPerWeek
+        : (typeof habit.value.daysPerWeek === 'string'
+            ? JSON.parse(habit.value.daysPerWeek)
+            : [0, 1, 2, 3, 4, 5, 6]);
       editForm.schedules = [{ time: null, days: Array.isArray(sched) && sched.length ? sched : [0, 1, 2, 3, 4, 5, 6] }]
     }
 
@@ -446,14 +473,6 @@ function formatRecurrence(h) {
   }
   if (h.frequencyType === 'daily' || h.frequencyType === 'always') return 'Daily'
   return h.frequencyType || 'Daily'
-}
-
-function formatTime(t) {
-  if (!t) return ''
-  const [h, m] = t.split(':').map(Number)
-  const ampm = h >= 12 ? 'pm' : 'am'
-  const hour = h % 12 || 12
-  return m === 0 ? `${hour}${ampm}` : `${hour}:${String(m).padStart(2, '0')}${ampm}`
 }
 
 function formatScheduleDays(days) {

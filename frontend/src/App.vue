@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-[100dvh]">
     <!-- Top bar -->
-    <nav class="border-b border-gray-800/60 bg-gray-900/80 backdrop-blur-xl sticky top-0 z-50 safe-top">
+    <nav v-if="!publicRoutes.includes(route.name)" class="border-b border-gray-800/60 bg-gray-900/80 backdrop-blur-xl sticky top-0 z-50 safe-top">
       <div class="max-w-3xl mx-auto px-4 h-12 flex items-center justify-between">
         <div class="flex items-center gap-2 shrink-0">
           <router-link to="/dashboard" class="flex items-center gap-2 font-bold text-lg">
@@ -63,17 +63,20 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
 import { LogOut, LayoutDashboard, ListTodo, Users, Trophy, BookOpen, Shield, Sun, Moon } from 'lucide-vue-next'
 import Logo from './components/Logo.vue'
 import PushPrompt from './components/PushPrompt.vue'
+import { useTheme } from './composables/useTheme'
 
 const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
-const isDark = ref(true)
+const { isDark, toggleTheme } = useTheme()
+
+const publicRoutes = ['landing', 'login', 'register', 'forgot-password', 'reset-password', 'privacy', 'terms', 'imprint']
 
 const desktopNavItems = computed(() => {
   const items = [
@@ -113,22 +116,8 @@ function isActive(to) {
   return path.startsWith(to)
 }
 
-function toggleTheme() {
-  isDark.value = !isDark.value
-  document.documentElement.classList.toggle('light', !isDark.value)
-  localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
-}
-
 function handleLogout() {
   auth.logout()
   router.push('/login')
 }
-
-onMounted(() => {
-  const saved = localStorage.getItem('theme')
-  if (saved === 'light') {
-    isDark.value = false
-    document.documentElement.classList.add('light')
-  }
-})
 </script>

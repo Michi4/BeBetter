@@ -261,3 +261,32 @@ html.light .text-red-400 { color: #dc2626 !important; }
 html.light .text-blue-400 { color: #2563eb !important; }
 html.light .ring-emerald-500\/30 { --tw-ring-color: rgba(5,150,105,0.2); }
 html.light .ring-emerald-400\/60 { --tw-ring-color: rgba(5,150,105,0.4); }
+
+/* ============================================
+   Landing page - light mode overrides
+   (dark-first by default; flip via html.light)
+   ============================================ */
+html.light .bg-gray-950 { background: #f9fafb !important; }
+html.light .bg-gray-950\/80 { background: rgba(255,255,255,0.9) !important; }
+html.light .bg-gray-900\/20 { background: rgba(255,255,255,0.6) !important; }
+html.light .bg-gray-900\/40 { background: rgba(255,255,255,0.85) !important; }
+html.light .bg-gray-900\/50 { background: rgba(255,255,255,0.9) !important; }
+html.light .bg-gray-900\/60 { background: rgba(255,255,255,0.92) !important; }
+html.light .border-gray-900 { border-color: #e5e7eb !important; }
+html.light .border-gray-900\/60 { border-color: rgba(0,0,0,0.06) !important; }
+html.light .border-gray-900\/70 { border-color: rgba(0,0,0,0.07) !important; }
+html.light .text-white { color: #111827 !important; }
+html.light .hover\:text-white:hover { color: #374151 !important; }
+html.light .from-white { --tw-gradient-from: #111827 !important; }
+html.light .to-gray-300 { --tw-gradient-to: #4b5563 !important; }
+html.light .via-gray-100 { --tw-gradient-stops: var(--tw-gradient-from), #374151, var(--tw-gradient-to) !important; }
+html.light .from-emerald-400 { --tw-gradient-from: #059669 !important; }
+html.light .via-teal-300 { --tw-gradient-stops: var(--tw-gradient-from), #14b8a6, var(--tw-gradient-to) !important; }
+html.light .to-teal-400 { --tw-gradient-to: #0d9488 !important; }
+html.light .to-cyan-400 { --tw-gradient-to: #0891b2 !important; }
+html.light .from-cyan-400 { --tw-gradient-from: #0891b2 !important; }
+html.light .to-indigo-400 { --tw-gradient-to: #6366f1 !important; }
+html.light .bg-white\/5 { background: rgba(255,255,255,0.5) !important; }
+html.light .bg-white\/10 { background: rgba(255,255,255,0.6) !important; }
+html.light .border-white\/10 { border-color: rgba(0,0,0,0.08) !important; }
+html.light .text-emerald-500 { color: #059669 !important; }

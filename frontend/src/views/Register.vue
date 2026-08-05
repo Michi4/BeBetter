@@ -1,11 +1,15 @@
 <template>
   <div class="min-h-screen flex items-center justify-center px-4">
     <div class="w-full max-w-sm">
-      <div class="text-center mb-8">
+      <div class="flex justify-between mb-8">
         <div class="flex justify-center mb-3"><Logo :size="56" /></div>
-        <h1 class="text-2xl font-bold">BeBetter</h1>
-        <p class="text-gray-500 text-sm mt-1">Start your journey</p>
+        <button @click="toggleTheme" class="p-2.5 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition-colors touch-target" aria-label="Toggle theme">
+          <Sun v-if="isDark" :size="18" />
+          <Moon v-else :size="18" />
+        </button>
       </div>
+      <h1 class="text-2xl font-bold">BeBetter</h1>
+      <p class="text-gray-500 text-sm mt-1">Start your journey</p>
       <form @submit.prevent="handleRegister" class="card space-y-4">
         <div v-if="error" class="text-red-400 text-sm bg-red-500/10 px-3 py-2 rounded-lg">{{ error }}</div>
         <input v-model="form.username" type="text" placeholder="Username (3-20 chars)" class="input" required
@@ -41,13 +45,15 @@ import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useToast } from 'vue-toastification'
-import { Loader2, Eye, EyeOff } from 'lucide-vue-next'
+import { Loader2, Eye, EyeOff, Sun, Moon } from 'lucide-vue-next'
 import Logo from '../components/Logo.vue'
+import { useTheme } from '../composables/useTheme'
 
 const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
 const toast = useToast()
+const { isDark, toggleTheme } = useTheme()
 
 const form = ref({ username: '', email: '', password: '' })
 const stayLoggedIn = ref(true)

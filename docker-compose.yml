@@ -7,6 +7,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-bebetter}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secretpassword}
       POSTGRES_DB: ${POSTGRES_DB:-bebetter_db}
+      TZ: Europe/Vienna
+      PGTZ: Europe/Vienna
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
@@ -34,10 +36,19 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik"
+      # Primary router: bebetter.websters.at
       - "traefik.http.routers.bebetter.entrypoints=websecure"
-      - "traefik.http.routers.bebetter.rule=Host(`${DOMAIN:-bebetter.home.websters.at}`)"
+      - "traefik.http.routers.bebetter.rule=Host(`${DOMAIN:-bebetter.websters.at}`)"
       - "traefik.http.routers.bebetter.middlewares=crowdsec@docker,strip-xframe@file"
       - "traefik.http.routers.bebetter.tls.certresolver=myresolver"
+      # Legacy domain router with 301 redirect to bebetter.websters.at
+      - "traefik.http.routers.bebetter-legacy.entrypoints=websecure"
+      - "traefik.http.routers.bebetter-legacy.rule=Host(`bebetter.home.websters.at`)"
+      - "traefik.http.routers.bebetter-legacy.middlewares=bebetter-redirect@docker,crowdsec@docker"
+      - "traefik.http.routers.bebetter-legacy.tls.certresolver=myresolver"
+      - "traefik.http.middlewares.bebetter-redirect.redirectregex.regex=^https?://bebetter\\.home\\.websters\\.at/(.*)"
+      - "traefik.http.middlewares.bebetter-redirect.redirectregex.replacement=https://bebetter.websters.at/$$1"
+      - "traefik.http.middlewares.bebetter-redirect.redirectregex.permanent=true"
       - "traefik.http.services.bebetter.loadbalancer.server.port=3000"
     networks:
       - bebetter-net

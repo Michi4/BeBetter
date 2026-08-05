@@ -162,7 +162,7 @@ router.post('/forgot-password', async (req, res) => {
       data: { userId: user.id, token, expiresAt },
     });
 
-    const resetUrl = `${process.env.FRONTEND_URL || 'https://bebetter.home.websters.at'}/reset-password?token=${token}`;
+    const resetUrl = `${process.env.FRONTEND_URL || 'https://bebetter.websters.at'}/reset-password?token=${token}`;
 
     try {
       const { sendEmail } = require('../email');

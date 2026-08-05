@@ -96,6 +96,7 @@
 <script setup>
 import { ref, reactive, computed, nextTick } from 'vue'
 import { Check, X, Pencil, ArrowRightLeft, Trash2, Clock } from 'lucide-vue-next'
+import { formatTime } from '../utils/timeFormat'
 
 const props = defineProps({ task: { type: Object, required: true } })
 const emit = defineEmits(['complete', 'delete', 'edit', 'convert'])
@@ -116,14 +117,6 @@ const reminderPresets = [
   { label: '15m', value: 15 },
   { label: '30m', value: 30 },
 ]
-
-function formatTime(t) {
-  if (!t) return ''
-  const [h, m] = t.split(':').map(Number)
-  const ampm = h >= 12 ? 'pm' : 'am'
-  const hour = h % 12 || 12
-  return m === 0 ? `${hour}${ampm}` : `${hour}:${String(m).padStart(2, '0')}${ampm}`
-}
 
 function formatDays(days) {
   if (!days?.length) return ''

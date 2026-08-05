@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const compression = require('compression');
 const path = require('path');
 
 const authRoutes = require('./routes/auth');
@@ -21,13 +22,27 @@ const publicPresetRoutes = require('./routes/presets-public');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const PRODUCTION_ORIGIN = process.env.NODE_ENV === 'production' ? 'https://bebetter.websters.at' : true;
+
+app.use(compression({ level: 6, threshold: 512 }));
 
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? 'https://bebetter.home.websters.at' : true,
+  origin: PRODUCTION_ORIGIN,
   credentials: true,
 }));
+
 app.use(express.json({ limit: '5mb' }));
 app.use(cookieParser());
+
+// Security headers
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  next();
+});
+
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 app.use('/api/auth', authRoutes);
@@ -49,7 +64,12 @@ app.use('/api/admin', adminRoutes);
 app.get('/api/health', (_, res) => res.json({ ok: true }));
 
 const publicDir = path.join(__dirname, '../public');
-app.use(express.static(publicDir));
+app.use(express.static(publicDir, {
+  maxAge: '1y',
+  immutable: true,
+  etag: true,
+  lastModified: true,
+}));
 
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api/')) {
