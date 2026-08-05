@@ -1,8 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import Landing from '../views/Landing.vue'
 
 const routes = [
-  { path: '/', name: 'landing', component: () => import('../views/Landing.vue') },
+  { path: '/', name: 'landing', component: Landing },
   { path: '/login', name: 'login', component: () => import('../views/Login.vue'), meta: { guest: true } },
   { path: '/register', name: 'register', component: () => import('../views/Register.vue'), meta: { guest: true } },
   { path: '/forgot-password', name: 'forgot-password', component: () => import('../views/ForgotPassword.vue'), meta: { guest: true } },

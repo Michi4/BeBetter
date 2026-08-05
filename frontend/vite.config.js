@@ -13,6 +13,7 @@ export default defineConfig({
   build: {
     cssCodeSplit: true,
     modulePreload: { polyfill: false },
+    prefetch: true,
     rollupOptions: {
       output: {
         manualChunks: {
