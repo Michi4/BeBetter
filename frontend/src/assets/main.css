@@ -290,3 +290,5 @@ html.light .bg-white\/5 { background: rgba(255,255,255,0.5) !important; }
 html.light .bg-white\/10 { background: rgba(255,255,255,0.6) !important; }
 html.light .border-white\/10 { border-color: rgba(0,0,0,0.08) !important; }
 html.light .text-emerald-500 { color: #059669 !important; }
+html.light .to-gray-950 { --tw-gradient-to: #f9fafb !important; }
+html.light .from-gray-950 { --tw-gradient-from: #f9fafb !important; }

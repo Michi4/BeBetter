@@ -3,16 +3,16 @@
     <!-- 12h mode: hour / minute / AM-PM selects -->
     <template v-if="is12h && modelValue">
       <select :value="hour12" @change="setPart('hour', $event.target.value)"
-        class="input !w-auto px-2 py-1.5 text-xs text-center bg-gray-800 border-gray-700 text-gray-100 rounded-lg appearance-none cursor-pointer">
+        class="input !w-auto px-1.5 py-1.5 text-xs text-center bg-gray-800 border-gray-700 text-gray-100 rounded-lg appearance-none cursor-pointer">
         <option v-for="h in 12" :key="h" :value="h">{{ h }}</option>
       </select>
       <span class="text-gray-500 text-xs">:</span>
       <select :value="minute" @change="setPart('minute', $event.target.value)"
-        class="input !w-auto px-2 py-1.5 text-xs text-center bg-gray-800 border-gray-700 text-gray-100 rounded-lg appearance-none cursor-pointer">
+        class="input !w-auto px-1.5 py-1.5 text-xs text-center bg-gray-800 border-gray-700 text-gray-100 rounded-lg appearance-none cursor-pointer">
         <option v-for="m in minutes" :key="m" :value="m">{{ String(m).padStart(2, '0') }}</option>
       </select>
       <select :value="ampm" @change="setPart('ampm', $event.target.value)"
-        class="input !w-auto px-2 py-1.5 text-xs text-center bg-gray-800 border-gray-700 text-gray-100 rounded-lg appearance-none cursor-pointer">
+        class="input !w-auto px-1.5 py-1.5 text-xs text-center bg-gray-800 border-gray-700 text-gray-100 rounded-lg appearance-none cursor-pointer">
         <option value="am">AM</option>
         <option value="pm">PM</option>
       </select>
