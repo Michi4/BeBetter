@@ -9,13 +9,6 @@
       <!-- ============ HERO ============ -->
       <section id="hero" class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 sm:pt-24 pb-16 sm:pb-24">
         <div class="text-center max-w-4xl mx-auto space-y-7">
-          <ScrollReveal variant="fade-up">
-            <p class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[var(--bb-line)] bg-[var(--bb-bg-soft)]/80 text-xs font-medium tracking-wide uppercase text-[var(--bb-muted)]">
-              <span class="w-1.5 h-1.5 rounded-full bg-[var(--bb-accent)]" aria-hidden="true"></span>
-              Social competition&middot;real streaks
-            </p>
-          </ScrollReveal>
-
           <ScrollReveal variant="fade-up" :delay="100">
             <h1 class="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.08]">
               <span class="text-[var(--bb-ink)]">Build habits</span><br />

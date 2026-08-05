@@ -2,7 +2,6 @@
   <div class="ambient" aria-hidden="true">
     <canvas ref="canvasRef" class="ambient-canvas"></canvas>
     <div class="ambient-frost"></div>
-    <div class="ambient-orbs"></div>
   </div>
 </template>
 
@@ -11,38 +10,43 @@ import { ref, onMounted, onBeforeUnmount } from 'vue'
 
 const canvasRef = ref(null)
 let raf = null
-let particles = []
+let orbs = []
 let running = false
 let prefersReduced = false
 let sprite = null
 
 function buildSprite() {
-  const size = 32
+  const size = 256
   sprite = document.createElement('canvas')
   sprite.width = size
   sprite.height = size
   const ctx = sprite.getContext('2d')
   const grad = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2)
-  grad.addColorStop(0, 'rgba(52, 211, 153, 1)')
-  grad.addColorStop(0.4, 'rgba(52, 211, 153, 0.45)')
-  grad.addColorStop(1, 'rgba(52, 211, 153, 0)')
+  grad.addColorStop(0, 'rgba(52, 211, 153, 0.9)')
+  grad.addColorStop(0.25, 'rgba(52, 211, 153, 0.4)')
+  grad.addColorStop(0.6, 'rgba(16, 185, 129, 0.12)')
+  grad.addColorStop(1, 'rgba(16, 185, 129, 0)')
   ctx.fillStyle = grad
   ctx.fillRect(0, 0, size, size)
 }
 
-function buildParticles() {
+function buildOrbs() {
   const canvas = canvasRef.value
-  const count = Math.min(Math.floor((canvas.width * canvas.height) / 34000), 60)
-  particles = []
+  const w = canvas.width
+  const h = canvas.height
+  const count = 5
+  orbs = []
   for (let i = 0; i < count; i++) {
-    particles.push({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      r: (Math.random() * 1.6 + 0.6) * 7,
-      vx: (Math.random() - 0.5) * 0.3,
-      vy: (Math.random() - 0.5) * 0.3,
-      a: Math.random() * 0.5 + 0.25,
+    orbs.push({
+      x: (0.12 + 0.76 * Math.random()) * w,
+      y: (0.1 + 0.8 * Math.random()) * h,
+      // big, bloomy: radius is a large fraction of viewport
+      r: (0.18 + 0.22 * Math.random()) * Math.max(w, h),
+      vx: (Math.random() - 0.5) * 0.12,
+      vy: (Math.random() - 0.5) * 0.12,
       drift: Math.random() * Math.PI * 2,
+      speed: 0.002 + Math.random() * 0.004,
+      a: 0.5 + Math.random() * 0.5,
     })
   }
 }
@@ -52,18 +56,19 @@ function draw() {
   const ctx = canvas.getContext('2d')
   ctx.clearRect(0, 0, canvas.width, canvas.height)
   ctx.globalCompositeOperation = 'lighter'
-  for (const p of particles) {
-    p.drift += 0.004
-    p.x += p.vx + Math.sin(p.drift) * 0.2
-    p.y += p.vy + Math.cos(p.drift) * 0.15
-    if (p.x < -40) p.x = canvas.width + 40
-    if (p.x > canvas.width + 40) p.x = -40
-    if (p.y < -40) p.y = canvas.height + 40
-    if (p.y > canvas.height + 40) p.y = -40
-    const alpha = p.a * (0.7 + Math.sin(p.drift * 2) * 0.3)
-    ctx.globalAlpha = alpha
-    const s = p.r * 2
-    ctx.drawImage(sprite, p.x - p.r, p.y - p.r, s, s)
+  for (const o of orbs) {
+    o.drift += o.speed
+    o.x += o.vx + Math.sin(o.drift) * 0.15
+    o.y += o.vy + Math.cos(o.drift) * 0.12
+    const m = 60
+    if (o.x < -m) o.x = canvas.width + m
+    if (o.x > canvas.width + m) o.x = -m
+    if (o.y < -m) o.y = canvas.height + m
+    if (o.y > canvas.height + m) o.y = -m
+    const pulse = 0.85 + Math.sin(o.drift * 2) * 0.15
+    ctx.globalAlpha = o.a * pulse
+    const d = o.r * 2
+    ctx.drawImage(sprite, o.x - o.r, o.y - o.r, d, d)
   }
   ctx.globalAlpha = 1
   ctx.globalCompositeOperation = 'source-over'
@@ -77,7 +82,7 @@ function setup() {
   canvas.height = Math.round(window.innerHeight * dpr)
   canvas.style.width = window.innerWidth + 'px'
   canvas.style.height = window.innerHeight + 'px'
-  buildParticles()
+  buildOrbs()
 }
 
 function start() {
@@ -127,30 +132,20 @@ onBeforeUnmount(() => {
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
-  background: radial-gradient(ellipse 60% 50% at 15% 0%, rgba(16, 185, 129, 0.08), transparent 60%),
-    radial-gradient(ellipse 60% 50% at 85% 100%, rgba(52, 211, 153, 0.07), transparent 60%);
 }
 .ambient-canvas {
   position: absolute;
   inset: 0;
-  opacity: 0.7;
 }
 .ambient-frost {
   position: absolute;
   inset: 0;
-  background: rgba(11, 12, 15, 0.35);
+  background: rgba(11, 12, 15, 0.28);
 }
 html.light .ambient-frost {
-  background: rgba(250, 249, 246, 0.4);
-}
-.ambient-orbs {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle 40% 32% at 78% 12%, rgba(16, 185, 129, 0.12), transparent 70%),
-    radial-gradient(circle 36% 30% at 10% 82%, rgba(52, 211, 153, 0.1), transparent 70%);
-  filter: blur(30px);
+  background: rgba(250, 249, 246, 0.35);
 }
 @media (prefers-reduced-motion: reduce) {
-  .ambient-canvas { opacity: 0.35; }
+  .ambient-canvas { opacity: 0.8; }
 }
 </style>
