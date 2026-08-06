@@ -15,7 +15,7 @@
         </nav>
 
         <div class="flex items-center gap-3 justify-self-end">
-          <button @click="toggleTheme" class="p-2.5 rounded-lg text-[var(--bb-muted)] hover:text-[var(--bb-ink)] hover:bg-[var(--bb-line)] transition-colors touch-target" aria-label="Toggle theme">
+          <button @click="toggleTheme" class="p-2.5 rounded-lg text-[var(--bb-muted)] hover:text-[var(--bb-ink)] hover:bg-[var(--bb-line)] transition-colors touch-target inline-flex items-center justify-center shrink-0" aria-label="Toggle theme">
             <Sun v-if="isDark" :size="18" />
             <Moon v-else :size="18" />
           </button>

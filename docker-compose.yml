@@ -23,6 +23,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: bebetter-backend
     container_name: bebetter-api
     restart: unless-stopped
     environment:
@@ -33,6 +34,12 @@ services:
     volumes:
       - ./uploads:/app/uploads
       - ./vapid-keys.json:/app/vapid-keys.json
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik"
@@ -41,7 +48,57 @@ services:
       - "traefik.http.routers.bebetter.rule=Host(`${DOMAIN:-bebetter.websters.at}`)"
       - "traefik.http.routers.bebetter.middlewares=crowdsec@docker,bebetter-security@file"
       - "traefik.http.routers.bebetter.tls.certresolver=myresolver"
+      # Healthy-servers-only load balancing (needed for zero-downtime blue-green)
+      - "traefik.http.services.bebetter.loadbalancer.healthcheck.path=/api/health"
+      - "traefik.http.services.bebetter.loadbalancer.healthcheck.interval=4s"
+      - "traefik.http.services.bebetter.loadbalancer.healthcheck.timeout=3s"
       # Legacy domain router with 301 redirect to bebetter.websters.at
+      - "traefik.http.routers.bebetter-legacy.entrypoints=websecure"
+      - "traefik.http.routers.bebetter-legacy.rule=Host(`bebetter.home.websters.at`)"
+      - "traefik.http.routers.bebetter-legacy.middlewares=bebetter-redirect@docker,crowdsec@docker"
+      - "traefik.http.routers.bebetter-legacy.tls.certresolver=myresolver"
+      - "traefik.http.middlewares.bebetter-redirect.redirectregex.regex=^https?://bebetter\\.home\\.websters\\.at/(.*)"
+      - "traefik.http.middlewares.bebetter-redirect.redirectregex.replacement=https://bebetter.websters.at/$$1"
+      - "traefik.http.middlewares.bebetter-redirect.redirectregex.permanent=true"
+      - "traefik.http.services.bebetter.loadbalancer.server.port=3000"
+    networks:
+      - bebetter-net
+      - proxy
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Green instance for zero-downtime (blue-green) deploys. Shares the same
+  # image, env, volumes, and Traefik labels as `backend`. Only ever brought up
+  # by deploy.sh during a swap; not part of normal `docker compose up`.
+  backend-green:
+    image: bebetter-backend
+    container_name: bebetter-api-green
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-bebetter}:${POSTGRES_PASSWORD:-secretpassword}@postgres:5432/${POSTGRES_DB:-bebetter_db}
+      JWT_SECRET: ${JWT_SECRET:-bebetter-jwt-secret-change-me-in-prod}
+      PORT: "3000"
+      TZ: Europe/Vienna
+    volumes:
+      - ./uploads:/app/uploads
+      - ./vapid-keys.json:/app/vapid-keys.json
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      - "traefik.http.routers.bebetter.entrypoints=websecure"
+      - "traefik.http.routers.bebetter.rule=Host(`${DOMAIN:-bebetter.websters.at}`)"
+      - "traefik.http.routers.bebetter.middlewares=crowdsec@docker,bebetter-security@file"
+      - "traefik.http.routers.bebetter.tls.certresolver=myresolver"
+      - "traefik.http.services.bebetter.loadbalancer.healthcheck.path=/api/health"
+      - "traefik.http.services.bebetter.loadbalancer.healthcheck.interval=4s"
+      - "traefik.http.services.bebetter.loadbalancer.healthcheck.timeout=3s"
       - "traefik.http.routers.bebetter-legacy.entrypoints=websecure"
       - "traefik.http.routers.bebetter-legacy.rule=Host(`bebetter.home.websters.at`)"
       - "traefik.http.routers.bebetter-legacy.middlewares=bebetter-redirect@docker,crowdsec@docker"

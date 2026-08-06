@@ -74,8 +74,12 @@ check "200" "$STATUS" "Health check"
 
 # Register test admin
 log_section "SETUP: Test Users"
+# Reject registration without Terms/Privacy consent (must be required)
 RES=$(curl -s -w "\n%{http_code}" "$BASE/auth/register" -H "Content-Type: application/json" \
-  -d "{\"email\":\"$ADMIN_EMAIL\",\"password\":\"$ADMIN_PW\",\"username\":\"$ADMIN_USER\"}")
+  -d "{\"email\":\"admin_no_consent_${TS}@test.com\",\"password\":\"Admin123456\",\"username\":\"noconsent_${TS}\"}")
+check "400" "$(echo "$RES" | tail -1)" "Register rejected without Terms/Privacy consent"
+RES=$(curl -s -w "\n%{http_code}" "$BASE/auth/register" -H "Content-Type: application/json" \
+  -d "{\"email\":\"$ADMIN_EMAIL\",\"password\":\"$ADMIN_PW\",\"username\":\"$ADMIN_USER\",\"agreeToTerms\":true}")
 CODE=$(echo "$RES" | tail -1)
 if [ "$CODE" = "200" ]; then
   ADMIN_TOKEN=$(echo "$RES" | head -n -1 | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
@@ -94,7 +98,7 @@ check "true" "$( [ -n "$ADMIN_TOKEN" ] && echo true || echo false )" "Test admin
 
 # Register test users
 RES=$(curl -s -w "\n%{http_code}" "$BASE/auth/register" -H "Content-Type: application/json" \
-  -d "{\"email\":\"$ALICE_EMAIL\",\"password\":\"$ALICE_PW\",\"username\":\"$ALICE_USER\"}")
+  -d "{\"email\":\"$ALICE_EMAIL\",\"password\":\"$ALICE_PW\",\"username\":\"$ALICE_USER\",\"agreeToTerms\":true}")
 CODE=$(echo "$RES" | tail -1)
 if [ "$CODE" = "200" ]; then
   ALICE_TOKEN=$(echo "$RES" | head -n -1 | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
@@ -105,7 +109,7 @@ else
 fi
 
 RES=$(curl -s -w "\n%{http_code}" "$BASE/auth/register" -H "Content-Type: application/json" \
-  -d "{\"email\":\"$BOB_EMAIL\",\"password\":\"$BOB_PW\",\"username\":\"$BOB_USER\"}")
+  -d "{\"email\":\"$BOB_EMAIL\",\"password\":\"$BOB_PW\",\"username\":\"$BOB_USER\",\"agreeToTerms\":true}")
 CODE=$(echo "$RES" | tail -1)
 if [ "$CODE" = "200" ]; then
   BOB_TOKEN=$(echo "$RES" | head -n -1 | grep -o '"token":"[^"]*"' | cut -d'"' -f4)

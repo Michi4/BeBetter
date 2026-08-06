@@ -43,6 +43,10 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Email, password, and username are required' });
     }
 
+    if (req.body.agreeToTerms !== true) {
+      return res.status(400).json({ error: 'You must accept the Terms of Service and Privacy Policy to create an account' });
+    }
+
     if (!EMAIL_REGEX.test(email)) {
       return res.status(400).json({ error: 'Invalid email format' });
     }
@@ -63,7 +67,7 @@ router.post('/register', async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
-      data: { email, passwordHash, username },
+      data: { email, passwordHash, username, agreedToTermsAt: new Date() },
     });
 
     if (friendToken) {

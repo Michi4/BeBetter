@@ -14,13 +14,36 @@ if (keys.publicKey && keys.privateKey) {
 
 const DEMO_USERNAME = process.env.DEMO_USERNAME || 'demo';
 
-async function resetDemoAccount() {
+// Advisory lock key used to ensure only ONE scheduler instance runs jobs at a
+// time. During blue-green deploys two containers briefly coexist; without this
+// the demo reset or reminder push could run twice.
+const SCHED_LOCK_KEY = 7170101;
+
+async function withSchedulerLock(fn) {
   try {
-    let user = await prisma.user.findUnique({ where: { username: DEMO_USERNAME } });
+    return await prisma.$transaction(
+      async (tx) => {
+        const rows = await tx.$queryRaw`SELECT pg_try_advisory_xact_lock(${SCHED_LOCK_KEY}) AS ok`;
+        const ok = Number(rows?.[0]?.ok) === 1;
+        if (!ok) return false;
+        await fn(tx);
+        return true;
+      },
+      { maxWait: 3000, timeout: 90000 }
+    );
+  } catch (e) {
+    console.error('Scheduler lock error:', e.message);
+    return false;
+  }
+}
+
+async function resetDemoAccount(db = prisma) {
+  try {
+    let user = await db.user.findUnique({ where: { username: DEMO_USERNAME } });
 
     if (!user) {
       const passwordHash = await bcrypt.hash(process.env.DEMO_PASSWORD || 'demo-demo-demo', 10);
-      user = await prisma.user.create({
+      user = await db.user.create({
         data: {
           email: 'demo@bebetter.local',
           username: DEMO_USERNAME,
@@ -32,32 +55,32 @@ async function resetDemoAccount() {
         },
       });
     } else if (!user.isDemo) {
-      await prisma.user.update({ where: { id: user.id }, data: { isDemo: true } });
+      await db.user.update({ where: { id: user.id }, data: { isDemo: true } });
     }
 
     // Demo user must stay hidden from leaderboards/search and admin-free
     if (user.isPublic || user.role !== 'user') {
-      await prisma.user.update({ where: { id: user.id }, data: { isPublic: false, role: 'user' } });
+      await db.user.update({ where: { id: user.id }, data: { isPublic: false, role: 'user' } });
     }
 
     // Wipe all of the demo user's data so abuse or experimentation can't accumulate
     const userId = user.id;
-    await prisma.habitLog.deleteMany({ where: { userId } });
-    await prisma.habitBreak.deleteMany({ where: { userId } });
-    await prisma.habitBuddy.deleteMany({ where: { friendId: userId } });
-    await prisma.wager.deleteMany({ where: { OR: [{ userId }, { counterpartyId: userId }] } });
-    await prisma.vacation.deleteMany({ where: { userId } });
-    await prisma.taskLog.deleteMany({ where: { userId } });
-    await prisma.task.deleteMany({ where: { userId } });
-    await prisma.habit.deleteMany({ where: { userId } });
-    await prisma.notification.deleteMany({ where: { userId } });
-    await prisma.activity.deleteMany({ where: { userId } });
-    await prisma.friendRequest.deleteMany({ where: { OR: [{ requesterId: userId }, { receiverId: userId }] } });
-    await prisma.friendship.deleteMany({ where: { OR: [{ user1Id: userId }, { user2Id: userId }] } });
-    await prisma.challenge.deleteMany({ where: { OR: [{ creatorId: userId }, { opponentId: userId }] } });
-    await prisma.preset.deleteMany({ where: { authorId: userId } });
-    await prisma.friendLink.deleteMany({ where: { senderId: userId } });
-    await prisma.pushSubscription.deleteMany({ where: { userId } });
+    await db.habitLog.deleteMany({ where: { userId } });
+    await db.habitBreak.deleteMany({ where: { userId } });
+    await db.habitBuddy.deleteMany({ where: { friendId: userId } });
+    await db.wager.deleteMany({ where: { OR: [{ userId }, { counterpartyId: userId }] } });
+    await db.vacation.deleteMany({ where: { userId } });
+    await db.taskLog.deleteMany({ where: { userId } });
+    await db.task.deleteMany({ where: { userId } });
+    await db.habit.deleteMany({ where: { userId } });
+    await db.notification.deleteMany({ where: { userId } });
+    await db.activity.deleteMany({ where: { userId } });
+    await db.friendRequest.deleteMany({ where: { OR: [{ requesterId: userId }, { receiverId: userId }] } });
+    await db.friendship.deleteMany({ where: { OR: [{ user1Id: userId }, { user2Id: userId }] } });
+    await db.challenge.deleteMany({ where: { OR: [{ creatorId: userId }, { opponentId: userId }] } });
+    await db.preset.deleteMany({ where: { authorId: userId } });
+    await db.friendLink.deleteMany({ where: { senderId: userId } });
+    await db.pushSubscription.deleteMany({ where: { userId } });
 
     // Re-seed with a friendly demo dataset so the UI looks alive
     const habits = [
@@ -69,7 +92,7 @@ async function resetDemoAccount() {
 
     const created = [];
     for (const h of habits) {
-      const habit = await prisma.habit.create({
+      const habit = await db.habit.create({
         data: {
           userId,
           title: h.title,
@@ -96,11 +119,11 @@ async function resetDemoAccount() {
         records.push({ habitId: habit.id, userId, completedAt, status: 'completed' });
       }
       if (records.length) {
-        await prisma.habitLog.createMany({ data: records });
+        await db.habitLog.createMany({ data: records });
       }
     }
 
-    await prisma.task.create({
+    await db.task.create({
       data: {
         userId,
         title: 'Reply to that email',
@@ -112,7 +135,7 @@ async function resetDemoAccount() {
         reminderMinutes: JSON.stringify([15]),
       },
     });
-    await prisma.task.create({
+    await db.task.create({
       data: {
         userId,
         title: 'Meal prep for tomorrow',
@@ -131,9 +154,9 @@ async function resetDemoAccount() {
   }
 }
 
-async function sendPushNotification(userId, title, body, url) {
+async function sendPushNotification(userId, title, body, url, db = prisma) {
   try {
-    const subscriptions = await prisma.pushSubscription.findMany({ where: { userId } });
+    const subscriptions = await db.pushSubscription.findMany({ where: { userId } });
     if (subscriptions.length === 0) return;
 
     const payload = JSON.stringify({ title, body, url: url || '/' });
@@ -146,7 +169,7 @@ async function sendPushNotification(userId, title, body, url) {
         );
       } catch (e) {
         if (e.statusCode === 404 || e.statusCode === 410) {
-          await prisma.pushSubscription.delete({ where: { id: sub.id } });
+          await db.pushSubscription.delete({ where: { id: sub.id } });
         }
       }
     }
@@ -184,9 +207,9 @@ function parseSchedules(val) {
   return Array.isArray(arr) ? arr : [];
 }
 
-async function alreadyNotified(userId, type, entityId, time, todayDate, isTask) {
+async function alreadyNotified(userId, type, entityId, time, todayDate, isTask, db = prisma) {
   const field = isTask ? 'taskId' : 'habitId';
-  const existing = await prisma.notification.findFirst({
+  const existing = await db.notification.findFirst({
     where: {
       userId,
       type: 'scheduled_reminder',
@@ -197,9 +220,9 @@ async function alreadyNotified(userId, type, entityId, time, todayDate, isTask) 
   return existing && existing.data?.time === time;
 }
 
-async function sendReminder(userId, message, url, data) {
+async function sendReminder(userId, message, url, data, db = prisma) {
   const todayDate = getTodayDateStr();
-  await prisma.notification.create({
+  await db.notification.create({
     data: {
       userId,
       type: 'scheduled_reminder',
@@ -207,23 +230,23 @@ async function sendReminder(userId, message, url, data) {
       data,
     },
   }).catch(() => {});
-  await sendPushNotification(userId, 'BeBetter Reminder', message, url);
+  await sendPushNotification(userId, 'BeBetter Reminder', message, url, db);
 }
 
-async function checkScheduledReminders() {
+async function checkScheduledReminders(db = prisma) {
   const currentTime = getTodayHHMM();
   const todayDate = getTodayDateStr();
   const dayOfWeek = new Date().getDay();
 
-  const prefs = await prisma.notificationPreference.findMany({
+  const prefs = await db.notificationPreference.findMany({
     where: { habitRemindersEnabled: true },
   });
 
   for (const pref of prefs) {
-    const user = await prisma.user.findUnique({ where: { id: pref.userId }, select: { id: true, bannedUntil: true } });
+    const user = await db.user.findUnique({ where: { id: pref.userId }, select: { id: true, bannedUntil: true } });
     if (!user || user.bannedUntil) continue;
 
-    const isOnVacation = await prisma.vacation.findFirst({
+    const isOnVacation = await db.vacation.findFirst({
       where: {
         userId: pref.userId,
         startDate: { lte: new Date() },
@@ -232,7 +255,7 @@ async function checkScheduledReminders() {
     });
     if (isOnVacation) continue;
 
-    const habits = await prisma.habit.findMany({
+    const habits = await db.habit.findMany({
       where: {
         userId: pref.userId,
         active: true,
@@ -254,19 +277,19 @@ async function checkScheduledReminders() {
           const effectiveTime = offset > 0 ? subtractMinutes(slot.time, offset) : slot.time;
           if (!effectiveTime || effectiveTime !== currentTime) continue;
 
-          if (await alreadyNotified(pref.userId, 'scheduled_reminder', habit.id, slot.time, todayDate, false)) continue;
+          if (await alreadyNotified(pref.userId, 'scheduled_reminder', habit.id, slot.time, todayDate, false, db)) continue;
 
           const label = offset === 0 ? 'Now' : `in ${offset} min`;
           const msg = offset === 0
             ? `\u{1F514} Now: ${habit.emoji || '\u{1F3AF}'} ${habit.title}`
             : `\u{23F0} ${habit.emoji || '\u{1F3AF}'} ${habit.title} ${label}`;
 
-          await sendReminder(pref.userId, msg, '/habits', { habitId: habit.id, time: slot.time, date: todayDate, reminderOffset: offset });
+          await sendReminder(pref.userId, msg, '/habits', { habitId: habit.id, time: slot.time, date: todayDate, reminderOffset: offset }, db);
         }
       }
     }
 
-    const tasks = await prisma.task.findMany({
+    const tasks = await db.task.findMany({
       where: {
         userId: pref.userId,
         isActive: true,
@@ -296,41 +319,41 @@ async function checkScheduledReminders() {
         const effectiveTime = offset > 0 ? subtractMinutes(task.scheduledTime, offset) : task.scheduledTime;
         if (!effectiveTime || effectiveTime !== currentTime) continue;
 
-        if (await alreadyNotified(pref.userId, 'scheduled_reminder', task.id, task.scheduledTime, todayDate, true)) continue;
+        if (await alreadyNotified(pref.userId, 'scheduled_reminder', task.id, task.scheduledTime, todayDate, true, db)) continue;
 
         const label = offset === 0 ? 'Now' : `in ${offset} min`;
         const msg = offset === 0
           ? `\u{1F514} Now: ${task.emoji || '\u{1F4CB}'} ${task.title}`
           : `\u{23F0} ${task.emoji || '\u{1F4CB}'} ${task.title} ${label}`;
 
-        await sendReminder(pref.userId, msg, '/habits', { taskId: task.id, time: task.scheduledTime, date: todayDate, reminderOffset: offset });
+        await sendReminder(pref.userId, msg, '/habits', { taskId: task.id, time: task.scheduledTime, date: todayDate, reminderOffset: offset }, db);
       }
     }
   }
 }
 
-async function morningReminder() {
+async function morningReminder(db = prisma) {
   const now = new Date();
   const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-  const prefs = await prisma.notificationPreference.findMany({
+  const prefs = await db.notificationPreference.findMany({
     where: { morningEnabled: true, morningTime: timeStr },
   });
 
   for (const pref of prefs) {
-    const user = await prisma.user.findUnique({ where: { id: pref.userId }, select: { id: true, bannedUntil: true } });
+    const user = await db.user.findUnique({ where: { id: pref.userId }, select: { id: true, bannedUntil: true } });
     if (!user || user.bannedUntil) continue;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const dayOfWeek = today.getDay();
 
-    const isOnVacation = await prisma.vacation.findFirst({
+    const isOnVacation = await db.vacation.findFirst({
       where: { userId: pref.userId, startDate: { lte: today }, OR: [{ endDate: null }, { endDate: { gte: today } }] },
     });
     if (isOnVacation) continue;
 
-    const habits = await prisma.habit.findMany({
+    const habits = await db.habit.findMany({
       where: {
         userId: pref.userId,
         active: true,
@@ -343,57 +366,59 @@ async function morningReminder() {
     });
 
     if (habits.length > 0) {
-      await sendPushNotification(pref.userId, '\u{1F305} Good morning!', `You have ${habits.length} habit${habits.length > 1 ? 's' : ''} scheduled for today.`, '/habits');
+      await sendPushNotification(pref.userId, '\u{1F305} Good morning!', `You have ${habits.length} habit${habits.length > 1 ? 's' : ''} scheduled for today.`, '/habits', db);
     }
   }
 }
 
-async function eveningReminder() {
+async function eveningReminder(db = prisma) {
   const now = new Date();
   const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-  const prefs = await prisma.notificationPreference.findMany({
+  const prefs = await db.notificationPreference.findMany({
     where: { eveningEnabled: true, eveningTime: timeStr },
   });
 
   for (const pref of prefs) {
-    const user = await prisma.user.findUnique({ where: { id: pref.userId }, select: { id: true, bannedUntil: true } });
+    const user = await db.user.findUnique({ where: { id: pref.userId }, select: { id: true, bannedUntil: true } });
     if (!user || user.bannedUntil) continue;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const isOnVacation = await prisma.vacation.findFirst({
+    const isOnVacation = await db.vacation.findFirst({
       where: { userId: pref.userId, startDate: { lte: today }, OR: [{ endDate: null }, { endDate: { gte: today } }] },
     });
     if (isOnVacation) continue;
 
-    const todayLogs = await prisma.habitLog.findMany({
+    const todayLogs = await db.habitLog.findMany({
       where: { userId: pref.userId, completedAt: today },
     });
 
-    const habits = await prisma.habit.findMany({
+    const habits = await db.habit.findMany({
       where: { userId: pref.userId, active: true },
     });
 
     if (todayLogs.length < habits.length) {
-      await sendPushNotification(pref.userId, '\u{1F319} Day\'s not over yet!', `You've completed ${todayLogs.length}/${habits.length} habits today. Keep going!`, '/habits');
+      await sendPushNotification(pref.userId, '\u{1F319} Day\'s not over yet!', `You've completed ${todayLogs.length}/${habits.length} habits today. Keep going!`, '/habits', db);
     }
   }
 }
 
 function startScheduler() {
   // Ensure the demo account exists and looks alive; refresh it every hour
-  resetDemoAccount();
-  setInterval(() => {
-    resetDemoAccount();
+  withSchedulerLock((db) => resetDemoAccount(db));
+  setInterval(async () => {
+    await withSchedulerLock((db) => resetDemoAccount(db));
   }, 60 * 60 * 1000);
 
   setInterval(async () => {
     try {
-      await morningReminder();
-      await eveningReminder();
-      await checkScheduledReminders();
+      await withSchedulerLock(async (db) => {
+        await morningReminder(db);
+        await eveningReminder(db);
+        await checkScheduledReminders(db);
+      });
     } catch (e) {
       console.error('Scheduler error:', e);
     }

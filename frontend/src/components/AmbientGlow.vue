@@ -10,128 +10,131 @@ import { ref, onMounted, onBeforeUnmount } from 'vue'
 
 const canvasRef = ref(null)
 let raf = null
-let blobs = []
+let particles = []
+let auras = []
 let running = false
-let prefersReduced = false
-let mouse = { x: -9999, y: -9999 }
-let scrollVel = 0
+let reduced = false
+let w = 0
+let h = 0
+let dpr = 1
+let scrollY = 0
+let mouse = { x: -9999, y: -9999, vx: 0, vy: 0 }
+let lastMouse = { x: -9999, y: -9999 }
+let bloom = { x: -9999, y: -9999, s: 0 }
 
-function buildBlobs() {
-  const canvas = canvasRef.value
-  const w = canvas.width
-  const h = canvas.height
-  const count = 5
-  blobs = []
+const isLight = () => document.documentElement.classList.contains('light')
+const TAU = Math.PI * 2
+
+function rand(a, b) { return a + Math.random() * (b - a) }
+
+function build() {
+  const count = Math.min(160, Math.max(80, Math.round(w * h / 14000)))
+  particles = []
   for (let i = 0; i < count; i++) {
-    blobs.push({
-      x: (0.1 + 0.8 * Math.random()) * w,
-      y: (0.1 + 0.8 * Math.random()) * h,
-      r: (0.16 + 0.24 * Math.random()) * Math.max(w, h),
-      vx: (Math.random() - 0.5) * 0.1,
-      vy: (Math.random() - 0.5) * 0.1,
-      phase1: Math.random() * Math.PI * 2,
-      phase2: Math.random() * Math.PI * 2,
-      phase3: Math.random() * Math.PI * 2,
-      speed: 0.004 + Math.random() * 0.008,
-      a: 0.35 + Math.random() * 0.4,
-      hue: Math.random(),
+    particles.push({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      r: rand(0.8, 2.2) * dpr,
+      vx: rand(-0.12, 0.12) * dpr,
+      vy: rand(-0.10, 0.10) * dpr,
+      ph: Math.random() * TAU,
+      sp: rand(0.004, 0.012),
+      warm: Math.random() > 0.6,
     })
   }
-}
-
-function blobPoint(o, theta, t) {
-  const wobble =
-    1 +
-    0.14 * Math.sin(3 * theta + t * o.speed * 1.7 + o.phase1) +
-    0.1 * Math.sin(5 * theta - t * o.speed * 1.2 + o.phase2) +
-    0.06 * Math.sin(7 * theta + t * o.speed * 0.8 + o.phase3)
-  const rad = o.r * wobble
-  return { x: o.x + Math.cos(theta) * rad, y: o.y + Math.sin(theta) * rad }
-}
-
-function drawBlob(ctx, o, t, bright) {
-  const steps = 22
-  const points = []
-  for (let i = 0; i < steps; i++) {
-    points.push(blobPoint(o, (i / steps) * Math.PI * 2, t))
-  }
-
-  const grad = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r)
-  const alpha = Math.min(o.a * bright, 1)
-  if (o.hue < 0.5) {
-    grad.addColorStop(0, `rgba(110, 231, 183, ${alpha})`)
-    grad.addColorStop(0.35, `rgba(52, 211, 153, ${alpha * 0.55})`)
-    grad.addColorStop(1, 'rgba(16, 185, 129, 0)')
-  } else {
-    grad.addColorStop(0, `rgba(45, 212, 191, ${alpha})`)
-    grad.addColorStop(0.35, `rgba(20, 184, 166, ${alpha * 0.5})`)
-    grad.addColorStop(1, 'rgba(13, 148, 136, 0)')
-  }
-
-  ctx.beginPath()
-  ctx.moveTo(points[0].x, points[0].y)
-  for (let i = 1; i < points.length; i++) {
-    const prev = points[i - 1]
-    const cur = points[i]
-    const mx = (prev.x + cur.x) / 2
-    const my = (prev.y + cur.y) / 2
-    ctx.quadraticCurveTo(prev.x, prev.y, mx, my)
-  }
-  ctx.closePath()
-  ctx.fillStyle = grad
-  ctx.fill()
+  const spots = [
+    [0.12, 0.66, 0.34],
+    [0.88, 0.72, 0.38],
+    [0.62, 0.10, 0.26],
+    [0.30, 0.24, 0.22],
+  ]
+  auras = spots.map(([px, py, pr], i) => ({
+    x: px * w,
+    y: py * h,
+    r: pr * Math.max(w, h),
+    ph: i * 1.7,
+    sp: rand(0.004, 0.008),
+    warm: i % 2 === 0,
+  }))
+  Object.assign(bloom, { x: w * 0.5, y: h * 0.5, s: 0 })
+  lastMouse.x = -9999
+  lastMouse.y = -9999
 }
 
 function draw() {
-  const canvas = canvasRef.value
-  const ctx = canvas.getContext('2d')
-  const t = performance.now() / 1000
+  const ctx = canvasRef.value.getContext('2d')
+  const light = isLight()
+  ctx.clearRect(0, 0, w, h)
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height)
-  ctx.globalCompositeOperation = 'lighter'
-
-  for (const o of blobs) {
-    // mouse interaction: gentle pull toward cursor, brighter when close
-    const dx = mouse.x - o.x
-    const dy = mouse.y - o.y
-    const dist = Math.hypot(dx, dy)
-    const pull = dist < o.r * 2.2 ? (1 - dist / (o.r * 2.2)) * 0.02 : 0
-    if (pull > 0) {
-      o.vx += (dx / dist) * pull * 1.4
-      o.vy += (dy / dist) * pull * 1.4
+  // Auras — large ultra-soft color washes, near-imperceptible on purpose.
+  for (const a of auras) {
+    a.ph += a.sp
+    a.x += Math.sin(a.ph * 0.8) * 0.08 * dpr
+    a.y += Math.cos(a.ph * 0.6) * 0.06 * dpr
+    const alpha = light ? 0.05 : 0.085
+    const pulse = 0.85 + Math.sin(a.ph) * 0.15
+    const g = ctx.createRadialGradient(a.x, a.y, 0, a.x, a.y, a.r)
+    if (a.warm) {
+      g.addColorStop(0, `rgba(52, 211, 153, ${alpha * pulse})`)
+      g.addColorStop(0.5, `rgba(16, 185, 129, ${alpha * pulse * 0.4})`)
+    } else {
+      g.addColorStop(0, `rgba(94, 234, 212, ${alpha * pulse})`)
+      g.addColorStop(0.5, `rgba(45, 212, 191, ${alpha * pulse * 0.35})`)
     }
-    o.vx *= 0.992
-    o.vy *= 0.992
-
-    // scroll interaction: nudge vertical drift
-    o.y += scrollVel
-    scrollVel *= 0.9
-
-    o.x += o.vx + Math.sin(t * 0.05 + o.phase3) * 0.08
-    o.y += o.vy + Math.cos(t * 0.05 + o.phase2) * 0.06
-
-    const m = o.r * 0.6
-    if (o.x < -m) o.x = canvas.width + m
-    if (o.x > canvas.width + m) o.x = -m
-    if (o.y < -m) o.y = canvas.height + m
-    if (o.y > canvas.height + m) o.y = -m
-
-    const bright = pull > 0 ? 1.35 : 1
-    drawBlob(ctx, o, t, bright)
+    g.addColorStop(1, 'rgba(16, 185, 129, 0)')
+    ctx.fillStyle = g
+    ctx.beginPath()
+    ctx.arc(a.x, a.y, a.r, 0, TAU)
+    ctx.fill()
   }
 
-  ctx.globalCompositeOperation = 'source-over'
-  if (running) raf = requestAnimationFrame(draw)
-}
+  // Particles — tiny floating motes with faint constellation lines nearby.
+  const parallax = scrollY * 0.04 * dpr
+  for (const p of particles) {
+    p.x += p.vx
+    p.y += p.vy + (p.y < h * 0.5 ? -0.004 * dpr : 0)
+    p.ph += p.sp
+    // Soft cursor repulsion so the field feels alive, not gimmicky.
+    const dx = p.x - mouse.x * dpr
+    const dy = p.y - (mouse.y + parallax) * dpr
+    const distSq = dx * dx + dy * dy
+    if (distSq < 110 * 110 * dpr * dpr) {
+      const d = Math.sqrt(distSq) || 1
+      const f = 14 * dpr / (d + 2)
+      p.x += (dx / d) * f
+      p.y += (dy / d) * f
+    }
+    if (p.x < -10) p.x = w + 10
+    if (p.x > w + 10) p.x = -10
+    if (p.y < -10) p.y = h + 10
+    if (p.y > h + 10) p.y = -10
 
-function setup() {
-  const canvas = canvasRef.value
-  const dpr = Math.min(window.devicePixelRatio || 1, 2)
-  canvas.width = Math.round(window.innerWidth * dpr)
-  canvas.height = Math.round(window.innerHeight * dpr)
-  canvas.style.width = window.innerWidth + 'px'
-  canvas.style.height = window.innerHeight + 'px'
-  buildBlobs()
+    const tw = 0.6 + 0.4 * Math.sin(p.ph * 2)
+    const alpha = light ? 0.16 * tw : 0.30 * tw
+    ctx.fillStyle = p.warm ? `rgba(52, 211, 153, ${alpha})` : `rgba(148, 163, 188, ${alpha})`
+    ctx.beginPath()
+    ctx.arc(p.x, p.y - parallax, p.r, 0, TAU)
+    ctx.fill()
+  }
+
+  // Cursor bloom — gentle light that chases the pointer.
+  bloom.x += (mouse.x * dpr - bloom.x) * 0.06
+  bloom.y += (mouse.y * dpr - bloom.y) * 0.06
+  bloom.s += ((Math.min(1, Math.hypot(mouse.vx, mouse.vy) / 14)) - bloom.s) * 0.06
+  if (bloom.x >= 0) {
+    const alpha = (light ? 0.05 : 0.09) * (0.35 + bloom.s * 0.65)
+    const r = 190 * dpr
+    const g = ctx.createRadialGradient(bloom.x, bloom.y, 0, bloom.x, bloom.y, r)
+    g.addColorStop(0, `rgba(110, 231, 183, ${alpha})`)
+    g.addColorStop(0.6, `rgba(16, 185, 129, ${alpha * 0.4})`)
+    g.addColorStop(1, 'rgba(16, 185, 129, 0)')
+    ctx.fillStyle = g
+    ctx.beginPath()
+    ctx.arc(bloom.x, bloom.y, r, 0, TAU)
+    ctx.fill()
+  }
+
+  if (running) raf = requestAnimationFrame(draw)
 }
 
 function start() {
@@ -139,50 +142,56 @@ function start() {
   running = true
   draw()
 }
-
 function stop() {
   running = false
   if (raf) cancelAnimationFrame(raf)
 }
 
-function onResize() {
-  setup()
+function setup() {
+  const canvas = canvasRef.value
+  dpr = Math.min(window.devicePixelRatio || 1, 2)
+  w = Math.round(window.innerWidth * dpr)
+  h = Math.round(window.innerHeight * dpr)
+  canvas.width = w
+  canvas.height = h
+  canvas.style.width = window.innerWidth + 'px'
+  canvas.style.height = window.innerHeight + 'px'
+  build()
+  if (reduced) draw()
 }
 
-function onVisibility() {
-  if (document.hidden) stop()
-  else if (!prefersReduced) start()
-}
+function onResize() { setup() }
+function onScroll() { scrollY = window.scrollY }
 
-function onMouseMove(e) {
+function onMouse(e) {
+  mouse.vx = e.clientX - lastMouse.x
+  mouse.vy = e.clientY - lastMouse.y
+  lastMouse.x = e.clientX
+  lastMouse.y = e.clientY
   mouse.x = e.clientX
   mouse.y = e.clientY
 }
 
-function onScroll() {
-  scrollVel = Math.max(Math.min((window.scrollY - (onScroll.last || window.scrollY)) * -0.01, 2), -2)
-  onScroll.last = window.scrollY
+function onVisibility() {
+  if (document.hidden) stop()
+  else if (!reduced) start()
 }
 
 onMounted(() => {
-  prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   setup()
-  if (prefersReduced) {
-    draw()
-  } else {
-    start()
-  }
+  if (!reduced) start()
   window.addEventListener('resize', onResize)
-  window.addEventListener('mousemove', onMouseMove, { passive: true })
   window.addEventListener('scroll', onScroll, { passive: true })
+  window.addEventListener('mousemove', onMouse, { passive: true })
   document.addEventListener('visibilitychange', onVisibility)
 })
 
 onBeforeUnmount(() => {
   stop()
   window.removeEventListener('resize', onResize)
-  window.removeEventListener('mousemove', onMouseMove)
   window.removeEventListener('scroll', onScroll)
+  window.removeEventListener('mousemove', onMouse)
   document.removeEventListener('visibilitychange', onVisibility)
 })
 </script>
@@ -199,18 +208,18 @@ onBeforeUnmount(() => {
   position: absolute;
   inset: 0;
   opacity: 0.9;
-  filter: blur(2px) saturate(1.15);
-  -webkit-filter: blur(2px) saturate(1.15);
 }
 .ambient-frost {
   position: absolute;
   inset: 0;
-  background: rgba(11, 12, 15, 0.18);
+  background: rgba(11, 12, 15, 0.08);
 }
 html.light .ambient-frost {
-  background: rgba(250, 249, 246, 0.25);
+  background: rgba(250, 249, 246, 0.45);
 }
 @media (prefers-reduced-motion: reduce) {
-  .ambient-canvas { opacity: 0.6; filter: none; -webkit-filter: none; }
+  .ambient-canvas {
+    opacity: 0.5;
+  }
 }
 </style>

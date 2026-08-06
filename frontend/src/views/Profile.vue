@@ -1,13 +1,13 @@
 <template>
   <div class="page">
-    <header class="border-b border-gray-800/60 dark:border-gray-700/60 bg-gray-900/80 dark:bg-gray-900/80 backdrop-blur-xl sticky top-0 z-50 safe-top">
+    <header class="border-b border-[var(--app-nav-border)] bg-[var(--app-nav-bg)] backdrop-blur-xl sticky top-0 z-50 safe-top">
       <div class="max-w-3xl mx-auto px-4 h-12 flex items-center justify-between">
         <a href="/" class="flex items-center gap-2 font-bold text-lg">
           <Logo :size="28" />
           <span class="bg-gradient-to-r from-emerald-400 to-emerald-300 bg-clip-text text-transparent">BeBetter</span>
         </a>
         <div class="flex items-center gap-1 shrink-0">
-          <button @click="toggleTheme" class="p-2.5 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 dark:hover:bg-gray-700 transition-colors touch-target" aria-label="Toggle theme">
+          <button @click="toggleTheme" class="p-2.5 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition-colors touch-target inline-flex items-center justify-center shrink-0" aria-label="Toggle theme">
             <Sun v-if="isDark" :size="18" />
             <Moon v-else :size="18" />
           </button>
@@ -16,7 +16,7 @@
               class="w-8 h-8 rounded-full bg-emerald-600/20 flex items-center justify-center text-xs font-bold text-emerald-400 ring-1 ring-emerald-500/30">
               {{ (auth.user?.username || '?')[0]?.toUpperCase() || '?' }}
             </router-link>
-            <button @click="handleLogout" class="p-2.5 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 dark:hover:bg-gray-700 transition-colors touch-target">
+            <button @click="handleLogout" class="p-2.5 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition-colors touch-target inline-flex items-center justify-center shrink-0">
               <LogOut :size="18" />
             </button>
           </template>

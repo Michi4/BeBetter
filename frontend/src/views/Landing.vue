@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen text-[var(--bb-ink)] flex flex-col selection:bg-emerald-500/30 selection:text-emerald-300 overflow-x-hidden">
+  <div class="min-h-screen text-[var(--bb-ink)] flex flex-col selection:bg-emerald-500/30 selection:text-emerald-300 overflow-x-clip">
     <AmbientGlow />
 
     <div class="relative z-10 flex flex-col flex-1">
@@ -8,7 +8,8 @@
     <main class="flex-1">
       <!-- ============ HERO ============ -->
       <section id="hero" class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 sm:pt-24 pb-16 sm:pb-24">
-        <div class="text-center max-w-4xl mx-auto space-y-7">
+        <div class="hero-scrim absolute -inset-x-4 -top-16 bottom-0 pointer-events-none" aria-hidden="true"></div>
+        <div class="text-center max-w-4xl mx-auto space-y-7 relative">
           <ScrollReveal variant="fade-up" :delay="100">
             <h1 class="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.08]">
               <span class="text-[var(--bb-ink)]">Build habits</span><br />
@@ -271,6 +272,7 @@
       <!-- ============ FINAL CTA ============ -->
       <section id="cta" class="py-20 sm:py-28 relative overflow-hidden">
         <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--bb-accent)]/50 to-transparent" aria-hidden="true"></div>
+        <div class="cta-scrim absolute inset-0 pointer-events-none" aria-hidden="true"></div>
 
         <ScrollReveal variant="scale-up" class="relative max-w-3xl mx-auto px-4 text-center space-y-8">
           <h2 class="text-4xl sm:text-6xl font-black tracking-tight text-[var(--bb-ink)] leading-[1.08]">
@@ -404,6 +406,12 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.hero-scrim {
+  background: radial-gradient(ellipse 70% 62% at 50% 36%, color-mix(in srgb, var(--bb-bg) 52%, transparent), color-mix(in srgb, var(--bb-bg) 30%) 52%, transparent 78%);
+}
+.cta-scrim {
+  background: radial-gradient(ellipse 80% 90% at 50% 45%, color-mix(in srgb, var(--bb-bg) 42%, transparent), transparent 70%);
+}
 .bb-dots {
   background-image: radial-gradient(var(--bb-grid) 1px, transparent 1px);
   background-size: 22px 22px;
