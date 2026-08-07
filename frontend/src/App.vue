@@ -50,6 +50,15 @@
 
     <router-view />
 
+    <!-- Offline indicator -->
+    <div v-if="!online"
+      class="fixed bottom-24 md:bottom-6 inset-x-0 z-[70] flex justify-center px-4 pointer-events-none">
+      <div class="pointer-events-auto flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-medium backdrop-blur-xl shadow-lg">
+        <WifiOff :size="14" />
+        You're offline — showing saved data, changes will sync when you're back
+      </div>
+    </div>
+
     <!-- Push prompt (authenticated, first-run) -->
     <div class="max-w-3xl mx-auto px-4">
       <PushPrompt v-if="auth.user" />
@@ -83,17 +92,19 @@
 import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
-import { LogOut, LayoutDashboard, ListTodo, Users, Trophy, BookOpen, Shield, Sun, Moon } from 'lucide-vue-next'
+import { LogOut, LayoutDashboard, ListTodo, Users, Trophy, BookOpen, Shield, Sun, Moon, WifiOff } from 'lucide-vue-next'
 import Logo from './components/Logo.vue'
 import PushPrompt from './components/PushPrompt.vue'
 import SignUpPrompt from './components/SignUpPrompt.vue'
 import { useTheme } from './composables/useTheme'
+import { useOnline } from './composables/useOnline'
 import { openDemoPrompt } from './utils/demoPrompt'
 
 const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
 const { isDark, toggleTheme } = useTheme()
+const { online } = useOnline()
 
 const publicRoutes = ['landing', 'login', 'register', 'forgot-password', 'reset-password', 'privacy', 'terms', 'imprint']
 
