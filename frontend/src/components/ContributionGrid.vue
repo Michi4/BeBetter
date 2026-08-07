@@ -7,7 +7,7 @@
           <!-- Month labels row -->
           <div class="relative h-[18px] mb-[3px]">
             <div v-for="(m, i) in monthLabels" :key="i"
-              class="absolute text-[11px] text-gray-500"
+              class="absolute text-[11px] text-[var(--bb-faint)]"
               :style="{ left: m.left + 'px' }">
               {{ m.label }}
             </div>
@@ -16,7 +16,7 @@
           <!-- Grid body: day labels + weeks -->
           <div class="flex gap-[3px]">
             <!-- Day labels column -->
-            <div class="flex flex-col gap-[3px] text-[10px] text-gray-500 shrink-0" :style="{ width: dayLabelW + 'px' }">
+            <div class="flex flex-col gap-[3px] text-[10px] text-[var(--bb-faint)] shrink-0" :style="{ width: dayLabelW + 'px' }">
               <div v-for="d in dayLabels" :key="d.label"
                 class="flex items-center"
                 :style="{ height: cell + 'px' }">
@@ -63,7 +63,7 @@
     </Teleport>
 
     <!-- Legend -->
-    <div v-if="weeks.length" class="flex items-center gap-1.5 mt-3 text-[10px] text-gray-500 justify-end">
+    <div v-if="weeks.length" class="flex items-center gap-1.5 mt-3 text-[10px] text-[var(--bb-faint)] justify-end">
       <span>Less</span>
       <div v-for="(cls, i) in legendClasses" :key="i"
         class="rounded-[2px]"
