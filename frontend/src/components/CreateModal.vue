@@ -9,14 +9,14 @@
         <h3 class="text-lg font-bold mb-4 pr-10">Create New</h3>
 
         <div class="flex gap-1 p-1 bg-gray-800/50 rounded-xl mb-5">
-          <button @click="mode = 'task'" class="flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors"
+          <button @click="switchMode('task')" class="flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors"
             :class="mode === 'task' ? 'bg-emerald-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'">
             <div class="flex items-center justify-center gap-2">
               <ListTodo :size="16" />
               Task
             </div>
           </button>
-          <button @click="mode = 'habit'" class="flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors"
+          <button @click="switchMode('habit')" class="flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors"
             :class="mode === 'habit' ? 'bg-emerald-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'">
             <div class="flex items-center justify-center gap-2">
               <Target :size="16" />
@@ -36,12 +36,9 @@
             <label class="text-xs font-medium text-gray-400 mb-1.5 block">Description (optional)</label>
             <textarea v-model="taskForm.description" class="input min-h-[60px]" placeholder="Add details..." rows="2"></textarea>
           </div>
-          <div class="flex items-center gap-3">
-            <input v-model="taskForm.emoji" class="input w-16 text-center text-lg" placeholder="📝" maxlength="2" />
-            <div class="flex-1">
-              <label class="text-xs font-medium text-gray-400 mb-1.5 block">Due date (optional)</label>
-              <input v-model="taskForm.dueDate" type="date" class="input text-sm" />
-            </div>
+          <div>
+            <label class="text-xs font-medium text-gray-400 mb-1.5 block">Due date &amp; time (optional)</label>
+            <input v-model="taskForm.dueDate" type="datetime-local" class="input text-sm" />
           </div>
 
           <!-- Set time toggle for tasks -->
@@ -275,7 +272,7 @@ const customReminderInput = ref('')
 const customTaskReminderInput = ref('')
 
 const taskForm = reactive({
-  title: '', description: '', emoji: '📝', dueDate: '',
+  title: '', description: '', dueDate: '',
   setScheduledTime: false, scheduledTime: '', scheduledDays: [1, 2, 3, 4, 5], reminderMinutes: [],
 })
 const habitForm = reactive({
@@ -283,6 +280,20 @@ const habitForm = reactive({
   schedules: [{ time: null, days: [0, 1, 2, 3, 4, 5, 6] }],
   verificationType: 'honor', makePublic: false, reminderMinutes: [],
 })
+
+function switchMode(next) {
+  if (next === mode.value) return
+  if (next === 'task') {
+    taskForm.title = habitForm.title
+    taskForm.description = habitForm.description
+    taskForm.reminderMinutes = [...habitForm.reminderMinutes]
+  } else {
+    habitForm.title = taskForm.title
+    habitForm.description = taskForm.description
+    habitForm.reminderMinutes = [...taskForm.reminderMinutes]
+  }
+  mode.value = next
+}
 
 const selectedBuddies = ref([])
 const buddySearch = ref('')
@@ -298,7 +309,6 @@ watch(() => props.show, (val) => {
     showAdvanced.value = false
     taskForm.title = ''
     taskForm.description = ''
-    taskForm.emoji = '📝'
     taskForm.dueDate = ''
     taskForm.setScheduledTime = false
     taskForm.scheduledTime = ''
