@@ -16,7 +16,6 @@ async function main() {
       username: 'michi',
       role: 'admin',
       isPublic: true,
-      isTest: true,
       bio: 'Building better habits every day',
     },
   });
@@ -34,6 +33,7 @@ async function main() {
       isPublic: true,
       bio: 'Building better habits every day',
     },
+    update: { isDemo: true, isTest: true },
   });
 
   const hash2 = await bcrypt.hash('password123', 10);
@@ -48,6 +48,7 @@ async function main() {
       isTest: true,
       bio: 'Fitness enthusiast',
     },
+    update: { isTest: true },
   });
 
   const [s1, l1] = [user.id, user2.id].sort();
