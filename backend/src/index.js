@@ -71,10 +71,16 @@ app.use(express.static(publicDir, {
   immutable: true,
   etag: true,
   lastModified: true,
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('index.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+  },
 }));
 
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api/')) {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.sendFile(path.join(publicDir, 'index.html'));
   }
 });

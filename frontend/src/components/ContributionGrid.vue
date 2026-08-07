@@ -28,7 +28,7 @@
               <div v-for="(week, wi) in weeks" :key="wi" class="flex flex-col gap-[3px]">
                 <div v-for="(day, di) in week" :key="di">
                   <div
-                    class="rounded-[2px] transition-all duration-100"
+                    class="grid-cell rounded-[2px] transition-transform duration-100 ease-out hover:scale-125 hover:z-10 relative cursor-pointer"
                     :class="day ? getCellClass(day) : 'bg-transparent'"
                     :style="{ width: cell + 'px', height: cell + 'px' }"
                     @mouseenter="day ? onCellEnter(day, $event) : null"
@@ -324,3 +324,33 @@ onMounted(() => {
 })
 onUnmounted(() => window.removeEventListener('resize', measureWidth))
 </script>
+
+<style scoped>
+.grid-cell {
+  position: relative;
+}
+.grid-cell[data-hover-glow] {
+  box-shadow: 0 0 0 rgba(52, 211, 153, 0);
+}
+.grid-cell:hover.bg-emerald-400,
+.grid-cell:hover.bg-emerald-500,
+.grid-cell:hover.bg-emerald-700,
+.grid-cell:hover.bg-emerald-950,
+.grid-cell:hover.bg-gray-800\/40,
+.grid-cell:hover.bg-gray-800\/80,
+.grid-cell:hover.bg-gray-700\/60,
+.grid-cell:hover.bg-gray-700\/40 {
+  box-shadow: 0 0 10px 1px rgba(52, 211, 153, 0.4);
+  z-index: 10;
+}
+.grid-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+.grid-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.grid-scroll::-webkit-scrollbar-thumb {
+  background: rgba(120, 120, 130, 0.35);
+  border-radius: 9999px;
+}
+</style>

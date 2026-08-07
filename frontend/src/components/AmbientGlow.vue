@@ -22,9 +22,6 @@ let dpr = 1
 let oldW = 0
 let oldH = 0
 let scrollY = 0
-let mouse = { x: -9999, y: -9999, vx: 0, vy: 0 }
-let lastMouse = { x: -9999, y: -9999 }
-let bloom = { x: -9999, y: -9999, s: 0 }
 
 const isLight = () => document.documentElement.classList.contains('light')
 const TAU = Math.PI * 2
@@ -64,9 +61,6 @@ function build() {
       warm: i % 2 === 0,
     }))
   }
-  Object.assign(bloom, { x: w * 0.5, y: h * 0.5, s: 0 })
-  lastMouse.x = -9999
-  lastMouse.y = -9999
 }
 
 function draw() {
@@ -151,24 +145,6 @@ function draw() {
     }
   }
 
-  // Cursor bloom — a bright grid-style dot that chases the pointer.
-  bloom.x += (mouse.x * dpr - bloom.x) * 0.09
-  bloom.y += (mouse.y * dpr - bloom.y) * 0.09
-  bloom.s += ((Math.min(1, Math.hypot(mouse.vx, mouse.vy) / 14)) - bloom.s) * 0.09
-  if (bloom.x >= 0) {
-    // Soft outer halo.
-    const haloAlpha = (light ? 0.2 : 0.22) * (0.4 + bloom.s * 0.6)
-    const r = 250 * dpr
-    const g = ctx.createRadialGradient(bloom.x, bloom.y, 0, bloom.x, bloom.y, r)
-    g.addColorStop(0, `rgba(110, 231, 183, ${haloAlpha})`)
-    g.addColorStop(0.55, `rgba(16, 185, 129, ${haloAlpha * 0.45})`)
-    g.addColorStop(1, 'rgba(16, 185, 129, 0)')
-    ctx.fillStyle = g
-    ctx.beginPath()
-    ctx.arc(bloom.x, bloom.y, r, 0, TAU)
-    ctx.fill()
-  }
-
   if (running) raf = requestAnimationFrame(draw)
 }
 
@@ -212,9 +188,6 @@ function setup() {
       a.y *= sy
       a.r *= big / oldBig
     }
-    bloom.x *= sx
-    bloom.y *= sy
-    bloom.s = 0
   }
   oldW = w
   oldH = h
@@ -237,15 +210,6 @@ function onResize() {
 }
 function onScroll() { scrollY = window.scrollY }
 
-function onMouse(e) {
-  mouse.vx = e.clientX - lastMouse.x
-  mouse.vy = e.clientY - lastMouse.y
-  lastMouse.x = e.clientX
-  lastMouse.y = e.clientY
-  mouse.x = e.clientX
-  mouse.y = e.clientY
-}
-
 function onVisibility() {
   if (document.hidden) stop()
   else if (!reduced) start()
@@ -257,7 +221,6 @@ onMounted(() => {
   if (!reduced) start()
   window.addEventListener('resize', onResize)
   window.addEventListener('scroll', onScroll, { passive: true })
-  window.addEventListener('mousemove', onMouse, { passive: true })
   document.addEventListener('visibilitychange', onVisibility)
 })
 
@@ -265,7 +228,6 @@ onBeforeUnmount(() => {
   stop()
   window.removeEventListener('resize', onResize)
   window.removeEventListener('scroll', onScroll)
-  window.removeEventListener('mousemove', onMouse)
   document.removeEventListener('visibilitychange', onVisibility)
 })
 </script>

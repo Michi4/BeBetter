@@ -99,7 +99,7 @@
           <div class="flex items-end justify-between gap-6 mb-16">
             <div class="space-y-4 max-w-2xl">
               <p class="text-xs font-bold tracking-[0.25em] uppercase text-[var(--bb-accent)]">01 &mdash; Features</p>
-              <h2 class="text-3xl sm:text-5xl font-extrabold tracking-tight">Everything you need<br class="hidden sm:inline" /> to build better habits</h2>
+              <h2 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-[var(--bb-ink)]">Everything you need<br class="hidden sm:inline" /> to build better habits</h2>
             </div>
             <p class="hidden lg:block text-sm text-[var(--bb-muted)] max-w-xs leading-relaxed pb-1">
               Simple to start. Advanced when you need it. Built for analysts, makers, and competitors.
@@ -139,7 +139,7 @@
           <div class="flex items-end justify-between gap-6 mb-16">
             <div class="space-y-4 max-w-2xl">
               <p class="text-xs font-bold tracking-[0.25em] uppercase text-[var(--bb-accent)]">02 &mdash; How it works</p>
-              <h2 class="text-3xl sm:text-5xl font-extrabold tracking-tight">Three steps to habits<br class="hidden sm:inline" /> that finally stick</h2>
+              <h2 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-[var(--bb-ink)]">Three steps to habits<br class="hidden sm:inline" /> that finally stick</h2>
             </div>
           </div>
 
@@ -164,7 +164,7 @@
           <div class="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             <div class="space-y-6">
               <p class="text-xs font-bold tracking-[0.25em] uppercase text-[var(--bb-accent)]">03 &mdash; Competition</p>
-              <h2 class="text-3xl sm:text-5xl font-extrabold tracking-tight">Turn whatever<br class="hidden sm:inline" /> you want into a competition</h2>
+              <h2 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-[var(--bb-ink)]">Turn whatever<br class="hidden sm:inline" /> you want into a competition</h2>
               <p class="text-[var(--bb-muted)] leading-relaxed">
                 Challenge a friend to a 7-day streak battle. Live progress bars, streak counters, and a shared leaderboard.
                 The loser buys coffee. The winner rubs it in &mdash; right inside the app.
@@ -303,6 +303,8 @@ function onHeroMouse(e) {
     const ny = Math.max(-1, Math.min(1, ((e.clientY - (r.top + r.height / 2)) / (r.height / 2)) || 0))
     el.style.setProperty('--rx', (-ny * 3.2).toFixed(2) + 'deg')
     el.style.setProperty('--ry', (nx * 4.6).toFixed(2) + 'deg')
+    el.style.setProperty('--gx', (e.clientX - r.left) + 'px')
+    el.style.setProperty('--gy', (e.clientY - r.top) + 'px')
   })
 }
 function onHeroLeave() {
@@ -412,6 +414,19 @@ onBeforeUnmount(() => {
 }
 .hero-target {
   transform-style: preserve-3d;
+}
+.hero-target::after {
+  content: '';
+  position: absolute;
+  width: 360px;
+  height: 360px;
+  border-radius: 50%;
+  left: calc(var(--gx, 50%) - 180px);
+  top: calc(var(--gy, 20%) - 180px);
+  background: radial-gradient(circle, rgba(52, 211, 153, 0.16), rgba(52, 211, 153, 0.05) 45%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity 0.3s ease;
 }
 .hero-title {
   transform: perspective(1100px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
