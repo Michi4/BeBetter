@@ -48,7 +48,11 @@
       </div>
     </nav>
 
-    <router-view />
+    <router-view v-slot="{ Component }">
+      <Transition name="page" mode="out-in">
+        <component :is="Component" :key="route.path" />
+      </Transition>
+    </router-view>
 
     <!-- Offline indicator -->
     <div v-if="!online"
