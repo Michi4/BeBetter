@@ -38,7 +38,7 @@ function build() {
     particles.push({
       x: Math.random() * w,
       y: Math.random() * h,
-      r: rand(3.5, 7.5) * dpr,
+      r: rand(4.5, 9.5) * dpr,
       vx: rand(-0.14, 0.14) * dpr,
       vy: rand(-0.12, 0.12) * dpr,
       ph: Math.random() * TAU,
@@ -176,23 +176,6 @@ function draw() {
     ctx.fillStyle = g
     ctx.beginPath()
     ctx.arc(bloom.x, bloom.y, r, 0, TAU)
-    ctx.fill()
-
-    // Soft blurred core dot — a glow ball, no hard edges.
-    const cr = (20 + 12 * bloom.s) * dpr
-    const cg = ctx.createRadialGradient(bloom.x, bloom.y, 0, bloom.x, bloom.y, cr)
-    if (light) {
-      cg.addColorStop(0, 'rgba(4, 120, 87, 0.6)')
-      cg.addColorStop(0.45, 'rgba(16, 185, 129, 0.32)')
-      cg.addColorStop(1, 'rgba(16, 185, 129, 0)')
-    } else {
-      cg.addColorStop(0, 'rgba(167, 243, 208, 0.75)')
-      cg.addColorStop(0.45, 'rgba(52, 211, 153, 0.4)')
-      cg.addColorStop(1, 'rgba(52, 211, 153, 0)')
-    }
-    ctx.fillStyle = cg
-    ctx.beginPath()
-    ctx.arc(bloom.x, bloom.y, cr, 0, TAU)
     ctx.fill()
   }
 

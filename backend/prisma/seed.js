@@ -16,6 +16,7 @@ async function main() {
       username: 'michi',
       role: 'admin',
       isPublic: true,
+      isTest: true,
       bio: 'Building better habits every day',
     },
   });
@@ -44,6 +45,7 @@ async function main() {
       passwordHash: hash2,
       username: 'alex',
       isPublic: true,
+      isTest: true,
       bio: 'Fitness enthusiast',
     },
   });

@@ -19,12 +19,13 @@ router.use(authMiddleware, adminMiddleware);
 
 router.get('/stats', async (req, res) => {
   try {
+    const REAL = { isDemo: false, isTest: false };
     const [users, habits, logs, tasks, taskLogs] = await Promise.all([
-      prisma.user.count(),
-      prisma.habit.count(),
-      prisma.habitLog.count(),
-      prisma.task.count(),
-      prisma.taskLog.count(),
+      prisma.user.count({ where: REAL }),
+      prisma.habit.count({ where: { user: REAL } }),
+      prisma.habitLog.count({ where: { user: REAL } }),
+      prisma.task.count({ where: { user: REAL } }),
+      prisma.taskLog.count({ where: { user: REAL } }),
     ]);
 
     const today = new Date();
@@ -34,11 +35,11 @@ router.get('/stats', async (req, res) => {
 
     const [activeToday, newUsersWeek] = await Promise.all([
       prisma.habitLog.findMany({
-        where: { completedAt: { gte: today, lt: tomorrow } },
+        where: { completedAt: { gte: today, lt: tomorrow }, user: REAL },
         select: { userId: true },
       }).then((logs) => new Set(logs.map((l) => l.userId)).size),
       prisma.user.count({
-        where: { createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } },
+        where: { createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }, ...REAL },
       }),
     ]);
 

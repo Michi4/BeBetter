@@ -36,7 +36,7 @@
               <a href="/login" class="btn-secondary px-8 py-4 border border-[var(--bb-line)] text-lg font-medium">
                 Sign In
               </a>
-              <a href="/login?demo=1" class="btn-ghost px-8 py-4 text-lg font-medium">
+              <a href="/login?demo=1" class="btn-demo px-8 py-4 text-lg font-medium">
                 Try the Demo
               </a>
             </div>
@@ -49,14 +49,10 @@
         <ScrollReveal variant="fade-up">
           <div class="rounded-2xl border border-[var(--bb-line)] bg-[var(--bb-bg-soft)] p-5 sm:p-8">
             <div class="flex items-center justify-between flex-wrap gap-2 mb-6">
-              <p class="text-xs font-bold tracking-[0.2em] uppercase text-[var(--bb-muted)]">Your year, one day per dot</p>
-              <span class="flex items-center gap-2.5 text-[10px] text-[var(--bb-faint)] uppercase tracking-wider">
-                <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-[2px] bg-[#15803d]" aria-hidden="true"></span> done</span>
-                <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-[2px] bg-[var(--bb-grid)]" aria-hidden="true"></span> rest</span>
-              </span>
+              <p class="text-xs font-bold tracking-[0.2em] uppercase text-[var(--bb-muted)]">Your year at a glance</p>
             </div>
             <div class="overflow-x-auto pb-1">
-              <YearGrid :width="52" :height="7" />
+              <ContributionGrid :grid="demoGrid" :year="demoYear" />
             </div>
           </div>
         </ScrollReveal>
@@ -151,7 +147,7 @@
 
           <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
             <div class="hidden md:block absolute top-8 left-[16%] right-[16%] h-px bg-gradient-to-r from-[var(--bb-accent)]/40 via-[var(--bb-accent)]/20 to-transparent" aria-hidden="true"></div>
-            <div v-for="(step, i) in steps" :key="step.title" class="text-center space-y-4 p-6 relative">
+            <div v-for="(step, i) in steps" :key="step.title" class="text-center space-y-4 p-6 sm:p-8 relative rounded-2xl border border-[var(--bb-line)] bg-[var(--bb-card)] transition-colors duration-300">
               <div class="relative w-16 h-16 rounded-2xl bg-[var(--bb-accent)]/10 border border-[var(--bb-accent)]/20 flex items-center justify-center mx-auto">
                 <component :is="step.icon" :size="28" class="text-[var(--bb-accent)]" :stroke-width="1.5" />
                 <span class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-[var(--bb-accent)] text-[var(--bb-accent-ink)] text-xs font-bold flex items-center justify-center">{{ i + 1 }}</span>
@@ -216,34 +212,6 @@
         </ScrollReveal>
       </section>
 
-      <!-- ============ SHOWCASE ============ -->
-      <section id="showcase" class="border-b border-[var(--bb-line)] bg-[var(--bb-bg-soft)] py-20 sm:py-28">
-        <ScrollReveal variant="fade-up" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div class="flex items-end justify-between gap-6 mb-16">
-            <div class="space-y-4 max-w-2xl">
-              <p class="text-xs font-bold tracking-[0.25em] uppercase text-[var(--bb-accent)]">04 &mdash; In the wild</p>
-              <h2 class="text-3xl sm:text-5xl font-extrabold tracking-tight">Real habits from<br class="hidden sm:inline" /> real people</h2>
-            </div>
-            <p v-if="showcaseHabits.length" class="hidden lg:block text-sm text-[var(--bb-muted)] max-w-xs leading-relaxed pb-1">Public habits, shared by people who actually use the app.</p>
-          </div>
-
-          <div v-if="showcaseHabits.length" class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <HabitShowcaseCard v-for="habit in showcaseHabits" :key="habit.id || habit.title" :habit="habit" />
-          </div>
-
-          <div v-else class="rounded-2xl border border-[var(--bb-line)] bg-[var(--bb-card)] p-10 sm:p-14 text-center">
-            <p class="text-4xl mb-4" aria-hidden="true">🌱</p>
-            <h3 class="text-xl font-bold mb-2">No public habits yet &mdash; be the first</h3>
-            <p class="text-sm text-[var(--bb-muted)] max-w-md mx-auto mb-6 leading-relaxed">
-              Public habits appear here as soon as people start sharing them. Create your first habit, make it public, and you could be the face of the leaderboard.
-            </p>
-            <a href="/register" class="btn px-8 py-3 bg-emerald-700 hover:bg-emerald-600 text-base font-semibold shadow-[0_0_20px_rgba(16,185,129,0.25)]">
-              Get started in 2 minutes
-            </a>
-          </div>
-        </ScrollReveal>
-      </section>
-
       <!-- ============ FINAL CTA ============ -->
       <section id="cta" class="py-20 sm:py-28 relative overflow-hidden">
         <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--bb-accent)]/50 to-transparent" aria-hidden="true"></div>
@@ -264,7 +232,7 @@
               <ArrowRight :size="18" class="group-hover:translate-x-0.5 transition-transform" />
             </a>
             <a href="/login" class="btn-secondary px-10 py-4 text-lg font-medium">Sign In</a>
-            <a href="/login?demo=1" class="btn-ghost px-10 py-4 text-lg font-medium">Try the Demo</a>
+            <a href="/login?demo=1" class="btn-demo px-10 py-4 text-lg font-medium">Try the Demo</a>
           </div>
           <p class="text-xs text-[var(--bb-faint)]">
             <a href="/privacy" class="underline underline-offset-2 hover:text-[var(--bb-accent)] transition-colors">Privacy</a>
@@ -287,9 +255,8 @@ import { ref, onMounted, onBeforeUnmount } from 'vue'
 import LandingNavbar from '../components/LandingNavbar.vue'
 import LandingFooter from '../components/LandingFooter.vue'
 import ScrollReveal from '../components/ScrollReveal.vue'
-import HabitShowcaseCard from '../components/HabitShowcaseCard.vue'
 import StatCounter from '../components/StatCounter.vue'
-import YearGrid from '../components/YearGrid.vue'
+import ContributionGrid from '../components/ContributionGrid.vue'
 import MarqueeBand from '../components/MarqueeBand.vue'
 import AmbientGlow from '../components/AmbientGlow.vue'
 import {
@@ -299,6 +266,31 @@ import {
 
 const loaded = ref(false)
 const stats = ref({ habits: 0, completionsValue: 0, completionsSuffix: '', streakRetention: 0, newHabits: 0 })
+
+// Demo contribution grid — mirrors the real app grid (weeks, month labels, intensity)
+const demoYear = new Date().getFullYear()
+const demoGrid = (() => {
+  const grid = []
+  const now = new Date()
+  for (let d = new Date(Date.UTC(demoYear, 0, 1)); d <= now; d.setUTCDate(d.getUTCDate() + 1)) {
+    const dateStr = d.toISOString().slice(0, 10)
+    const seed = Math.sin(Date.parse(dateStr) / 86400000 * 2.7) * 10000
+    const rnd = seed - Math.floor(seed)
+    const dow = d.getUTCDay()
+    const weekend = dow === 0 || dow === 6
+    const scheduled = weekend ? 1 : 2
+    const habits = rnd < 0.72 ? scheduled : rnd < 0.86 ? 1 : 0
+    grid.push({
+      date: dateStr,
+      scheduled,
+      completed: habits,
+      habits,
+      tasks: rnd < 0.3 ? 1 : 0,
+      items: [],
+    })
+  }
+  return grid
+})()
 
 const hero = ref(null)
 let heroRaf = null
@@ -329,13 +321,10 @@ const tickerItems = [
   'Precise push reminders',
   'Photo verification',
   'PWA & offline ready',
-  'Your year, one day per dot',
+  'Your year at a glance',
 ]
 
-const showcaseHabits = ref([])
-
-const features = [
-  { title: 'Habits that adapt to you', description: 'Multiple schedules per habit. Precise reminders at exact times. Photo or honor verification. Automatic streaks, breaks, and consistency stats. Your habits, your rules.', icon: Target },
+const features = [  { title: 'Habits that adapt to you', description: 'Multiple schedules per habit. Precise reminders at exact times. Photo or honor verification. Automatic streaks, breaks, and consistency stats. Your habits, your rules.', icon: Target },
   { title: 'Tasks that respect your time', description: 'One-time scheduled tasks with precise reminders. No weekly repeat unless you want it. Completed tasks feed your contribution grid. Overdue tasks never clutter your day.', icon: ListTodo },
   { title: 'Competition that keeps you going', description: 'Invite friends with a link — they join, you\'re connected. Challenge anyone head-to-head. Add accountability buddies who co-sign completions. Watch each other\'s streaks in real time.', icon: Users },
 ]
@@ -389,9 +378,6 @@ onMounted(() => {
         newHabits: s.avgSetup || 0,
       }
       loaded.value = true
-      if (Array.isArray(data?.featured) && data.featured.length) {
-        showcaseHabits.value = data.featured.slice(0, 3)
-      }
     })
     .catch(() => {
       loaded.value = true
@@ -406,6 +392,16 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.btn-demo {
+  border: 1px solid color-mix(in srgb, var(--bb-accent) 45%, transparent);
+  background: color-mix(in srgb, var(--bb-accent) 9%, transparent);
+  color: var(--bb-accent);
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+.btn-demo:hover {
+  background: color-mix(in srgb, var(--bb-accent) 16%, transparent);
+  border-color: color-mix(in srgb, var(--bb-accent) 70%, transparent);
+}
 .hero-scrim {
   background: radial-gradient(ellipse 70% 62% at 50% 36%, color-mix(in srgb, var(--bb-bg) 52%, transparent), color-mix(in srgb, var(--bb-bg) 30%) 52%, transparent 78%);
 }

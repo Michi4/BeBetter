@@ -9,21 +9,21 @@
 
         <nav class="bb-nav hidden md:flex items-center gap-1" aria-label="Main">
           <a v-for="item in desktopItems" :key="item.href" :href="item.href"
-            class="px-3 py-2 rounded-lg text-sm font-medium text-[var(--bb-muted)] hover:text-[var(--bb-ink)] hover:bg-[var(--bb-line)] transition-colors touch-target">
+            class="px-3 py-2 rounded-lg text-sm font-medium text-[var(--bb-muted)] hover:text-[var(--bb-ink)] hover:bg-[var(--bb-line)] transition-colors duration-150 touch-target">
             {{ item.label }}
           </a>
         </nav>
 
         <div class="flex items-center gap-3 justify-self-end">
-          <button @click="toggleTheme" class="p-2.5 rounded-lg text-[var(--bb-muted)] hover:text-[var(--bb-ink)] hover:bg-[var(--bb-line)] transition-colors touch-target inline-flex items-center justify-center shrink-0" aria-label="Toggle theme">
+          <button @click="toggleTheme" class="nav-btn p-2.5 rounded-lg text-[var(--bb-muted)] hover:text-[var(--bb-ink)] transition-colors duration-150 touch-target inline-flex items-center justify-center shrink-0" aria-label="Toggle theme">
             <Sun v-if="isDark" :size="18" />
             <Moon v-else :size="18" />
           </button>
-          <a href="/login" class="hidden sm:block text-sm font-medium text-[var(--bb-muted)] hover:text-[var(--bb-ink)] px-4 py-2 rounded-lg transition-colors touch-target">Sign In</a>
+          <a href="/login" class="hidden sm:block text-sm font-medium text-[var(--bb-muted)] hover:text-[var(--bb-ink)] px-4 py-2 rounded-lg transition-colors duration-150 touch-target">Sign In</a>
           <a href="/register" class="btn text-sm px-6 py-2.5 bg-emerald-700 hover:bg-emerald-600 shadow-[0_0_15px_rgba(16,185,129,0.2)] font-semibold">
             Sign Up
           </a>
-          <button @click="mobileOpen = !mobileOpen" class="md:hidden p-2.5 rounded-lg text-[var(--bb-muted)] hover:text-[var(--bb-ink)] hover:bg-[var(--bb-line)] transition-colors touch-target" aria-label="Menu" :aria-expanded="mobileOpen">
+          <button @click="mobileOpen = !mobileOpen" class="nav-btn md:hidden p-2.5 rounded-lg text-[var(--bb-muted)] hover:text-[var(--bb-ink)] transition-colors duration-150 touch-target" aria-label="Menu" :aria-expanded="mobileOpen">
             <Menu v-if="!mobileOpen" :size="20" />
             <X v-else :size="20" />
           </button>
@@ -74,14 +74,12 @@ const desktopItems = [
   { href: '#features', label: 'Features' },
   { href: '#how', label: 'How it works' },
   { href: '#challenges', label: 'Challenges' },
-  { href: '#showcase', label: 'Showcase' },
 ]
 
 const mobileItems = [
   { href: '#features', label: 'Features' },
   { href: '#how', label: 'How it works' },
   { href: '#challenges', label: 'Challenges' },
-  { href: '#showcase', label: 'Showcase' },
 ]
 
 watch(mobileOpen, (open) => {
@@ -100,6 +98,13 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.nav-btn {
+  background: transparent;
+  border: 1px solid transparent;
+}
+.nav-btn:hover {
+  background: color-mix(in srgb, var(--bb-muted) 10%, transparent);
+}
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.2s ease;

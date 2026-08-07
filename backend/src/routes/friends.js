@@ -59,6 +59,7 @@ router.get('/search', authMiddleware, async (req, res) => {
         ],
         id: { not: req.userId },
         isDemo: false,
+        isTest: false,
       },
       select: { id: true, username: true, avatar: true, bio: true },
       take: 10,

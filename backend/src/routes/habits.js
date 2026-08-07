@@ -594,7 +594,7 @@ router.delete('/:id/buddy/:buddyId', authMiddleware, async (req, res) => {
 router.get('/featured/public', async (req, res) => {
   try {
     const habits = await prisma.habit.findMany({
-      where: { isPublic: true, active: true },
+      where: { isPublic: true, active: true, user: { isDemo: false, isTest: false } },
       orderBy: { logs: { _count: 'desc' } },
       take: 3,
       select: {

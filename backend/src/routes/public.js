@@ -27,13 +27,13 @@ router.get('/landing', async (req, res) => {
     const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
     const [habitCount, logCount, taskCount, recentHabits, streakStats, featured] = await Promise.all([
-      prisma.habit.count({ where: { user: { isDemo: false } } }),
-      prisma.habitLog.count({ where: { user: { isDemo: false } } }),
-      prisma.taskLog.count({ where: { user: { isDemo: false } } }),
-      prisma.habit.count({ where: { createdAt: { gte: monthAgo }, user: { isDemo: false } } }),
-      prisma.habit.aggregate({ _avg: { bestStreak: true }, where: { user: { isDemo: false } } }),
+      prisma.habit.count({ where: { user: { isDemo: false, isTest: false } } }),
+      prisma.habitLog.count({ where: { user: { isDemo: false, isTest: false } } }),
+      prisma.taskLog.count({ where: { user: { isDemo: false, isTest: false } } }),
+      prisma.habit.count({ where: { createdAt: { gte: monthAgo }, user: { isDemo: false, isTest: false } } }),
+      prisma.habit.aggregate({ _avg: { bestStreak: true }, where: { user: { isDemo: false, isTest: false } } }),
       prisma.habit.findMany({
-        where: { isPublic: true, user: { isPublic: true, isDemo: false, bannedUntil: null } },
+        where: { isPublic: true, user: { isPublic: true, isDemo: false, isTest: false, bannedUntil: null } },
         include: {
           user: { select: { id: true, username: true, avatar: true, isPublic: true } },
           _count: { select: { logs: true } },
@@ -91,7 +91,7 @@ router.get('/landing', async (req, res) => {
 router.get('/featured-habits', async (req, res) => {
   try {
     const habits = await prisma.habit.findMany({
-      where: { isPublic: true, user: { isPublic: true, isDemo: false, bannedUntil: null } },
+      where: { isPublic: true, user: { isPublic: true, isDemo: false, isTest: false, bannedUntil: null } },
       include: {
         user: { select: { username: true, avatar: true } },
         _count: { select: { logs: true } },

@@ -17,6 +17,7 @@ model User {
   isPublic      Boolean  @default(false)
   role          String   @default("user")
   isDemo        Boolean  @default(false)
+  isTest        Boolean  @default(false)
   agreedToTermsAt DateTime?
   bannedUntil   DateTime?
   banReason     String?

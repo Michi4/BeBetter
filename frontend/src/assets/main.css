@@ -378,9 +378,9 @@ html.light {
   --app-nav-border: rgba(0, 0, 0, 0.07);
 }
 /* fix landing navs clobbered by global html.light nav rules */
-html.light nav.bb-nav { background: color-mix(in srgb, var(--bb-bg) 92%, transparent) !important; border-color: var(--bb-line) !important; }
+html.light nav.bb-nav { background: transparent !important; border-color: var(--bb-line) !important; }
 html.light nav.bb-nav a, html.light nav.bb-nav button { color: var(--bb-muted) !important; }
-html.light nav.bb-nav a:hover, html.light nav.bb-nav button:hover { color: var(--bb-ink) !important; background: var(--bb-line) !important; }
+html.light nav.bb-nav a:hover, html.light nav.bb-nav button:hover { color: var(--bb-ink) !important; background: color-mix(in srgb, var(--bb-muted) 9%, transparent) !important; }
 html.light footer nav { background: transparent !important; border: none !important; box-shadow: none !important; }
 html.light footer nav a { color: var(--bb-muted) !important; }
 html.light footer nav a:hover { color: var(--bb-ink) !important; }
