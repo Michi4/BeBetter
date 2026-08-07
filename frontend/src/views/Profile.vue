@@ -79,7 +79,16 @@
             <label class="text-xs font-medium text-gray-400 mb-1 block">Bio</label>
             <textarea v-model="editForm.bio" class="input" placeholder="Tell something about yourself..." rows="3"></textarea>
           </div>
-          <label class="flex items-center gap-3 cursor-pointer min-h-[44px]">
+          <div v-if="auth.isDemo" class="flex items-center gap-3 min-h-[44px]">
+            <input type="checkbox" checked disabled
+              class="w-5 h-5 rounded border-gray-600 bg-gray-800 text-emerald-500 cursor-not-allowed opacity-40" />
+            <div class="flex-1">
+              <span class="text-sm text-gray-300">Public profile</span>
+              <p class="text-[10px] text-gray-500">Sign up to make your profile public</p>
+            </div>
+            <button @click="openDemoPrompt()" class="text-xs text-emerald-400 hover:text-emerald-300 shrink-0">Unlock</button>
+          </div>
+          <label v-else class="flex items-center gap-3 cursor-pointer min-h-[44px]">
             <input v-model="editForm.isPublic" type="checkbox"
               class="w-5 h-5 rounded border-gray-600 bg-gray-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0 cursor-pointer" />
             <div>
@@ -87,7 +96,7 @@
               <p class="text-[10px] text-gray-500">Others can view your profile and stats</p>
             </div>
           </label>
-          <button @click="saveProfile" class="btn w-full">
+<button @click="saveProfile" class="btn w-full">
             <Save :size="14" /> Save Profile
           </button>
         </div>
@@ -441,6 +450,10 @@ async function loadSettings() {
 }
 
 async function saveProfile() {
+  if (auth.isDemo) {
+    openDemoPrompt()
+    return
+  }
   try {
     await api.put('/auth/me', { bio: editForm.bio, isPublic: editForm.isPublic })
     toast.success('Profile updated')
@@ -454,6 +467,10 @@ async function saveProfile() {
 }
 
 async function saveNotifPrefs() {
+  if (auth.isDemo) {
+    openDemoPrompt()
+    return
+  }
   if (!notifPrefs.value) return
   try {
     await api.put('/notifications/preferences', notifPrefs.value)
@@ -464,6 +481,10 @@ async function saveNotifPrefs() {
 }
 
 async function togglePush() {
+  if (auth.isDemo) {
+    openDemoPrompt()
+    return
+  }
   if (pushEnabled.value) {
     try {
       const reg = await navigator.serviceWorker.ready
