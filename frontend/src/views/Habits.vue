@@ -168,6 +168,25 @@
       </button>
     </div>
 
+    <!-- Clear-all confirmation -->
+    <div v-if="clearAllModal" class="fixed inset-0 z-[65] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm" @click.self="clearAllModal = null">
+      <div class="card w-full max-w-sm mx-0 sm:mx-4 space-y-4 rounded-b-2xl sm:rounded-2xl safe-bottom" style="padding-bottom: max(env(safe-area-inset-bottom, 0px), 20px)" @click.stop>
+        <div class="w-11 h-11 rounded-full bg-red-500/15 text-red-400 flex items-center justify-center">
+          <AlertTriangle :size="22" />
+        </div>
+        <div>
+          <h3 class="text-base font-bold">{{ clearAllModal.title }}</h3>
+          <p class="text-sm text-gray-400 mt-1">{{ clearAllModal.body }}</p>
+        </div>
+        <div class="flex gap-2">
+          <button @click="clearAllModal = null" class="flex-1 btn-secondary">Cancel</button>
+          <button @click="clearAllModal.onConfirm" class="flex-1 btn bg-red-600 hover:bg-red-500 text-white">
+            <Trash2 :size="14" /> Delete
+          </button>
+        </div>
+      </div>
+    </div>
+
     <CreateModal :show="showCreateModal" :initial-mode="fabMode" :convert-data="convertData"
       @close="showCreateModal = false; convertData = null" @created="handleCreated" @convertToHabit="handleConvertToHabit" />
     <BeBetterCam :show="!!camHabit" @close="camHabit = null" @capture="submitHabitProof" />
@@ -179,7 +198,7 @@
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import api from '../api'
 import { useToast } from 'vue-toastification'
-import { Plus, ChevronDown, ChevronLeft, ChevronRight, CheckCircle2, Circle, Check, Trash2, Target, Loader2, Undo2 } from 'lucide-vue-next'
+import { Plus, ChevronDown, ChevronLeft, ChevronRight, CheckCircle2, Circle, Check, Trash2, Target, Loader2, Undo2, AlertTriangle } from 'lucide-vue-next'
 import HabitCard from '../components/HabitCard.vue'
 import TaskCard from '../components/TaskCard.vue'
 import BeBetterCam from '../components/BeBetterCam.vue'
@@ -203,6 +222,8 @@ const convertData = ref(null)
 const completingTaskId = ref(null)
 const completingHabitId = ref(null)
 const camHabit = ref(null)
+
+const clearAllModal = ref(null)
 
 const todayStr = () => new Date().toISOString().slice(0, 10)
 
@@ -464,14 +485,20 @@ async function deleteCompletedTask(task) {
 }
 
 async function confirmDeleteAllTasks() {
-  if (!confirm(`Delete all ${completedTasks.value.length} completed tasks? This cannot be undone.`)) return
-  try {
-    await Promise.all(completedTasks.value.map(t => api.delete(`/tasks/${t.id}`)))
-    completedTasks.value = []
-    showCompletedTasks.value = false
-    toast.success('All completed tasks deleted')
-  } catch {
-    toast.error('Failed to delete some tasks')
+  clearAllModal.value = {
+    title: `Delete ${completedTasks.value.length} completed tasks?`,
+    body: 'This permanently removes the tasks and their completion history from the grid, streaks and stats. This cannot be undone.',
+    onConfirm: async () => {
+      clearAllModal.value = null
+      try {
+        await Promise.all(completedTasks.value.map(t => api.delete(`/tasks/${t.id}`)))
+        completedTasks.value = []
+        showCompletedTasks.value = false
+        toast.success('All completed tasks deleted')
+      } catch {
+        toast.error('Failed to delete some tasks')
+      }
+    },
   }
 }
 
@@ -542,26 +569,38 @@ async function submitHabitProof(dataUrl) {
 }
 
 async function deleteCompletedHabit(habit) {
-  if (!confirm(`Delete "${habit.title}" and ALL its data? This cannot be undone.`)) return
-  try {
-    await api.delete(`/habits/${habit.id}`)
-    completedHabits.value = completedHabits.value.filter(h => h.id !== habit.id)
-    toast.success(`"${habit.title}" deleted`)
-  } catch {
-    toast.error('Failed to delete habit')
+  clearAllModal.value = {
+    title: `Delete "${habit.title}"?`,
+    body: 'This permanently removes the habit and ALL its data from the grid, streaks and stats. This cannot be undone.',
+    onConfirm: async () => {
+      clearAllModal.value = null
+      try {
+        await api.delete(`/habits/${habit.id}`)
+        completedHabits.value = completedHabits.value.filter(h => h.id !== habit.id)
+        toast.success(`"${habit.title}" deleted`)
+      } catch {
+        toast.error('Failed to delete habit')
+      }
+    },
   }
 }
 
 async function confirmDeleteAllHabits() {
   const count = completedHabits.value.length
-  if (!confirm(`Delete ALL ${count} completed habits? This cannot be undone.`)) return
-  try {
-    await Promise.all(completedHabits.value.map(h => api.delete(`/habits/${h.id}`)))
-    completedHabits.value = []
-    showCompletedHabits.value = false
-    toast.success('All completed habits deleted')
-  } catch {
-    toast.error('Failed to delete some habits')
+  clearAllModal.value = {
+    title: `Delete all ${count} completed habits?`,
+    body: 'This permanently removes the habits, their logs and contribution history from the grid, streaks and stats. This cannot be undone.',
+    onConfirm: async () => {
+      clearAllModal.value = null
+      try {
+        await Promise.all(completedHabits.value.map(h => api.delete(`/habits/${h.id}`)))
+        completedHabits.value = []
+        showCompletedHabits.value = false
+        toast.success('All completed habits deleted')
+      } catch {
+        toast.error('Failed to delete some habits')
+      }
+    },
   }
 }
 
