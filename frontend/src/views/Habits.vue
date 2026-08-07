@@ -139,8 +139,7 @@
             <span class="text-sm truncate" :class="h.completed ? 'text-gray-300' : 'text-gray-500'">{{ h.emoji || '' }} {{ h.title }}</span>
           </div>
           <span v-if="h.scheduledTime" class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 shrink-0">{{ formatTime(h.scheduledTime) }}</span>
-          <span v-if="h.completed" class="text-[10px] text-emerald-400 shrink-0">done</span>
-          <span v-else class="text-[10px] text-gray-600 shrink-0">missed</span>
+          <span v-if="!h.completed" class="text-[10px] text-gray-600 shrink-0">missed</span>
         </div>
       </div>
       <div v-if="historyTasks.length" class="space-y-2">
@@ -149,7 +148,7 @@
           <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-emerald-500/20 text-emerald-400">
             <Check :size="16" />
           </div>
-          <span class="text-sm text-gray-300 truncate">{{ t.emoji || '📝' }} {{ t.title }}</span>
+          <span class="text-sm text-gray-300 truncate">{{ t.title }}</span>
         </div>
       </div>
       <div v-if="!scheduledForDay.length && !historyTasks.length" class="text-sm text-gray-500 py-2">No data for this day</div>
@@ -243,7 +242,6 @@ async function loadHistory() {
     historyTasks.value = (tasksRes.data.logs || []).map(l => ({
       ...l,
       title: l.task?.title || 'Task',
-      emoji: l.task?.emoji || '📝',
     }))
   } catch {
     scheduledForDay.value = []

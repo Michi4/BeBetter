@@ -1,32 +1,5 @@
 <template>
   <div class="page">
-    <header class="border-b border-[var(--app-nav-border)] bg-[var(--app-nav-bg)] backdrop-blur-xl sticky top-0 z-50 safe-top">
-      <div class="max-w-3xl mx-auto px-4 h-12 flex items-center justify-between">
-        <a href="/" class="flex items-center gap-2 font-bold text-lg">
-          <Logo :size="28" />
-          <span class="bg-gradient-to-r from-emerald-400 to-emerald-300 bg-clip-text text-transparent">BeBetter</span>
-        </a>
-        <div class="flex items-center gap-1 shrink-0">
-          <button @click="toggleTheme" class="p-2.5 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition-colors touch-target inline-flex items-center justify-center shrink-0" aria-label="Toggle theme">
-            <Sun v-if="isDark" :size="18" />
-            <Moon v-else :size="18" />
-          </button>
-          <template v-if="auth.user">
-            <router-link :to="`/profile/${auth.user.username || auth.user.id}`"
-              class="w-8 h-8 rounded-full bg-emerald-600/20 flex items-center justify-center text-xs font-bold text-emerald-400 ring-1 ring-emerald-500/30">
-              {{ (auth.user?.username || '?')[0]?.toUpperCase() || '?' }}
-            </router-link>
-            <button @click="handleLogout" class="p-2.5 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition-colors touch-target inline-flex items-center justify-center shrink-0">
-              <LogOut :size="18" />
-            </button>
-          </template>
-          <template v-else>
-            <a href="/login" class="text-xs font-medium text-emerald-400 hover:text-emerald-300 px-2 py-1 rounded-lg hover:bg-gray-800 transition-colors underline underline-offset-2">Sign In</a>
-            <a href="/register" class="text-xs font-medium bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-500 transition-colors">Sign Up</a>
-          </template>
-        </div>
-      </div>
-    </header>
 
     <template v-if="profile">
       <!-- Profile header (own or other) -->
