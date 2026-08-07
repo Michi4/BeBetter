@@ -1,8 +1,37 @@
-// BeBetter Push Notification Service Worker
+// BeBetter Service Worker — Push Notifications + Offline Support
 
+const CACHE_VERSION = 'bebetter-v1';
+const SHELL_CACHE = `${CACHE_VERSION}-shell`;
+const DATA_CACHE = `${CACHE_VERSION}-data`;
+
+const SHELL_URLS = [
+  '/',
+  '/index.html',
+  '/manifest.webmanifest',
+  '/favicon.svg',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/maskable-512.png',
+];
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(SHELL_CACHE).then((cache) => cache.addAll(SHELL_URLS)).then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((k) => !k.startsWith(CACHE_VERSION)).map((k) => caches.delete(k)))
+    ).then(() => self.clients.claim())
+  );
+});
+
+// ---- Push notifications ----
 self.addEventListener('push', (event) => {
-  let data = { title: 'BeBetter', body: 'You have a new update!' };
-  
+  let data = { title: 'BeBetter', body: 'You have a new update!', url: '/' };
+
   try {
     if (event.data) {
       const parsed = event.data.json();
@@ -13,7 +42,6 @@ self.addEventListener('push', (event) => {
       };
     }
   } catch (e) {
-    // If text payload
     if (event.data) {
       data.body = event.data.text();
     }
@@ -23,43 +51,83 @@ self.addEventListener('push', (event) => {
     body: data.body,
     icon: '/favicon.svg',
     badge: '/favicon.svg',
-    data: {
-      url: data.url || '/'
-    },
+    data: { url: data.url || '/' },
     vibrate: [100, 50, 100],
-    actions: [
-      { action: 'open', title: 'Open BeBetter' }
-    ]
+    actions: [{ action: 'open', title: 'Open BeBetter' }]
   };
 
-  event.waitUntil(
-    self.registration.showNotification(data.title, options)
-  );
+  event.waitUntil(self.registration.showNotification(data.title, options));
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  let targetUrl = '/';
-  if (event.notification.data && event.notification.data.url) {
-    targetUrl = event.notification.data.url;
-  }
-
-  // Ensure full URL
+  const targetUrl = event.notification.data && event.notification.data.url ? event.notification.data.url : '/';
   const absoluteUrl = new URL(targetUrl, self.location.origin).href;
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      // Check if there is already a window open with this app
       for (const client of windowClients) {
-        if (client.url === absoluteUrl && 'focus' in client) {
-          return client.focus();
+        if (client.url === absoluteUrl && 'focus' in client) return client.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(absoluteUrl);
+    })
+  );
+});
+
+// Offline support
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  if (req.method !== 'GET') return;
+
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;
+
+  // Navigation requests: network-first, fall back to cached shell
+  if (req.mode === 'navigate') {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          const clone = res.clone();
+          caches.open(SHELL_CACHE).then((cache) => cache.put('/index.html', clone));
+          return res;
+        })
+        .catch(() =>
+          caches.match('/index.html').then((cached) =>
+            cached || caches.match('/').then((root) => root || new Response('Offline', { status: 503 }))
+          )
+        )
+    );
+    return;
+  }
+
+  // API GET requests (data): network-first with cache fallback for offline
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(DATA_CACHE).then((cache) => cache.put(req, clone));
+          }
+          return res;
+        })
+        .catch(() => caches.match(req).then((cached) => cached))
+    );
+    return;
+  }
+
+  // Static assets (hashed, immutable): cache-first, then network
+  event.respondWith(
+    caches.match(req).then((cached) => {
+      if (cached) return cached;
+      return fetch(req).then((res) => {
+        if (res.ok) {
+          const clone = res.clone();
+          caches.open(SHELL_CACHE).then((cache) => cache.put(req, clone));
         }
-      }
-      // Otherwise open a new window
-      if (self.clients.openWindow) {
-        return self.clients.openWindow(absoluteUrl);
-      }
+        return res;
+      });
     })
   );
 });
