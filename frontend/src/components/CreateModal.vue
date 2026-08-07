@@ -43,7 +43,7 @@
 
           <!-- Set time toggle for tasks -->
           <div>
-            <button type="button" @click="taskForm.setScheduledTime = !taskForm.setScheduledTime"
+            <button type="button" @click="toggleSetTaskTime"
               class="flex items-center gap-2 text-xs transition-colors"
               :class="taskForm.setScheduledTime ? 'text-emerald-400' : 'text-gray-500 hover:text-gray-300'">
               <Clock :size="14" />
@@ -119,6 +119,9 @@
           </div>
 
           <div v-if="showAdvanced" class="space-y-3 pt-2 border-t border-gray-800">
+            <div v-if="isDemo" class="text-[10px] text-gray-500 flex items-center gap-1.5">
+              <Lock :size="12" class="text-amber-400" /> Demo: photo verification, reminders, publishing, buddies and challenges require an account.
+            </div>
             <div>
               <label class="text-xs font-medium text-gray-400 mb-1 block">Verification</label>
               <div class="flex gap-2">
@@ -127,7 +130,7 @@
                   :class="habitForm.verificationType === 'honor' ? 'bg-emerald-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'">
                   <div class="flex items-center justify-center gap-1.5"><Shield :size="14" /> Honor</div>
                 </button>
-                <button type="button" @click="habitForm.verificationType = 'photo'"
+                <button type="button" @click="setVerification('photo')"
                   class="flex-1 min-h-[44px] rounded-lg px-3 py-2 text-xs font-medium transition-colors"
                   :class="habitForm.verificationType === 'photo' ? 'bg-emerald-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'">
                   <div class="flex items-center justify-center gap-1.5"><Camera :size="14" /> Photo</div>
@@ -166,7 +169,7 @@
             </div>
 
             <!-- Publish as preset -->
-            <button type="button" @click="habitForm.makePublic = !habitForm.makePublic"
+            <button type="button" @click="toggleMakePublic"
               class="w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left"
               :class="habitForm.makePublic ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-gray-800/50 border-gray-700 hover:border-gray-600'">
               <div class="shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all"
@@ -241,12 +244,25 @@
 </template>
 
 <script setup>
-import { ref, reactive, nextTick, watch } from 'vue'
-import { Plus, X, ListTodo, Target, ChevronDown, Shield, Camera, Check, Globe, ArrowRightLeft, Clock, Bell } from 'lucide-vue-next'
+import { ref, reactive, nextTick, watch, computed } from 'vue'
+import { Plus, X, ListTodo, Target, ChevronDown, Shield, Camera, Check, Globe, ArrowRightLeft, Clock, Bell, Lock } from 'lucide-vue-next'
 import api from '../api'
 import RecurrenceBuilder from './RecurrenceBuilder.vue'
 import TimeInput from './TimeInput.vue'
 import { formatTime } from '../utils/timeFormat'
+import { useAuthStore } from '../stores/auth'
+import { openDemoPrompt } from '../utils/demoPrompt'
+
+const auth = useAuthStore()
+const isDemo = computed(() => auth.isDemo)
+
+function demoBlocked() {
+  if (isDemo.value) {
+    openDemoPrompt()
+    return true
+  }
+  return false
+}
 
 const props = defineProps({
   show: Boolean,
@@ -280,6 +296,11 @@ const habitForm = reactive({
   schedules: [{ time: null, days: [0, 1, 2, 3, 4, 5, 6] }],
   verificationType: 'honor', makePublic: false, reminderMinutes: [],
 })
+
+function toggleSetTaskTime() {
+  if (demoBlocked() && !taskForm.setScheduledTime) return
+  taskForm.setScheduledTime = !taskForm.setScheduledTime
+}
 
 function switchMode(next) {
   if (next === mode.value) return
@@ -344,6 +365,7 @@ watch(() => props.show, (val) => {
 
 let buddyTimeout = null
 function searchBuddies() {
+  if (demoBlocked()) return
   clearTimeout(buddyTimeout)
   if (buddySearch.value.length < 2) { buddyResults.value = []; return }
   buddyTimeout = setTimeout(async () => {
@@ -371,6 +393,7 @@ function removeBuddy(friend) {
 
 let challengerTimeout = null
 function searchChallengers() {
+  if (demoBlocked()) return
   clearTimeout(challengerTimeout)
   if (challengerSearch.value.length < 2) { challengerResults.value = []; return }
   challengerTimeout = setTimeout(async () => {
@@ -400,6 +423,7 @@ function isHabitReminderActive(val) {
   return (habitForm.reminderMinutes || []).includes(val)
 }
 function addHabitReminder(val) {
+  if (demoBlocked()) return
   if (!habitForm.reminderMinutes) habitForm.reminderMinutes = []
   if (habitForm.reminderMinutes.includes(val)) {
     habitForm.reminderMinutes = habitForm.reminderMinutes.filter(v => v !== val)
@@ -412,6 +436,7 @@ function removeHabitReminder(i) {
   habitForm.reminderMinutes.splice(i, 1)
 }
 function addCustomHabitReminder() {
+  if (demoBlocked()) return
   const val = parseInt(customReminderInput.value)
   if (!val || val < 0) return
   if (!habitForm.reminderMinutes) habitForm.reminderMinutes = []
@@ -427,6 +452,7 @@ function isTaskReminderActive(val) {
   return (taskForm.reminderMinutes || []).includes(val)
 }
 function addTaskReminder(val) {
+  if (demoBlocked()) return
   if (!taskForm.reminderMinutes) taskForm.reminderMinutes = []
   if (taskForm.reminderMinutes.includes(val)) {
     taskForm.reminderMinutes = taskForm.reminderMinutes.filter(v => v !== val)
@@ -439,6 +465,7 @@ function removeTaskReminder(i) {
   taskForm.reminderMinutes.splice(i, 1)
 }
 function addCustomTaskReminder() {
+  if (demoBlocked()) return
   const val = parseInt(customTaskReminderInput.value)
   if (!val || val < 0) return
   if (!taskForm.reminderMinutes) taskForm.reminderMinutes = []
@@ -452,6 +479,7 @@ function addCustomTaskReminder() {
 
 function createTask() {
   if (!taskForm.title.trim()) return
+  if (demoBlocked() && taskForm.setScheduledTime) { taskForm.setScheduledTime = false; return }
   const data = { ...taskForm, setScheduledTime: undefined }
   delete data.setScheduledTime
   delete data.scheduledDays
@@ -464,12 +492,25 @@ function createTask() {
 
 function createHabit() {
   if (!habitForm.title.trim()) return
+  if (demoBlocked() && (habitForm.makePublic || habitForm.reminderMinutes?.length || habitForm.verificationType !== 'honor' || selectedBuddies.value.length || selectedChallengers.value.length)) {
+    return
+  }
   emit('created', 'habit', {
     ...habitForm,
     buddyIds: selectedBuddies.value.map(b => b.id),
     challengeFriendIds: selectedChallengers.value.map(c => c.id),
     challengeEndDate: challengeEndDate.value || undefined,
   })
+}
+
+function setVerification(type) {
+  if (demoBlocked() && type !== 'honor') return
+  habitForm.verificationType = type
+}
+
+function toggleMakePublic() {
+  if (demoBlocked()) return
+  habitForm.makePublic = !habitForm.makePublic
 }
 
 function switchToHabit() {
