@@ -12,7 +12,7 @@
     <!-- Desktop quick input -->
     <div class="hidden md:block card">
       <div class="flex gap-2">
-        <button @click="showCreateModal = true" class="btn-secondary px-3 shrink-0" title="Create habit or detailed task">
+        <button @click="fabMode = 'habit'; showCreateModal = true" class="btn-secondary px-3 shrink-0" title="Create habit or detailed task">
           <Target :size="18" />
         </button>
         <input v-model="quickTaskTitle" @keydown.enter="createQuickTask"
@@ -162,13 +162,13 @@
 
     <!-- Mobile floating add button -->
     <div class="fixed bottom-20 left-0 right-0 z-40 flex justify-center md:hidden pointer-events-none">
-      <button @click="showCreateModal = true"
+      <button @click="fabMode = 'task'; showCreateModal = true"
         class="pointer-events-auto touch-target shrink-0 flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-500/25 hover:bg-emerald-500 transition-colors active:scale-95">
         <Plus :size="24" />
       </button>
     </div>
 
-    <CreateModal :show="showCreateModal" initial-mode="habit" :convert-data="convertData"
+    <CreateModal :show="showCreateModal" :initial-mode="fabMode" :convert-data="convertData"
       @close="showCreateModal = false; convertData = null" @created="handleCreated" @convertToHabit="handleConvertToHabit" />
     <BeBetterCam :show="!!camHabit" @close="camHabit = null" @capture="submitHabitProof" />
     </template>
@@ -196,6 +196,7 @@ const selectedDate = ref(new Date().toISOString().slice(0, 10))
 const scheduledForDay = ref([])
 const historyTasks = ref([])
 const showCreateModal = ref(false)
+const fabMode = ref('task')
 const quickTaskTitle = ref('')
 const convertData = ref(null)
 

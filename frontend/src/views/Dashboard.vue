@@ -37,20 +37,6 @@
       </div>
     </div>
 
-    <!-- Desktop quick input -->
-    <div class="hidden md:block card">
-      <div class="flex gap-2">
-        <button @click="showCreateModal = true" class="btn-secondary px-3 shrink-0" title="Create habit or detailed task">
-          <Target :size="18" />
-        </button>
-        <input v-model="quickTaskTitle" @keydown.enter="createQuickTask"
-          class="input flex-1" placeholder="Add a quick task..." />
-        <button @click="createQuickTask" class="btn px-4" :disabled="!quickTaskTitle.trim()">
-          Add
-        </button>
-      </div>
-    </div>
-
     <!-- Stats Row -->
     <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
       <div class="card text-center py-3">
@@ -89,6 +75,28 @@
         <span v-else class="text-xs font-medium text-gray-400">{{ selectedYear }}</span>
       </div>
       <ContributionGrid :grid="gridDays" :year="selectedYear" @select="selectDay" />
+    </div>
+
+    <!-- Quick Create (Task + Habit) -->
+    <div class="card space-y-3">
+      <h3 class="section-title">Quick Create</h3>
+      <div class="flex gap-2">
+        <input v-model="quickTaskTitle" @keydown.enter="createQuickTask"
+          class="input flex-1" placeholder="Add a quick task..." />
+        <button @click="createQuickTask" class="btn px-4" :disabled="!quickTaskTitle.trim()">
+          Add
+        </button>
+      </div>
+      <div class="flex items-center gap-3">
+        <button @click="createInitialMode = 'task'; showCreateModal = true"
+          class="flex-1 flex items-center justify-center gap-2 btn-secondary px-3 py-2.5">
+          <Plus :size="16" /> New Task
+        </button>
+        <button @click="createInitialMode = 'habit'; showCreateModal = true"
+          class="flex-1 flex items-center justify-center gap-2 btn px-3 py-2.5">
+          <Target :size="16" /> New Habit
+        </button>
+      </div>
     </div>
 
     <!-- Today's Tasks -->
@@ -145,14 +153,14 @@
 
     <!-- Mobile floating add button (above bottom nav) -->
     <div class="fixed bottom-20 left-0 right-0 z-40 flex justify-center md:hidden pointer-events-none">
-      <button @click="showCreateModal = true"
+      <button @click="createInitialMode = 'task'; showCreateModal = true"
         class="pointer-events-auto touch-target shrink-0 flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-500/25 hover:bg-emerald-500 transition-colors active:scale-95">
         <Plus :size="24" />
       </button>
     </div>
 
     <!-- Create Modal -->
-    <CreateModal :show="showCreateModal" initial-mode="habit" :convert-data="convertData"
+    <CreateModal :show="showCreateModal" :initial-mode="createInitialMode" :convert-data="convertData"
       @close="showCreateModal = false; convertData = null" @created="handleCreated" @convertToHabit="handleConvertToHabit" />
     </template>
   </div>
@@ -181,6 +189,7 @@ const selectedDay = ref(null)
 const camHabit = ref(null)
 const isOnVacation = ref(false)
 const showCreateModal = ref(false)
+const createInitialMode = ref('task')
 const quickTaskTitle = ref('')
 const convertData = ref(null)
 
@@ -384,6 +393,7 @@ async function convertTask(task) {
     await api.delete(`/tasks/${task.id}`)
     todayTasks.value = todayTasks.value.filter(t => t.id !== task.id)
     convertData.value = { title: task.title, description: task.description }
+    createInitialMode.value = 'habit'
     showCreateModal.value = true
     toast.info('Task removed. Create a habit instead!')
   } catch {
