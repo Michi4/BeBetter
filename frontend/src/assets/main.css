@@ -69,7 +69,7 @@
     border-color: var(--app-card-border);
   }
   .card-hover {
-    @apply card hover:border-emerald-500/50 cursor-pointer active:scale-[0.99];
+    @apply card hover:border-emerald-500/50 cursor-pointer active:scale-[0.99] hover:shadow-lg hover:shadow-emerald-500/5 hover:-translate-y-0.5;
   }
   .page {
     @apply max-w-3xl mx-auto px-4 pb-24 pt-4 space-y-5;
