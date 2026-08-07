@@ -126,16 +126,6 @@ function draw() {
     p.x += p.vx
     p.y += p.vy + (p.y < h * 0.5 ? -0.004 * dpr : 0)
     p.ph += p.sp
-    // Soft cursor repulsion so the field feels alive, not gimmicky.
-    const dx = p.x - mouse.x * dpr
-    const dy = p.y - (mouse.y + parallax) * dpr
-    const distSq = dx * dx + dy * dy
-    if (distSq < 110 * 110 * dpr * dpr) {
-      const d = Math.sqrt(distSq) || 1
-      const f = 14 * dpr / (d + 2)
-      p.x += (dx / d) * f
-      p.y += (dy / d) * f
-    }
     if (p.x < -10) p.x = w + 10
     if (p.x > w + 10) p.x = -10
     if (p.y < -10) p.y = h + 10

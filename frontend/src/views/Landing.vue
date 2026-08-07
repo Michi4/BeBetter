@@ -303,8 +303,6 @@ function onHeroMouse(e) {
     const ny = Math.max(-1, Math.min(1, ((e.clientY - (r.top + r.height / 2)) / (r.height / 2)) || 0))
     el.style.setProperty('--rx', (-ny * 3.2).toFixed(2) + 'deg')
     el.style.setProperty('--ry', (nx * 4.6).toFixed(2) + 'deg')
-    el.style.setProperty('--gx', (e.clientX - r.left) + 'px')
-    el.style.setProperty('--gy', (e.clientY - r.top) + 'px')
   })
 }
 function onHeroLeave() {
@@ -419,19 +417,6 @@ onBeforeUnmount(() => {
   transform: perspective(1100px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
   transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform;
-}
-.hero-target::after {
-  content: '';
-  position: absolute;
-  width: 360px;
-  height: 360px;
-  border-radius: 50%;
-  left: calc(var(--gx, 50%) - 180px);
-  top: calc(var(--gy, 20%) - 180px);
-  background: radial-gradient(circle, rgba(52, 211, 153, 0.16), rgba(52, 211, 153, 0.05) 45%, transparent 70%);
-  pointer-events: none;
-  z-index: 0;
-  transition: opacity 0.3s ease;
 }
 @media (max-width: 640px) {
   .hero-title { transform: none; }
