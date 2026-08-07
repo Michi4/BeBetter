@@ -1,6 +1,6 @@
 <template>
   <div class="card-hover flex items-center gap-3" @click="handleCardClick">
-    <button @click.stop="handleClick" class="w-11 h-11 rounded-full flex items-center justify-center transition-colors duration-150"
+    <button v-bind="checkTap" class="w-11 h-11 rounded-full flex items-center justify-center transition-colors duration-150"
       :class="isCompleted ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-800 text-gray-400 hover:bg-emerald-500/10 hover:text-emerald-400'">
       <Camera v-if="needsCamera && !isCompleted" :size="18" />
       <CheckCircle2 v-else :size="18" />
@@ -20,7 +20,7 @@
     </div>
     <div v-if="isCompleted" class="flex items-center gap-1 shrink-0">
       <span class="text-emerald-400 text-[10px] font-medium">Done</span>
-      <button @click.stop="emit('undo', habit, scheduledTime)"
+      <button v-bind="undoTap"
         class="p-1.5 rounded text-gray-600 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all" title="Mark as not done">
         <Undo2 :size="14" />
       </button>
@@ -33,6 +33,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { CheckCircle2, Camera, Undo2 } from 'lucide-vue-next'
 import { formatTime } from '../utils/timeFormat'
+import { useTap } from '../utils/tapTrigger'
 
 const props = defineProps({
   habit: { type: Object, required: true },
@@ -40,6 +41,9 @@ const props = defineProps({
 })
 const emit = defineEmits(['finish', 'cam', 'undo'])
 const router = useRouter()
+
+const checkTap = useTap(() => handleClick())
+const undoTap = useTap(() => emit('undo', props.habit, props.scheduledTime))
 
 const needsCamera = computed(() => {
   return props.habit.verificationType === 'be_better_cam' || props.habit.verificationType === 'photo'

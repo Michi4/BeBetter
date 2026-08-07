@@ -299,7 +299,7 @@ router.post('/', authMiddleware, demoFieldGuard(['makePublic', 'buddyIds', 'chal
             habitId: habit.id,
             title: `${habit.title} challenge`,
             startDate: new Date(),
-            endDate: endDate ? new Date(endDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            endDate: endDate ? new Date(endDate) : null,
             status: 'pending',
           },
         }).catch(() => null);

@@ -53,10 +53,10 @@
               <h4 class="font-medium text-sm truncate text-gray-400 line-through">{{ task.title }}</h4>
               <p v-if="task.completedAt" class="text-[10px] text-gray-500">Completed {{ formatDate(task.completedAt) }}</p>
             </div>
-            <button @click="undoCompletedTask(task)" class="delete-btn shrink-0 p-1.5 rounded text-gray-600 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all" title="Mark as incomplete">
+            <button v-bind="undoTaskTap(task)" class="delete-btn shrink-0 p-1.5 rounded text-gray-600 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all" title="Mark as incomplete">
               <Undo2 :size="13" />
             </button>
-            <button @click="deleteCompletedTask(task)" class="delete-btn shrink-0 p-1.5 rounded text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-all" title="Delete">
+            <button v-bind="deleteTaskTap(task)" class="delete-btn shrink-0 p-1.5 rounded text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-all" title="Delete">
               <Trash2 :size="13" />
             </button>
           </div>
@@ -104,10 +104,10 @@
               <h4 class="font-medium text-sm truncate text-gray-400 line-through">{{ habit.title }}</h4>
               <p v-if="habit.finishedAt" class="text-[10px] text-gray-500">Finished {{ formatDate(habit.finishedAt) }}</p>
             </div>
-            <button @click="undoCompletedHabit(habit)" class="delete-btn shrink-0 p-1.5 rounded text-gray-600 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all" title="Mark as not done">
+            <button v-bind="undoHabitTap(habit)" class="delete-btn shrink-0 p-1.5 rounded text-gray-600 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all" title="Mark as not done">
               <Undo2 :size="13" />
             </button>
-            <button @click="deleteCompletedHabit(habit)" class="delete-btn shrink-0 p-1.5 rounded text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-all" title="Delete habit and all its data">
+            <button v-bind="deleteHabitTap(habit)" class="delete-btn shrink-0 p-1.5 rounded text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-all" title="Delete habit and all its data">
               <Trash2 :size="13" />
             </button>
           </div>
@@ -206,6 +206,7 @@ import BeBetterCam from '../components/BeBetterCam.vue'
 import CreateModal from '../components/CreateModal.vue'
 import NotificationAlerts from '../components/NotificationAlerts.vue'
 import { formatTime } from '../utils/timeFormat'
+import { useTap } from '../utils/tapTrigger'
 import { useAuthStore } from '../stores/auth'
 import { openDemoPrompt } from '../utils/demoPrompt'
 
@@ -489,6 +490,11 @@ async function deleteCompletedTask(task) {
     toast.error('Failed')
   }
 }
+
+function undoTaskTap(task) { return useTap(() => undoCompletedTask(task)) }
+function deleteTaskTap(task) { return useTap(() => deleteCompletedTask(task)) }
+function undoHabitTap(habit) { return useTap(() => undoCompletedHabit(habit)) }
+function deleteHabitTap(habit) { return useTap(() => deleteCompletedHabit(habit)) }
 
 async function confirmDeleteAllTasks() {
   clearAllModal.value = {

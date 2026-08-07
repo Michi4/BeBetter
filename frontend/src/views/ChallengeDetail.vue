@@ -34,7 +34,7 @@
       <!-- Challenge Habit -->
       <div v-if="challenge.status === 'active' && challenge.habit" class="card">
         <div class="flex items-center gap-3">
-          <button @click="logChallengeHabit" class="w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-150"
+          <button v-bind="logTap" class="w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-150"
             :class="iLoggedToday ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-800 text-gray-400 hover:bg-emerald-500/10 hover:text-emerald-400'">
             <Camera v-if="challenge.habit.verificationType === 'photo' || challenge.habit.verificationType === 'be_better_cam'" :size="18" />
             <CheckCircle2 v-else :size="18" />
@@ -138,6 +138,7 @@ import api from '../api'
 import { useToast } from 'vue-toastification'
 import { useAuthStore } from '../stores/auth'
 import { ArrowLeft, Loader2, Check, X, Trophy, Handshake, CheckCircle2, Camera } from 'lucide-vue-next'
+import { useTap } from '../utils/tapTrigger'
 
 const route = useRoute()
 const router = useRouter()
@@ -148,6 +149,7 @@ const challenge = ref({})
 const gridDays = ref([])
 const loading = ref(true)
 const iLoggedToday = ref(false)
+const logTap = useTap(() => logChallengeHabit)
 
 const isOpponent = computed(() => auth.user && challenge.value.opponentId === auth.user.id)
 const creatorPercent = computed(() => {

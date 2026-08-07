@@ -13,13 +13,13 @@
     <div v-if="auth.isDemo" class="card bg-emerald-500/10 border border-emerald-500/20">
       <div class="flex flex-wrap items-center justify-between gap-2">
         <div class="flex items-center gap-2">
-          <span class="text-lg">🧪</span>
+          <FlaskConical :size="18" class="text-emerald-400 shrink-0" />
           <div>
             <p class="text-sm font-medium text-emerald-300">You're in the demo account</p>
-            <p class="text-xs text-emerald-400/80">Shared public account — data resets hourly. Sign up to save your own streaks.</p>
+            <p class="text-xs text-emerald-400/80">Shared public account - data resets hourly. Sign up to save your own streaks.</p>
           </div>
         </div>
-        <router-link to="/register" class="text-xs text-emerald-300 hover:text-emerald-100 transition-colors">Sign up free ↔</router-link>
+        <router-link to="/register" class="text-xs text-emerald-300 hover:text-emerald-100 transition-colors">Sign up free</router-link>
       </div>
     </div>
 
@@ -27,7 +27,7 @@
     <div v-if="isOnVacation" class="card bg-amber-500/10 border border-amber-500/20">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <span class="text-lg">🏖️</span>
+          <Palmtree :size="18" class="text-amber-400 shrink-0" />
           <div>
             <p class="text-sm font-medium text-amber-300">You're on vacation</p>
             <p class="text-xs text-amber-400/70">No habits scheduled. Enjoy your break!</p>
@@ -77,8 +77,8 @@
       <ContributionGrid :grid="gridDays" :year="selectedYear" @select="selectDay" />
     </div>
 
-    <!-- Quick Create (Task + Habit) -->
-    <div class="card space-y-3">
+    <!-- Quick Create (Task + Habit) - desktop only, mobile uses the floating button -->
+    <div class="card space-y-3 hidden md:block">
       <h3 class="section-title">Quick Create</h3>
       <div class="flex gap-2">
         <input v-model="quickTaskTitle" @keydown.enter="createQuickTask"
@@ -170,7 +170,7 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import api from '../api'
 import { useToast } from 'vue-toastification'
-import { Plus, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Target, Loader2 } from 'lucide-vue-next'
+import { Plus, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Target, Loader2, FlaskConical, Palmtree } from 'lucide-vue-next'
 import ContributionGrid from '../components/ContributionGrid.vue'
 import DayDetail from '../components/DayDetail.vue'
 import HabitCard from '../components/HabitCard.vue'

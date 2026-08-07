@@ -45,7 +45,7 @@
     <!-- Normal mode -->
     <div v-else class="flex items-center gap-3 group" @contextmenu.prevent="showContextMenu" @touchstart="startLongPress" @touchend="cancelLongPress" @touchmove="cancelLongPress">
       <!-- Checkbox -->
-      <button @click.stop="$emit('complete', task)"
+      <button v-bind="completeTap"
         class="shrink-0 w-10 h-10 rounded-lg border-2 flex items-center justify-center transition-all duration-200"
         :class="task.completed
           ? 'bg-emerald-500 border-emerald-500 text-white scale-110 animate-check'
@@ -98,6 +98,7 @@ import { ref, reactive, computed, nextTick } from 'vue'
 import { Check, X, Pencil, ArrowRightLeft, Trash2, Clock } from 'lucide-vue-next'
 import { formatTime } from '../utils/timeFormat'
 import TimeInput from './TimeInput.vue'
+import { useTap } from '../utils/tapTrigger'
 
 const props = defineProps({ task: { type: Object, required: true } })
 const emit = defineEmits(['complete', 'delete', 'edit', 'convert'])
@@ -108,6 +109,8 @@ const editing = ref(false)
 const titleInput = ref(null)
 const editForm = reactive({ title: '', description: '', dueDate: '', setScheduledTime: false, scheduledTime: '', reminderMinutes: [] })
 let longPressTimer = null
+
+const completeTap = useTap(() => emit('complete', props.task))
 
 const dayAbbr = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 
