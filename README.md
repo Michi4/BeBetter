@@ -18,7 +18,7 @@ a contribution grid — installable, offline-capable, and production-deployed.
 | --- | --- |
 | Frontend | Vue 3 (Composition API), Vite, Pinia, Vue Router, Tailwind CSS, lucide-vue-next |
 | Backend | Node.js, Express, Prisma ORM |
-| Database | PostgreSQL 16 |
+| Database | PostgreSQL 18 |
 | Real-time-ish | Web push notifications (VAPID), polling |
 | Deployment | Docker Compose, Traefik (zero-downtime blue-green) |
 | Extras | PWA (offline + installable), photo verification via getUserMedia |

@@ -78,6 +78,7 @@ import { computed, ref, onMounted, onUnmounted, nextTick } from 'vue'
 const props = defineProps({
   grid: { type: Array, default: () => [] },
   year: { type: Number, default: () => new Date().getFullYear() },
+  fit: { type: Boolean, default: false },
 })
 
 defineEmits(['select'])
@@ -100,6 +101,13 @@ const isMobile = computed(() => containerW.value < 500)
 
 const cell = computed(() => {
   if (isMobile.value) return MIN_CELL
+  // When fit is requested (landing preview): size cells so the whole year
+  // fills the container on desktop — no awkward scrollbar.
+  if (props.fit && containerW.value > 0) {
+    const wks = weeks.value.length || 53
+    const avail = containerW.value - DAY_LABEL_W - GAP - wks * GAP
+    return Math.max(MIN_CELL, Math.min(20, Math.floor(avail / wks)))
+  }
   // On desktop, keep a good cell size (12px) so grid overflows and is scrollable
   return 12
 })

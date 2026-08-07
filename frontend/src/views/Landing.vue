@@ -51,9 +51,7 @@
             <div class="flex items-center justify-between flex-wrap gap-2 mb-6">
               <p class="text-xs font-bold tracking-[0.2em] uppercase text-[var(--bb-muted)]">Your year at a glance</p>
             </div>
-            <div class="overflow-x-auto pb-1">
-              <ContributionGrid :grid="demoGrid" :year="demoYear" />
-            </div>
+            <ContributionGrid :grid="demoGrid" :year="demoYear" fit />
           </div>
         </ScrollReveal>
       </section>
@@ -347,7 +345,7 @@ const competitivePoints = [
 const leaderboardRows = [
   { name: 'Sophie', streak: '4/4', pct: 100 },
   { name: 'Jonas', streak: '3/4', pct: 75 },
-  { name: 'Tobias', streak: '2/4', pct: 50 },
+  { name: 'Michael', streak: '2/4', pct: 50 },
 ]
 
 const steps = [
@@ -393,14 +391,23 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .btn-demo {
-  border: 1px solid color-mix(in srgb, var(--bb-accent) 45%, transparent);
-  background: color-mix(in srgb, var(--bb-accent) 9%, transparent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  border: 1px solid color-mix(in srgb, var(--bb-accent) 50%, transparent);
+  background: color-mix(in srgb, var(--bb-accent) 10%, transparent);
   color: var(--bb-accent);
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  border-radius: 0.625rem;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
 .btn-demo:hover {
-  background: color-mix(in srgb, var(--bb-accent) 16%, transparent);
-  border-color: color-mix(in srgb, var(--bb-accent) 70%, transparent);
+  background: color-mix(in srgb, var(--bb-accent) 18%, transparent);
+  border-color: color-mix(in srgb, var(--bb-accent) 75%, transparent);
+}
+.btn-demo:active {
+  transform: scale(0.97);
 }
 .hero-scrim {
   background: radial-gradient(ellipse 70% 62% at 50% 36%, color-mix(in srgb, var(--bb-bg) 52%, transparent), color-mix(in srgb, var(--bb-bg) 30%) 52%, transparent 78%);
@@ -441,6 +448,9 @@ onBeforeUnmount(() => {
   background-size: 18px 18px;
   mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 30%, transparent 75%);
   -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 30%, transparent 75%);
+}
+html.light .bb-dots {
+  color: rgba(6, 95, 70, 0.16);
 }
 @media (max-width: 639px) {
   .bb-dots { background-size: 14px 14px; }

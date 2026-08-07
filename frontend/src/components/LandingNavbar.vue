@@ -9,7 +9,7 @@
 
         <nav class="bb-nav hidden md:flex items-center gap-1" aria-label="Main">
           <a v-for="item in desktopItems" :key="item.href" :href="item.href"
-            class="px-3 py-2 rounded-lg text-sm font-medium text-[var(--bb-muted)] hover:text-[var(--bb-ink)] hover:bg-[var(--bb-line)] transition-colors duration-150 touch-target">
+            class="nav-link px-3 py-2 rounded-lg text-sm font-medium text-[var(--bb-muted)] touch-target">
             {{ item.label }}
           </a>
         </nav>
@@ -19,7 +19,7 @@
             <Sun v-if="isDark" :size="18" />
             <Moon v-else :size="18" />
           </button>
-          <a href="/login" class="hidden sm:block text-sm font-medium text-[var(--bb-muted)] hover:text-[var(--bb-ink)] px-4 py-2 rounded-lg transition-colors duration-150 touch-target">Sign In</a>
+          <a href="/login" class="nav-link hidden sm:block text-sm font-medium text-[var(--bb-muted)] px-4 py-2 rounded-lg touch-target">Sign In</a>
           <a href="/register" class="btn text-sm px-6 py-2.5 bg-emerald-700 hover:bg-emerald-600 shadow-[0_0_15px_rgba(16,185,129,0.2)] font-semibold">
             Sign Up
           </a>
@@ -42,13 +42,13 @@
             <Logo :size="26" />
             <span class="font-extrabold text-base tracking-tight text-[var(--bb-ink)]">BeBetter</span>
           </a>
-          <button @click="mobileOpen = false" class="p-2.5 rounded-lg text-[var(--bb-muted)] hover:text-[var(--bb-ink)] hover:bg-[var(--bb-line)] transition-colors touch-target inline-flex items-center justify-center" aria-label="Close menu">
+          <button @click="mobileOpen = false" class="nav-btn p-2.5 rounded-lg text-[var(--bb-muted)] touch-target inline-flex items-center justify-center" aria-label="Close menu">
             <X :size="20" />
           </button>
         </div>
         <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1" aria-label="Mobile">
           <a v-for="item in mobileItems" :key="item.href" :href="item.href" @click="mobileOpen = false"
-            class="block px-3 py-3.5 rounded-lg text-sm font-medium text-[var(--bb-muted)] hover:text-[var(--bb-ink)] hover:bg-[var(--bb-line)] transition-colors touch-target">
+            class="nav-link block px-3 py-3.5 rounded-lg text-sm font-medium text-[var(--bb-muted)] touch-target">
             {{ item.label }}
           </a>
         </nav>
@@ -98,11 +98,15 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.nav-link,
 .nav-btn {
   background: transparent;
   border: 1px solid transparent;
+  transition: color 0.15s ease, background-color 0.15s ease;
 }
+.nav-link:hover,
 .nav-btn:hover {
+  color: var(--bb-ink);
   background: color-mix(in srgb, var(--bb-muted) 10%, transparent);
 }
 .fade-enter-active,
