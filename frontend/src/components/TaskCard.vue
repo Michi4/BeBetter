@@ -120,7 +120,10 @@ const reminderPresets = [
 ]
 
 function formatDays(days) {
-  if (!days?.length) return ''
+  if (typeof days === 'string') {
+    try { days = JSON.parse(days) } catch { return '' }
+  }
+  if (!Array.isArray(days) || !days.length) return ''
   if (days.length === 7) return 'Daily'
   if (days.length === 5 && days.every(d => d >= 1 && d <= 5)) return 'Wkdays'
   if (days.length === 2 && days.includes(0) && days.includes(6)) return 'Wkends'

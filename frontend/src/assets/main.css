@@ -4,7 +4,7 @@
 
 @layer base {
   html {
-    transition: background-color 0.15s ease, color 0.15s ease;
+    transition: background-color 0.25s ease, color 0.25s ease;
   }
   html.light {
     background: #f9fafb;
@@ -14,44 +14,49 @@
     background: #f9fafb;
     color: #111827;
   }
+  a, button, [role='button'], select, summary {
+    transition: background-color 0.25s ease, border-color 0.25s ease,
+      color 0.25s ease, fill 0.25s ease, stroke 0.25s ease,
+      opacity 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+  }
 }
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-colors duration-150 bg-emerald-700 text-white hover:bg-emerald-600 active:bg-emerald-800 active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 bg-emerald-700 text-white hover:bg-emerald-600 active:bg-emerald-800 active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed;
     min-height: 44px;
   }
   .btn-sm {
-    @apply inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg font-medium text-xs transition-colors duration-150 bg-emerald-700 text-white hover:bg-emerald-600 active:bg-emerald-800 active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg font-medium text-xs transition-all duration-200 bg-emerald-700 text-white hover:bg-emerald-600 active:bg-emerald-800 active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-colors duration-150 hover:bg-gray-600 active:scale-[0.97];
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 hover:bg-gray-600 active:scale-[0.97];
     min-height: 44px;
     background: var(--app-btn-sec-bg);
     color: var(--app-btn-sec-ink);
   }
   .btn-secondary:hover { background: var(--app-btn-sec-hover); }
   .btn-secondary-sm {
-    @apply inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg font-medium text-xs transition-colors duration-150 hover:bg-gray-600 active:scale-[0.97];
+    @apply inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg font-medium text-xs transition-all duration-200 hover:bg-gray-600 active:scale-[0.97];
     background: var(--app-btn-sec-bg);
     color: var(--app-btn-sec-ink);
   }
   .btn-secondary-sm:hover { background: var(--app-btn-sec-hover); }
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-colors duration-150 bg-red-600 text-white hover:bg-red-500 active:scale-[0.97];
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 bg-red-600 text-white hover:bg-red-500 active:scale-[0.97];
     min-height: 44px;
   }
   .btn-danger-sm {
-    @apply inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg font-medium text-xs transition-colors duration-150 bg-red-600/80 text-white hover:bg-red-500 active:scale-[0.97];
+    @apply inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg font-medium text-xs transition-all duration-200 bg-red-600/80 text-white hover:bg-red-500 active:scale-[0.97];
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg font-medium text-sm transition-colors duration-150 hover:bg-gray-800 active:bg-gray-700;
+    @apply inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg font-medium text-sm transition-all duration-200 hover:bg-gray-800 active:bg-gray-700;
     min-height: 44px;
     color: var(--app-faint);
   }
   .btn-ghost:hover { color: var(--app-ink); background: var(--app-line-soft); }
   .input {
-    @apply w-full px-3 py-2.5 rounded-lg border text-sm transition-colors duration-150 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500;
+    @apply w-full px-3 py-2.5 rounded-lg border text-sm transition-all duration-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500;
     min-height: 44px;
     background: var(--app-input-bg);
     border-color: var(--app-input-border);
@@ -59,7 +64,7 @@
   }
   .input::placeholder { color: var(--app-input-placeholder); }
   .card {
-    @apply p-4 rounded-xl border transition-colors duration-150;
+    @apply p-4 rounded-xl border transition-all duration-200;
     background: var(--app-card-bg);
     border-color: var(--app-card-border);
   }
@@ -227,8 +232,8 @@ html.light nav a:hover, html.light nav button:hover { color: #374151 !important;
 html.light nav a.text-emerald-400, html.light nav button.text-emerald-400 { color: #059669 !important; background: rgba(5,150,105,0.08) !important; }
 html.light .text-gray-300 { color: #4b5563 !important; }
 html.light .text-gray-400 { color: #6b7280 !important; }
-html.light .text-gray-500 { color: #9ca3af !important; }
-html.light .text-gray-600 { color: #d1d5db !important; }
+html.light .text-gray-500 { color: #6b7280 !important; }
+html.light .text-gray-600 { color: #9ca3af !important; }
 html.light .hover\:text-gray-200:hover { color: #374151 !important; }
 html.light .hover\:text-gray-300:hover { color: #4b5563 !important; }
 html.light .bg-gray-700 { background: #e5e7eb !important; }
@@ -349,7 +354,7 @@ html.light {
   --bb-card: #ffffff;
   --bb-ink: #1c1917;
   --bb-muted: #57534e;
-  --bb-faint: #78716c;
+  --bb-faint: #6d6761;
   --bb-line: #e3ded6;
   --bb-accent: #047857;
   --bb-accent-strong: #065f46;
@@ -364,7 +369,7 @@ html.light {
   --app-input-placeholder: #a8a49c;
   --app-ink: #1c1917;
   --app-muted: #57534e;
-  --app-faint: #8a8580;
+  --app-faint: #79746d;
   --app-line-soft: #f0eee9;
   --app-btn-sec-bg: #eef0f4;
   --app-btn-sec-ink: #33383f;

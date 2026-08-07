@@ -171,6 +171,7 @@ import BeBetterCam from '../components/BeBetterCam.vue'
 import CreateModal from '../components/CreateModal.vue'
 import NotificationAlerts from '../components/NotificationAlerts.vue'
 import { useAuthStore } from '../stores/auth'
+import { openDemoPrompt } from '../utils/demoPrompt'
 
 const auth = useAuthStore()
 const toast = useToast()
@@ -335,8 +336,12 @@ async function loadGrid() {
 watch(selectedYear, loadGrid)
 
 async function handleCreated(type, data) {
-  if (type === 'task') {
-    try {
+  if (type !== 'task' && auth.isDemo && data.makePublic) {
+    showCreateModal.value = false
+    openDemoPrompt()
+    return
+  }
+  if (type === 'task') {    try {
       const payload = { title: data.title, description: data.description, emoji: data.emoji, dueDate: data.dueDate || undefined }
       if (data.scheduledTime) payload.scheduledTime = data.scheduledTime
       if (data.scheduledDays?.length) payload.scheduledDays = data.scheduledDays

@@ -29,7 +29,7 @@
             <h2 class="text-lg font-semibold mb-2" style="color:var(--bb-accent)">Service Provider</h2>
             <address class="not-italic space-y-1">
               <p><strong>Websters</strong></p>
-              <p>Michael R., Stevan V., Manuel P.</p>
+              <p>Michael Ruep</p>
               <p>Engerwitzdorf, Austria</p>
               <p>Email: <a href="mailto:office@websters.at" style="color:var(--bb-accent)" class="hover:underline underline-offset-2">office@websters.at</a></p>
               <p>Web: <a href="https://websters.at" target="_blank" rel="noopener" style="color:var(--bb-accent)" class="hover:underline underline-offset-2">websters.at</a></p>

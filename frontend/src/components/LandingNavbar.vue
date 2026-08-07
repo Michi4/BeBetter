@@ -31,15 +31,32 @@
       </div>
     </div>
 
-    <transition name="mobile-menu">
-      <nav v-if="mobileOpen" class="bb-nav md:hidden border-b border-[var(--bb-line)] bg-[var(--bb-bg)]/95 backdrop-blur-xl" aria-label="Mobile">
-        <div class="max-w-7xl mx-auto px-4 py-3 space-y-1">
+    <transition name="fade">
+      <div v-if="mobileOpen" class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden" aria-hidden="true" @click="mobileOpen = false"></div>
+    </transition>
+
+    <transition name="drawer">
+      <div v-if="mobileOpen" class="bb-nav fixed inset-y-0 right-0 z-50 w-[84%] max-w-xs bg-[var(--bb-bg)] border-l border-[var(--bb-line)] md:hidden flex flex-col shadow-2xl" aria-label="Mobile" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-between px-4 h-16 shrink-0 border-b border-[var(--bb-line)] safe-top">
+          <a href="/" class="flex items-center gap-2.5" @click="mobileOpen = false">
+            <Logo :size="26" />
+            <span class="font-extrabold text-base tracking-tight text-[var(--bb-ink)]">BeBetter</span>
+          </a>
+          <button @click="mobileOpen = false" class="p-2.5 rounded-lg text-[var(--bb-muted)] hover:text-[var(--bb-ink)] hover:bg-[var(--bb-line)] transition-colors touch-target inline-flex items-center justify-center" aria-label="Close menu">
+            <X :size="20" />
+          </button>
+        </div>
+        <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1" aria-label="Mobile">
           <a v-for="item in mobileItems" :key="item.href" :href="item.href" @click="mobileOpen = false"
-            class="block px-3 py-3 rounded-lg text-sm font-medium text-[var(--bb-muted)] hover:text-[var(--bb-ink)] hover:bg-[var(--bb-line)] transition-colors touch-target">
+            class="block px-3 py-3.5 rounded-lg text-sm font-medium text-[var(--bb-muted)] hover:text-[var(--bb-ink)] hover:bg-[var(--bb-line)] transition-colors touch-target">
             {{ item.label }}
           </a>
+        </nav>
+        <div class="px-4 py-4 shrink-0 border-t border-[var(--bb-line)] space-y-2.5 safe-bottom">
+          <a href="/login" class="block w-full text-center text-sm font-medium text-[var(--bb-muted)] hover:text-[var(--bb-ink)] px-4 py-3 rounded-xl border border-[var(--bb-line)] transition-colors touch-target">Sign In</a>
+          <a href="/register" class="block w-full text-center btn text-sm px-4 py-3 rounded-xl bg-emerald-700 hover:bg-emerald-600 shadow-[0_0_15px_rgba(16,185,129,0.2)] font-semibold">Sign Up</a>
         </div>
-      </nav>
+      </div>
     </transition>
   </header>
 </template>
@@ -65,7 +82,6 @@ const mobileItems = [
   { href: '#how', label: 'How it works' },
   { href: '#challenges', label: 'Challenges' },
   { href: '#showcase', label: 'Showcase' },
-  { href: '/login', label: 'Sign In' },
 ]
 
 watch(mobileOpen, (open) => {
@@ -84,14 +100,21 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.mobile-menu-leave-active {
-  transition: opacity 0.15s ease;
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
 }
-.mobile-menu-enter-active {
-  transition: opacity 0.15s ease;
-}
-.mobile-menu-enter-from,
-.mobile-menu-leave-to {
+.fade-enter-from,
+.fade-leave-to {
   opacity: 0;
+}
+.drawer-enter-active,
+.drawer-leave-active {
+  transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform;
+}
+.drawer-enter-from,
+.drawer-leave-to {
+  transform: translateX(100%);
 }
 </style>

@@ -55,44 +55,64 @@ async function main() {
 
   const habits = [
     {
-      title: 'Morning Workout',
-      description: '30 min exercise',
-      emoji: '💪',
+      title: 'Morning Run',
+      description: '30 minute jog around the block',
+      emoji: '🏃',
       frequencyType: 'daily',
       daysPerWeek: JSON.stringify([1, 2, 3, 4, 5, 6, 7]),
-      verificationType: 'be_better_cam',
+      schedules: JSON.stringify([{ time: '07:00', days: [0, 1, 2, 3, 4, 5, 6] }]),
+      verificationType: 'honor',
+      bestStreak: 12,
+    },
+    {
+      title: 'Deep Work Block',
+      description: '90 minutes of focused, phone-free work',
+      emoji: '🧠',
+      frequencyType: 'daily',
+      daysPerWeek: JSON.stringify([1, 2, 3, 4, 5]),
+      schedules: JSON.stringify([{ time: '09:30', days: [1, 2, 3, 4, 5] }]),
+      verificationType: 'honor',
+      bestStreak: 5,
+    },
+    {
+      title: 'Drink 2L of Water',
+      description: 'Stay hydrated through the day',
+      emoji: '💧',
+      frequencyType: 'always',
+      daysPerWeek: JSON.stringify([1, 2, 3, 4, 5, 6, 7]),
+      schedules: JSON.stringify([{ time: '10:00', days: [0, 1, 2, 3, 4, 5, 6] }]),
+      verificationType: 'honor',
+      bestStreak: 6,
+    },
+    {
+      title: '10,000 Steps',
+      description: 'Get moving — walk the long way home',
+      emoji: '🚶',
+      frequencyType: 'daily',
+      daysPerWeek: JSON.stringify([1, 2, 3, 4, 5, 6, 7]),
+      schedules: JSON.stringify([{ time: '17:00', days: [0, 1, 2, 3, 4, 5, 6] }]),
+      verificationType: 'honor',
+      bestStreak: 4,
     },
     {
       title: 'Read 20 Pages',
-      description: 'Non-fiction book',
-      emoji: '📖',
+      description: 'Daily reading, no excuses',
+      emoji: '📚',
       frequencyType: 'daily',
       daysPerWeek: JSON.stringify([1, 2, 3, 4, 5, 6, 7]),
+      schedules: JSON.stringify([{ time: '20:30', days: [0, 1, 2, 3, 4, 5, 6] }]),
       verificationType: 'honor',
+      bestStreak: 8,
     },
     {
-      title: 'Meditate',
-      description: '10 min mindfulness',
+      title: 'Evening Stretch',
+      description: 'Wind down with a stretching routine',
       emoji: '🧘',
-      frequencyType: 'days_per_week',
-      daysPerWeek: JSON.stringify([1, 3, 5]),
-      verificationType: 'honor',
-    },
-    {
-      title: 'No Social Media',
-      description: 'Avoid Instagram/TikTok',
-      emoji: '📵',
       frequencyType: 'daily',
       daysPerWeek: JSON.stringify([1, 2, 3, 4, 5, 6, 7]),
+      schedules: JSON.stringify([{ time: '21:30', days: [0, 1, 2, 3, 4, 5, 6] }]),
       verificationType: 'honor',
-    },
-    {
-      title: 'Cold Shower',
-      description: '2 min cold water',
-      emoji: '🧊',
-      frequencyType: 'daily',
-      daysPerWeek: JSON.stringify([1, 2, 3, 4, 5, 6, 7]),
-      verificationType: 'be_better_cam',
+      bestStreak: 21,
     },
   ];
 
@@ -134,6 +154,73 @@ async function main() {
         });
       }
     }
+  }
+
+  const alexPublicHabits = [
+    { title: 'Cold Plunge Daily', emoji: '🧊', frequencyType: 'daily', daysPerWeek: JSON.stringify([1, 2, 3, 4, 5, 6, 7]), schedules: JSON.stringify([{ time: '06:00', days: [0, 1, 2, 3, 4, 5, 6] }]), verificationType: 'honor', bestStreak: 47, isPublic: true },
+    { title: 'Morning Meditation', emoji: '🧘', frequencyType: 'daily', daysPerWeek: JSON.stringify([1, 2, 3, 4, 5, 6, 7]), schedules: JSON.stringify([{ time: '07:00', days: [0, 1, 2, 3, 4, 5, 6] }]), verificationType: 'honor', bestStreak: 32, isPublic: true },
+    { title: 'Guitar Practice', emoji: '🎸', frequencyType: 'daily', daysPerWeek: JSON.stringify([1, 2, 3, 4, 5, 6, 7]), schedules: JSON.stringify([{ time: '19:00', days: [0, 1, 2, 3, 4, 5, 6] }]), verificationType: 'honor', bestStreak: 18, isPublic: true },
+    { title: 'Journal Before Bed', emoji: '📓', frequencyType: 'daily', daysPerWeek: JSON.stringify([1, 2, 3, 4, 5, 6, 7]), schedules: JSON.stringify([{ time: '22:30', days: [0, 1, 2, 3, 4, 5, 6] }]), verificationType: 'honor', bestStreak: 9, isPublic: true },
+  ];
+
+  const alexCreated = [];
+  for (const h of alexPublicHabits) {
+    const existing = await prisma.habit.findFirst({ where: { userId: user2.id, title: h.title } });
+    if (existing) {
+      alexCreated.push(existing);
+      continue;
+    }
+    alexCreated.push(await prisma.habit.create({ data: { ...h, userId: user2.id } }));
+  }
+
+  for (let i = 1; i <= 60; i++) {
+    const date = new Date(now);
+    date.setDate(date.getDate() - i);
+    for (const habit of alexCreated) {
+      if (habit.frequencyType === 'daily' || JSON.parse(habit.daysPerWeek || '[]').includes(date.getDay())) {
+        if (Math.random() < 0.78) {
+          const logDate = new Date(date);
+          logDate.setHours(6 + Math.floor(Math.random() * 12), Math.floor(Math.random() * 60));
+          await prisma.habitLog.create({
+            data: { habitId: habit.id, userId: user2.id, completedAt: logDate },
+          });
+        }
+      }
+    }
+  }
+
+  const taskSeeds = [
+    { title: 'Reply to that email', emoji: '📧', scheduledTime: '18:00', scheduledDays: [1, 2, 3, 4, 5], reminderMinutes: [15] },
+    { title: 'Meal prep for tomorrow', emoji: '🍱', scheduledTime: '19:30', scheduledDays: [0, 3], reminderMinutes: [0] },
+    { title: 'Book dentist appointment', emoji: '🦷', scheduledTime: '17:00', scheduledDays: [0, 1, 2, 3, 4, 5, 6], reminderMinutes: [60] },
+    { title: 'Send feedback to team', emoji: '💬', scheduledTime: '15:00', scheduledDays: [1, 2, 3, 4, 5], reminderMinutes: [30] },
+    { title: 'Grocery run', emoji: '🛒', scheduledTime: '10:00', scheduledDays: [6], reminderMinutes: [0] },
+    { title: 'Water the plants', emoji: '🪴', scheduledTime: '09:00', scheduledDays: [0, 2, 4, 6], reminderMinutes: [10] },
+  ];
+  const createdTasks = [];
+  for (const t of taskSeeds) {
+    createdTasks.push(await prisma.task.create({
+      data: {
+        userId: user.id,
+        title: t.title,
+        emoji: t.emoji,
+        isScheduled: true,
+        isEveryday: false,
+        scheduledTime: t.scheduledTime,
+        scheduledDays: JSON.stringify(t.scheduledDays),
+        reminderMinutes: JSON.stringify(t.reminderMinutes),
+      },
+    }));
+  }
+  if (createdTasks.length) {
+    const taskLogs = [];
+    for (let i = 1; i <= 10; i++) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      date.setHours(19, 30, 0, 0);
+      taskLogs.push({ taskId: createdTasks[0].id, userId: user.id, completedAt: date, note: null });
+    }
+    await prisma.taskLog.createMany({ data: taskLogs });
   }
 
   const presets = [

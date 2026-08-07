@@ -1,5 +1,7 @@
 <template>
   <div class="page">
+    <DemoLock v-if="auth.isDemo" />
+    <template v-else>
     <h1 class="text-xl font-bold">Leaderboard</h1>
 
     <div class="flex gap-2">
@@ -89,6 +91,7 @@
       <Trophy :size="24" class="mx-auto text-gray-500 mb-2" />
       <p class="text-sm text-gray-500">{{ activeTab === 'challenges' ? 'No challenges yet' : 'No entries yet' }}</p>
     </div>
+    </template>
   </div>
 </template>
 
@@ -97,6 +100,10 @@ import { ref, computed, onMounted } from 'vue'
 import api from '../api'
 import { useToast } from 'vue-toastification'
 import { Loader2, Trophy } from 'lucide-vue-next'
+import DemoLock from '../components/DemoLock.vue'
+import { useAuthStore } from '../stores/auth'
+
+const auth = useAuthStore()
 
 const toast = useToast()
 const activeTab = ref('global')

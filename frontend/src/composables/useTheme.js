@@ -2,24 +2,29 @@ import { ref, onMounted, watch } from 'vue'
 
 const isDark = ref(true)
 
+function setThemeClasses(light) {
+  document.documentElement.classList.toggle('light', !!light)
+  document.documentElement.classList.toggle('dark', !light)
+}
+
 function initTheme() {
   const saved = localStorage.getItem('theme')
   if (saved === 'light') {
     isDark.value = false
-    document.documentElement.classList.add('light')
+    setThemeClasses(true)
   } else if (saved === 'dark') {
     isDark.value = true
-    document.documentElement.classList.remove('light')
+    setThemeClasses(false)
   } else {
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
     isDark.value = prefersDark
-    document.documentElement.classList.toggle('light', !prefersDark)
+    setThemeClasses(!prefersDark)
   }
 }
 
 function toggleTheme() {
   isDark.value = !isDark.value
-  document.documentElement.classList.toggle('light', !isDark.value)
+  setThemeClasses(!isDark.value)
   localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
 }
 
@@ -37,7 +42,7 @@ function useTheme() {
     const handler = (e) => {
       if (!localStorage.getItem('theme')) {
         isDark.value = e.matches
-        document.documentElement.classList.toggle('light', !e.matches)
+        setThemeClasses(!e.matches)
       }
     }
     mediaQuery.addEventListener('change', handler)

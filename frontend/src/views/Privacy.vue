@@ -30,7 +30,7 @@
             <p>The data controller for the BeBetter service (at bebetter.websters.at) is:</p>
             <address class="not-italic space-y-1 mt-2 ml-4">
               <p><strong>Websters</strong></p>
-              <p>Michael R., Stevan V., Manuel P.</p>
+              <p>Michael Ruep</p>
               <p>Engerwitzdorf, Austria</p>
               <p>Email: <a href="mailto:office@websters.at" style="color:var(--bb-accent)" class="hover:underline underline-offset-2">office@websters.at</a></p>
             </address>

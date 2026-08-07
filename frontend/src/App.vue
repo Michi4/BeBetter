@@ -10,12 +10,19 @@
           </router-link>
           <template v-if="auth.user">
             <div class="hidden md:flex items-center gap-1 ml-4">
-              <router-link v-for="item in desktopNavItems" :key="item.to" :to="item.to"
-                class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                :class="isActive(item.to) ? 'text-emerald-400 bg-emerald-500/10' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'">
-                <component :is="item.icon" :size="14" />
-                {{ item.label }}
-              </router-link>
+              <template v-for="item in desktopNavItems" :key="item.to">
+                <button v-if="isLockedForDemo(item.to)" @click="openDemoPrompt()"
+                  class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors text-gray-400 hover:text-gray-200 hover:bg-gray-800">
+                  <component :is="item.icon" :size="14" />
+                  {{ item.label }}
+                </button>
+                <router-link v-else :to="item.to"
+                  class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                  :class="isActive(item.to) ? 'text-emerald-400 bg-emerald-500/10' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'">
+                  <component :is="item.icon" :size="14" />
+                  {{ item.label }}
+                </router-link>
+              </template>
             </div>
           </template>
         </div>
@@ -48,15 +55,25 @@
       <PushPrompt v-if="auth.user" />
     </div>
 
+    <!-- Demo account -> sign up prompt -->
+    <SignUpPrompt />
+
     <!-- Bottom nav (mobile only, authenticated) -->
     <nav v-if="auth.user" class="fixed bottom-0 inset-x-0 z-50 border-t border-[var(--app-nav-border)] bg-[var(--app-nav-bg)] backdrop-blur-xl safe-bottom md:hidden">
       <div class="flex items-center justify-around h-16 max-w-lg mx-auto">
-        <router-link v-for="item in bottomNavItems" :key="item.to" :to="item.to"
-          class="flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-colors min-w-[56px]"
-          :class="isActive(item.to) ? 'text-emerald-400' : 'text-gray-500'">
-          <component :is="item.icon" :size="22" :stroke-width="isActive(item.to) ? 2.5 : 1.5" />
-          <span class="text-[10px] font-medium">{{ item.label }}</span>
-        </router-link>
+        <template v-for="item in bottomNavItems" :key="item.to">
+          <button v-if="isLockedForDemo(item.to)" @click="openDemoPrompt()"
+            class="flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-colors min-w-[56px] text-gray-500">
+            <component :is="item.icon" :size="22" :stroke-width="1.5" />
+            <span class="text-[10px] font-medium">{{ item.label }}</span>
+          </button>
+          <router-link v-else :to="item.to"
+            class="flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-colors min-w-[56px]"
+            :class="isActive(item.to) ? 'text-emerald-400' : 'text-gray-500'">
+            <component :is="item.icon" :size="22" :stroke-width="isActive(item.to) ? 2.5 : 1.5" />
+            <span class="text-[10px] font-medium">{{ item.label }}</span>
+          </router-link>
+        </template>
       </div>
     </nav>
   </div>
@@ -69,7 +86,9 @@ import { useAuthStore } from './stores/auth'
 import { LogOut, LayoutDashboard, ListTodo, Users, Trophy, BookOpen, Shield, Sun, Moon } from 'lucide-vue-next'
 import Logo from './components/Logo.vue'
 import PushPrompt from './components/PushPrompt.vue'
+import SignUpPrompt from './components/SignUpPrompt.vue'
 import { useTheme } from './composables/useTheme'
+import { openDemoPrompt } from './utils/demoPrompt'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -114,6 +133,11 @@ function isActive(to) {
   if (to === '/presets') return path.startsWith('/presets')
   if (to === '/admin') return path === '/admin'
   return path.startsWith(to)
+}
+
+function isLockedForDemo(to) {
+  if (!auth.isDemo) return false
+  return to === '/friends' || to === '/leaderboard'
 }
 
 function handleLogout() {

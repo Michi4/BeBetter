@@ -37,9 +37,15 @@ router.get('/', authMiddleware, async (req, res) => {
     const result = tasks.map((t) => {
       let dueToday = true;
 
+      let schedDays = null;
       if (t.scheduledDays) {
-        const days = typeof t.scheduledDays === 'string' ? JSON.parse(t.scheduledDays) : t.scheduledDays;
-        if (Array.isArray(days) && !days.includes(dayOfWeek)) {
+        try {
+          schedDays = typeof t.scheduledDays === 'string' ? JSON.parse(t.scheduledDays) : t.scheduledDays;
+        } catch { schedDays = null; }
+      }
+
+      if (schedDays) {
+        if (Array.isArray(schedDays) && !schedDays.includes(dayOfWeek)) {
           dueToday = false;
         }
       }
@@ -53,13 +59,13 @@ router.get('/', authMiddleware, async (req, res) => {
         if (dueStr > todayStr) dueToday = false;
       }
 
-      if (!dueToday) return { ...t, isCompletedToday: false, isDueToday: false };
+      if (!dueToday) return { ...t, scheduledDays: schedDays, isCompletedToday: false, isDueToday: false };
 
       const isCompletedToday = t.scheduledTime
         ? todayLogs.some(l => l.taskId === t.id)
         : completedIds.has(t.id);
 
-      return { ...t, isCompletedToday, isDueToday: true };
+      return { ...t, scheduledDays: schedDays, isCompletedToday, isDueToday: true };
     });
 
     res.json({ tasks: result, isOnVacation: !!vacation });

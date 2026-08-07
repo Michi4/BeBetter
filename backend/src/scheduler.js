@@ -84,10 +84,12 @@ async function resetDemoAccount(db = prisma) {
 
     // Re-seed with a friendly demo dataset so the UI looks alive
     const habits = [
-      { title: 'Morning Run', description: '30 minute jog around the block', emoji: '🏃', frequencyType: 'daily', verificationType: 'honor', bestStreak: 12 },
-      { title: 'Read 20 Pages', description: 'Daily reading, no excuses', emoji: '📚', frequencyType: 'daily', verificationType: 'honor', bestStreak: 8 },
-      { title: 'Deep Work Block', description: '90 minutes of focused work', emoji: '🧠', frequencyType: 'daily', verificationType: 'honor', bestStreak: 5 },
-      { title: 'Evening Stretch', description: 'Wind down with a stretching routine', emoji: '🧘', frequencyType: 'always', verificationType: 'honor', bestStreak: 21 },
+      { title: 'Morning Run', description: '30 minute jog around the block', emoji: '🏃', frequencyType: 'daily', verificationType: 'honor', bestStreak: 12, time: '07:00' },
+      { title: 'Deep Work Block', description: '90 minutes of focused, phone-free work', emoji: '🧠', frequencyType: 'daily', verificationType: 'honor', bestStreak: 5, time: '09:30', days: [1, 2, 3, 4, 5] },
+      { title: 'Drink 2L of Water', description: 'Stay hydrated through the day', emoji: '💧', frequencyType: 'always', verificationType: 'honor', bestStreak: 6, time: '10:00' },
+      { title: '10,000 Steps', description: 'Get moving — walk the long way home', emoji: '🚶', frequencyType: 'daily', verificationType: 'honor', bestStreak: 4, time: '17:00' },
+      { title: 'Read 20 Pages', description: 'Daily reading, no excuses', emoji: '📚', frequencyType: 'daily', verificationType: 'honor', bestStreak: 8, time: '20:30' },
+      { title: 'Evening Stretch', description: 'Wind down with a stretching routine', emoji: '🧘', frequencyType: 'daily', verificationType: 'honor', bestStreak: 21, time: '21:30' },
     ];
 
     const created = [];
@@ -101,10 +103,10 @@ async function resetDemoAccount(db = prisma) {
           frequencyType: h.frequencyType,
           verificationType: h.verificationType,
           bestStreak: h.bestStreak,
-          schedules: JSON.stringify([{ time: '07:00', days: [0, 1, 2, 3, 4, 5, 6] }]),
+          schedules: JSON.stringify([{ time: h.time, days: h.days || [0, 1, 2, 3, 4, 5, 6] }]),
           reminderMinutes: JSON.stringify([0, 15]),
           config: {},
-          daysPerWeek: JSON.stringify([1, 2, 3, 4, 5, 6, 7]),
+          daysPerWeek: JSON.stringify(h.days || [1, 2, 3, 4, 5, 6, 7]),
         },
       });
       created.push(habit);
@@ -113,40 +115,62 @@ async function resetDemoAccount(db = prisma) {
       const now = Date.now();
       const records = [];
       for (let i = 0; i < 30; i++) {
+        const date = new Date(now - i * 24 * 60 * 60 * 1000);
+        const dayOfWeek = date.getDay();
+        if (h.days && !h.days.includes(dayOfWeek)) continue;
         const skip = (i * 7 + (i % 3)) % 9 < 1;
         if (skip) continue;
-        const completedAt = new Date(now - i * 24 * 60 * 60 * 1000);
-        records.push({ habitId: habit.id, userId, completedAt, status: 'completed' });
+        date.setHours(Number(h.time.split(':')[0]), Number(h.time.split(':')[1]), 0, 0);
+        records.push({ habitId: habit.id, userId, completedAt: date, status: 'completed' });
       }
       if (records.length) {
         await db.habitLog.createMany({ data: records });
       }
     }
 
-    await db.task.create({
-      data: {
+    const taskSeed = [
+      { title: 'Reply to that email', emoji: '📧', time: '18:00', days: [1, 2, 3, 4, 5], reminders: [15] },
+      { title: 'Meal prep for tomorrow', emoji: '🍱', time: '19:30', days: [0, 3], reminders: [0] },
+      { title: 'Book dentist appointment', emoji: '🦷', dueIn: 1, reminders: [60] },
+      { title: 'Send feedback to team', emoji: '💬', dueIn: 2, reminders: [30] },
+      { title: 'Grocery run', emoji: '🛒', time: '10:00', days: [6], reminders: [0] },
+      { title: 'Water the plants', emoji: '🪴', days: [0, 2, 4, 6], reminders: [10] },
+    ];
+
+    let linkedTaskId = null;
+    for (const t of taskSeed) {
+      const data = {
         userId,
-        title: 'Reply to that email',
-        emoji: '📝',
+        title: t.title,
+        emoji: t.emoji,
         isScheduled: true,
         isEveryday: false,
-        scheduledTime: '18:00',
-        scheduledDays: JSON.stringify([1, 2, 3, 4, 5]),
-        reminderMinutes: JSON.stringify([15]),
-      },
-    });
-    await db.task.create({
-      data: {
-        userId,
-        title: 'Meal prep for tomorrow',
-        emoji: '🍱',
-        isScheduled: true,
-        isEveryday: false,
-        scheduledTime: '19:30',
-        scheduledDays: JSON.stringify([0, 3]),
-        reminderMinutes: JSON.stringify([0]),
-      },
-    });
+        scheduledTime: t.time || null,
+        scheduledDays: t.days ? JSON.stringify(t.days) : null,
+        reminderMinutes: JSON.stringify(t.reminders || [0]),
+      };
+      if (t.dueIn != null) {
+        const due = new Date();
+        due.setDate(due.getDate() + t.dueIn);
+        due.setHours(17, 0, 0, 0);
+        data.dueDate = due;
+      }
+      const createdTask = await db.task.create({ data });
+      if (!linkedTaskId) linkedTaskId = createdTask.id;
+    }
+
+    // A few completed tasks in the recent past so the contribution grid looks real
+    const taskLogs = [];
+    if (linkedTaskId) {
+      for (let i = 1; i <= 8; i++) {
+        const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+        date.setHours(19, 30, 0, 0);
+        taskLogs.push({ taskId: linkedTaskId, userId, completedAt: date, note: null });
+      }
+      if (taskLogs.length) {
+        await db.taskLog.createMany({ data: taskLogs });
+      }
+    }
 
     console.log(`[demo] reset and reseeded (${created.length} habits)`);
   } catch (e) {

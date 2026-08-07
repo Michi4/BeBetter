@@ -1,5 +1,7 @@
 <template>
   <div class="page">
+    <DemoLock v-if="auth.isDemo" />
+    <template v-else>
     <div class="flex items-center justify-between">
       <h1 class="text-xl font-bold">Notifications</h1>
       <button v-if="unread > 0" @click="markAllRead" class="text-xs text-emerald-400 hover:text-emerald-300 transition-colors">
@@ -57,6 +59,7 @@
         </button>
       </div>
     </div>
+    </template>
   </div>
 </template>
 
@@ -66,9 +69,12 @@ import { useRouter } from 'vue-router'
 import api from '../api'
 import { useToast } from 'vue-toastification'
 import { Bell, Trophy, Users, Eye, Shield, Megaphone, Check, X } from 'lucide-vue-next'
+import DemoLock from '../components/DemoLock.vue'
+import { useAuthStore } from '../stores/auth'
 
 const toast = useToast()
 const router = useRouter()
+const auth = useAuthStore()
 
 const notifications = ref([])
 const unread = ref(0)

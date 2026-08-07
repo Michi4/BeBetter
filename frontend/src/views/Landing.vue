@@ -9,9 +9,9 @@
       <!-- ============ HERO ============ -->
       <section id="hero" class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 sm:pt-24 pb-16 sm:pb-24">
         <div class="hero-scrim absolute -inset-x-4 -top-16 bottom-0 pointer-events-none" aria-hidden="true"></div>
-        <div class="text-center max-w-4xl mx-auto space-y-7 relative">
+        <div ref="hero" class="text-center max-w-4xl mx-auto space-y-7 relative hero-target">
           <ScrollReveal variant="fade-up" :delay="100">
-            <h1 class="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.08]">
+            <h1 class="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.08] hero-title">
               <span class="text-[var(--bb-ink)]">Build habits</span><br />
               <span class="text-[var(--bb-ink)]">that</span>
               <em class="not-italic bg-gradient-to-r from-[var(--bb-accent)] via-[var(--bb-accent-strong)] to-[var(--bb-accent)] bg-clip-text text-transparent"> last.</em>
@@ -108,7 +108,7 @@
               <h2 class="text-3xl sm:text-5xl font-extrabold tracking-tight">Everything you need<br class="hidden sm:inline" /> to build better habits</h2>
             </div>
             <p class="hidden lg:block text-sm text-[var(--bb-muted)] max-w-xs leading-relaxed pb-1">
-              Simple to start. Deep when you need it. Built for analysts, makers, and competitors.
+              Simple to start. Advanced when you need it. Built for analysts, makers, and competitors.
             </p>
           </div>
 
@@ -205,7 +205,7 @@
                         <p class="text-xs font-bold" :class="idx === 0 ? 'text-[var(--bb-accent)]' : 'text-[var(--bb-muted)]'">{{ row.streak }}</p>
                       </div>
                       <div class="h-2 rounded-full bg-[var(--bb-line)] overflow-hidden">
-                        <div class="h-full rounded-full transition-all duration-700" :style="{ width: row.pct + '%' }" :class="idx === 0 ? 'bg-gradient-to-r from-emerald-500 to-teal-400' : 'bg-[var(--bb-accent)]/40'"></div>
+                        <div class="h-full rounded-full transition-all duration-700" :style="{ width: row.pct + '%' }" :class="idx === 0 ? 'bg-gradient-to-r from-emerald-500 to-teal-400' : 'bg-emerald-500/60'"></div>
                       </div>
                     </div>
                   </div>
@@ -244,31 +244,6 @@
         </ScrollReveal>
       </section>
 
-      <!-- ============ TESTIMONIALS ============ -->
-      <section class="border-b border-[var(--bb-line)] bg-[var(--bb-bg)] py-20 sm:py-28">
-        <ScrollReveal variant="fade-up" class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div class="text-center max-w-3xl mx-auto mb-14 space-y-4">
-            <p class="text-xs font-bold tracking-[0.25em] uppercase text-[var(--bb-accent)]">05 &mdash; Word on the street</p>
-            <h2 class="text-3xl sm:text-5xl font-extrabold tracking-tight">Loved by people who tried everything</h2>
-          </div>
-          <div class="grid md:grid-cols-3 gap-6">
-            <figure v-for="t in testimonials" :key="t.name" class="rounded-2xl border border-[var(--bb-line)] bg-[var(--bb-card)] p-6 space-y-4 hover:border-[var(--bb-accent)]/40 transition-colors">
-              <div class="flex gap-1" aria-hidden="true">
-                <Star v-for="s in 5" :key="s" :size="14" class="text-amber-400 fill-amber-400" />
-              </div>
-              <blockquote class="text-sm text-[var(--bb-muted)] leading-relaxed">"{{ t.quote }}"</blockquote>
-              <figcaption class="flex items-center gap-3 pt-2 border-t border-[var(--bb-line)]">
-                <span class="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500/60 to-teal-500/60 flex items-center justify-center text-xs font-bold text-white">{{ t.initials }}</span>
-                <div>
-                  <p class="text-xs font-semibold text-[var(--bb-ink)]">{{ t.name }}</p>
-                  <p class="text-[10px] text-[var(--bb-faint)]">{{ t.role }}</p>
-                </div>
-              </figcaption>
-            </figure>
-          </div>
-        </ScrollReveal>
-      </section>
-
       <!-- ============ FINAL CTA ============ -->
       <section id="cta" class="py-20 sm:py-28 relative overflow-hidden">
         <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--bb-accent)]/50 to-transparent" aria-hidden="true"></div>
@@ -284,8 +259,9 @@
             Bragging rights are on the line.
           </p>
           <div class="pt-4 flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="/register" class="btn px-10 py-4 bg-emerald-700 hover:bg-emerald-600 shadow-[0_0_35px_rgba(16,185,129,0.35)] text-lg font-semibold">
+            <a href="/register" class="btn px-10 py-4 bg-emerald-700 hover:bg-emerald-600 shadow-[0_0_35px_rgba(16,185,129,0.35)] text-lg font-semibold group">
               Sign Up
+              <ArrowRight :size="18" class="group-hover:translate-x-0.5 transition-transform" />
             </a>
             <a href="/login" class="btn-secondary px-10 py-4 text-lg font-medium">Sign In</a>
             <a href="/login?demo=1" class="btn-ghost px-10 py-4 text-lg font-medium">Try the Demo</a>
@@ -307,7 +283,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import LandingNavbar from '../components/LandingNavbar.vue'
 import LandingFooter from '../components/LandingFooter.vue'
 import ScrollReveal from '../components/ScrollReveal.vue'
@@ -318,18 +294,40 @@ import MarqueeBand from '../components/MarqueeBand.vue'
 import AmbientGlow from '../components/AmbientGlow.vue'
 import {
   Target, ListTodo, Users, CheckCircle2, BarChart2, ArrowRight, Bell,
-  Check, Star, Zap, Camera, Swords, Smartphone, Timer
+  Check, Zap, Camera, Swords, Smartphone, Timer
 } from 'lucide-vue-next'
 
 const loaded = ref(false)
 const stats = ref({ habits: 0, completionsValue: 0, completionsSuffix: '', streakRetention: 0, newHabits: 0 })
 
+const hero = ref(null)
+let heroRaf = null
+function onHeroMouse(e) {
+  if (heroRaf) return
+  heroRaf = requestAnimationFrame(() => {
+    heroRaf = null
+    const el = hero.value
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    const nx = Math.max(-1, Math.min(1, ((e.clientX - (r.left + r.width / 2)) / (r.width / 2)) || 0))
+    const ny = Math.max(-1, Math.min(1, ((e.clientY - (r.top + r.height / 2)) / (r.height / 2)) || 0))
+    el.style.setProperty('--rx', (-ny * 3.2).toFixed(2) + 'deg')
+    el.style.setProperty('--ry', (nx * 4.6).toFixed(2) + 'deg')
+    el.style.setProperty('--gx', (e.clientX - r.left) + 'px')
+    el.style.setProperty('--gy', (e.clientY - r.top) + 'px')
+  })
+}
+function onHeroLeave() {
+  const el = hero.value
+  if (!el) return
+  el.style.setProperty('--rx', '0deg')
+  el.style.setProperty('--ry', '0deg')
+}
+
 const tickerItems = [
   'Head-to-head streak battles',
   'Precise push reminders',
   'Photo verification',
-  'Friends & rivals',
-  'Live progress bars',
   'PWA & offline ready',
   'Your year, one day per dot',
 ]
@@ -360,7 +358,7 @@ const competitivePoints = [
 const leaderboardRows = [
   { name: 'Sophie', streak: '4/4', pct: 100 },
   { name: 'Jonas', streak: '3/4', pct: 75 },
-  { name: 'Michael', streak: '2/4', pct: 50 },
+  { name: 'Tobias', streak: '2/4', pct: 50 },
 ]
 
 const steps = [
@@ -369,18 +367,14 @@ const steps = [
   { title: 'Improve', description: 'Watch your streak grow. See consistency trends. Share progress with friends.', icon: BarChart2 },
 ]
 
-const testimonials = [
-  { quote: 'I have tried every habit app on the market. BeBetter is the first one my friends actually stayed on for more than a week.', name: 'Sophie F.', role: 'Product Designer', initials: 'SF' },
-  { quote: 'The streak battles with my buddy are brutal. I have run more mornings in 30 days than in the last 2 years.', name: 'Jonas F.', role: 'Developer', initials: 'JF' },
-  { quote: 'Competing with my friends is what finally got me out of bed. The live leaderboards are addictive in the best way.', name: 'Manuel P.', role: 'Ops Engineer', initials: 'MP' },
-]
-
 function formatCompletions(n) {
   if (n >= 1000) return { value: Math.round(n / 1000), suffix: 'k+' }
   return { value: n, suffix: '+' }
 }
 
 onMounted(() => {
+  window.addEventListener('mousemove', onHeroMouse, { passive: true })
+  hero.value?.addEventListener('mouseleave', onHeroLeave)
   fetch('/api/public/landing', { headers: { Accept: 'application/json' } })
     .then((res) => (res.ok ? res.json() : Promise.reject()))
     .then((data) => {
@@ -403,22 +397,56 @@ onMounted(() => {
       loaded.value = true
     })
 })
+
+onBeforeUnmount(() => {
+  window.removeEventListener('mousemove', onHeroMouse)
+  hero.value?.removeEventListener('mouseleave', onHeroLeave)
+  if (heroRaf) cancelAnimationFrame(heroRaf)
+})
 </script>
 
 <style scoped>
 .hero-scrim {
   background: radial-gradient(ellipse 70% 62% at 50% 36%, color-mix(in srgb, var(--bb-bg) 52%, transparent), color-mix(in srgb, var(--bb-bg) 30%) 52%, transparent 78%);
 }
+.hero-target {
+  transform-style: preserve-3d;
+}
+.hero-title {
+  transform: perspective(1100px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+.hero-target::after {
+  content: '';
+  position: absolute;
+  width: 360px;
+  height: 360px;
+  border-radius: 50%;
+  left: calc(var(--gx, 50%) - 180px);
+  top: calc(var(--gy, 20%) - 180px);
+  background: radial-gradient(circle, rgba(52, 211, 153, 0.16), rgba(52, 211, 153, 0.05) 45%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity 0.3s ease;
+}
+@media (max-width: 640px) {
+  .hero-title { transform: none; }
+}
+@media (hover: none) {
+  .hero-target::after { opacity: 0; }
+}
 .cta-scrim {
   background: radial-gradient(ellipse 80% 90% at 50% 45%, color-mix(in srgb, var(--bb-bg) 42%, transparent), transparent 70%);
 }
 .bb-dots {
-  background-image: radial-gradient(var(--bb-grid) 1px, transparent 1px);
-  background-size: 22px 22px;
+  color: var(--bb-grid);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18'%3E%3Crect x='3' y='3' width='10' height='10' rx='2.2' fill='currentColor'/%3E%3C/svg%3E");
+  background-size: 18px 18px;
   mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 30%, transparent 75%);
   -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 30%, transparent 75%);
 }
 @media (max-width: 639px) {
-  .bb-dots { background-size: 16px 16px; }
+  .bb-dots { background-size: 14px 14px; }
 }
 </style>

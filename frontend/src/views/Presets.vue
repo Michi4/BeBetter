@@ -106,8 +106,11 @@ import api from '../api'
 import { useToast } from 'vue-toastification'
 import { Plus, Heart, GitFork, Search, Loader2 } from 'lucide-vue-next'
 import RecurrenceBuilder from '../components/RecurrenceBuilder.vue'
+import { useAuthStore } from '../stores/auth'
+import { openDemoPrompt } from '../utils/demoPrompt'
 
 const toast = useToast()
+const auth = useAuthStore()
 
 const searchQuery = ref('')
 const selectedCategory = ref('')
@@ -162,10 +165,18 @@ function importFromHabit(id) {
 }
 
 function toggleCreate() {
+  if (auth.isDemo) {
+    openDemoPrompt()
+    return
+  }
   showCreateForm.value = !showCreateForm.value
 }
 
 async function createPreset() {
+  if (auth.isDemo) {
+    openDemoPrompt()
+    return
+  }
   if (!createForm.title.trim()) return
   try {
     await api.post('/presets', {

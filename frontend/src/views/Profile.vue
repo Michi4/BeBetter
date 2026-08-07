@@ -152,7 +152,10 @@
               <Bell :size="16" class="text-emerald-400" />
               <h3 class="section-title">Notification Settings</h3>
             </div>
-            <router-link to="/notifications" class="text-xs text-emerald-400 hover:text-emerald-300">
+            <button v-if="auth.isDemo" @click="openDemoPrompt()" class="text-xs text-emerald-400 hover:text-emerald-300">
+              View all
+            </button>
+            <router-link v-else to="/notifications" class="text-xs text-emerald-400 hover:text-emerald-300">
               View all
             </router-link>
           </div>
@@ -370,6 +373,7 @@ import { useRoute, useRouter } from 'vue-router'
 import api from '../api'
 import { useAuthStore } from '../stores/auth'
 import { useToast } from 'vue-toastification'
+import { openDemoPrompt } from '../utils/demoPrompt'
 import {
   UserPlus, Swords, Trash2, Camera, X, AlertTriangle, Loader2, Clock, Check,
   User, Bell, Palmtree, Play, KeyRound, Save, RefreshCw, ChevronLeft, ChevronRight,
@@ -382,6 +386,7 @@ import { useTheme } from '../composables/useTheme'
 
 const { isDark, toggleTheme } = useTheme()
 const router = useRouter()
+const route = useRoute()
 const auth = useAuthStore()
 
 function handleLogout() {

@@ -1,5 +1,7 @@
 <template>
   <div class="page">
+    <DemoLock v-if="auth.isDemo" />
+    <template v-else>
     <h1 class="text-xl font-bold">Friends</h1>
 
     <!-- Inline Notifications -->
@@ -98,6 +100,7 @@
         <p class="text-sm text-gray-500">No friends yet. Share your invite link!</p>
       </div>
     </div>
+    </template>
   </div>
 </template>
 
@@ -107,8 +110,11 @@ import api from '../api'
 import { useToast } from 'vue-toastification'
 import { Copy, Check, Loader2, UserPlus } from 'lucide-vue-next'
 import NotificationAlerts from '../components/NotificationAlerts.vue'
+import DemoLock from '../components/DemoLock.vue'
+import { useAuthStore } from '../stores/auth'
 
 const toast = useToast()
+const auth = useAuthStore()
 
 const searchQuery = ref('')
 const searchResults = ref([])

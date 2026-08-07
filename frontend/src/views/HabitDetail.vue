@@ -131,7 +131,7 @@
       <div class="card space-y-3">
         <div class="flex items-center justify-between">
           <p class="section-title">Challenge Friends</p>
-          <button @click="showChallengeForm = !showChallengeForm" class="text-xs text-emerald-400 hover:text-emerald-300">
+          <button @click="toggleChallengeForm" class="text-xs text-emerald-400 hover:text-emerald-300">
             {{ showChallengeForm ? 'Cancel' : '+ Challenge' }}
           </button>
         </div>
@@ -193,7 +193,7 @@
       <div class="card space-y-3">
         <div class="flex items-center justify-between">
           <p class="section-title">Accountability Buddies</p>
-          <button @click="showBuddyForm = !showBuddyForm" class="text-xs text-emerald-400 hover:text-emerald-300">
+          <button @click="toggleBuddyForm" class="text-xs text-emerald-400 hover:text-emerald-300">
             {{ showBuddyForm ? 'Cancel' : '+ Add' }}
           </button>
         </div>
@@ -283,6 +283,7 @@ import { useAuthStore } from '../stores/auth'
 import { ArrowLeft, Pencil, Save, Pause, Play, CheckCircle, Trash2, ChevronRight, Copy, Link, Loader2, Clock, Bell } from 'lucide-vue-next'
 import HabitForm from '../components/HabitForm.vue'
 import { formatTime } from '../utils/timeFormat'
+import { openDemoPrompt } from '../utils/demoPrompt'
 
 const route = useRoute()
 const router = useRouter()
@@ -513,7 +514,20 @@ function searchBuddies() {
   }, 300)
 }
 
+function toggleChallengeForm() {
+  if (auth.isDemo) { openDemoPrompt(); return }
+  showChallengeForm.value = !showChallengeForm.value
+}
+function toggleBuddyForm() {
+  if (auth.isDemo) { openDemoPrompt(); return }
+  showBuddyForm.value = !showBuddyForm.value
+}
+
 async function addBuddy(friend) {
+  if (auth.isDemo) {
+    openDemoPrompt()
+    return
+  }
   try {
     const res = await api.post(`/habits/${route.params.id}/buddy`, { friendId: friend.id })
     buddies.value.push(res.data.buddy)
@@ -556,6 +570,10 @@ function searchChallengers() {
 }
 
 async function challengeFriend(friend) {
+  if (auth.isDemo) {
+    openDemoPrompt()
+    return
+  }
   try {
     await api.post('/challenges', {
       habitId: route.params.id,
@@ -572,6 +590,10 @@ async function challengeFriend(friend) {
 }
 
 async function generateInviteLink() {
+  if (auth.isDemo) {
+    openDemoPrompt()
+    return
+  }
   generatingLink.value = true
   try {
     const res = await api.post('/challenges/invite-link', { habitId: route.params.id })

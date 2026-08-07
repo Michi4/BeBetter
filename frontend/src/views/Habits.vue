@@ -181,8 +181,11 @@ import BeBetterCam from '../components/BeBetterCam.vue'
 import CreateModal from '../components/CreateModal.vue'
 import NotificationAlerts from '../components/NotificationAlerts.vue'
 import { formatTime } from '../utils/timeFormat'
+import { useAuthStore } from '../stores/auth'
+import { openDemoPrompt } from '../utils/demoPrompt'
 
 const toast = useToast()
+const auth = useAuthStore()
 
 const selectedDate = ref(new Date().toISOString().slice(0, 10))
 const scheduledForDay = ref([])
@@ -292,6 +295,12 @@ async function updateTaskFromCard(task) {
 }
 
 async function handleCreated(type, data) {
+  if (type !== 'task' && auth.isDemo && data.makePublic) {
+    showCreateModal.value = false
+    convertData.value = null
+    openDemoPrompt()
+    return
+  }
   if (type === 'task') {
     try {
       const res = await api.post('/tasks', { title: data.title, description: data.description, emoji: data.emoji, dueDate: data.dueDate || undefined })

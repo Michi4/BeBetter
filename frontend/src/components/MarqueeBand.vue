@@ -33,7 +33,7 @@ defineProps({
 }
 .marquee-track {
   display: inline-flex;
-  min-width: 200%;
+  width: max-content;
   animation: marquee 36s linear infinite;
 }
 .marquee-group {
