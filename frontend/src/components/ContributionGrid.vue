@@ -45,20 +45,22 @@
     </div>
 
     <!-- Tooltip -->
-    <div v-if="hoveredDay" ref="tipRef" class="fixed z-50 bg-gray-800 border border-gray-700 rounded-xl p-3 shadow-xl text-xs max-w-[220px] pointer-events-none">
-      <div class="font-medium mb-1">{{ formatTipDate(hoveredDay.date) }}</div>
-      <div v-if="hoveredDay.scheduled > 0" class="text-gray-400 mb-1">
-        {{ hoveredDay.habits }}/{{ hoveredDay.scheduled }} habits done
-        <span v-if="hoveredDay.tasks > 0" class="text-gray-500"> + {{ hoveredDay.tasks }} tasks</span>
-      </div>
-      <div v-if="hoveredDay.items && hoveredDay.items.length" class="space-y-0.5">
-        <div v-for="(item, idx) in hoveredDay.items" :key="idx" class="flex items-center gap-1.5">
-          <span class="text-emerald-400">&#10003;</span>
-          <span class="text-gray-400">{{ item.emoji || '' }} {{ item.title }}</span>
+    <Teleport to="body">
+      <div v-if="hoveredDay" ref="tipRef" class="fixed z-50 bg-gray-800 border border-gray-700 rounded-xl p-3 shadow-xl text-xs max-w-[220px] pointer-events-none">
+        <div class="font-medium mb-1">{{ formatTipDate(hoveredDay.date) }}</div>
+        <div v-if="hoveredDay.scheduled > 0" class="text-gray-400 mb-1">
+          {{ hoveredDay.habits }}/{{ hoveredDay.scheduled }} habits done
+          <span v-if="hoveredDay.tasks > 0" class="text-gray-500"> + {{ hoveredDay.tasks }} tasks</span>
         </div>
+        <div v-if="hoveredDay.items && hoveredDay.items.length" class="space-y-0.5">
+          <div v-for="(item, idx) in hoveredDay.items" :key="idx" class="flex items-center gap-1.5">
+            <span class="text-emerald-400">&#10003;</span>
+            <span class="text-gray-400">{{ item.emoji || '' }} {{ item.title }}</span>
+          </div>
+        </div>
+        <div v-if="hoveredDay.scheduled === 0 && hoveredDay.habits === 0 && hoveredDay.tasks === 0" class="text-gray-500 text-[10px]">No activity</div>
       </div>
-      <div v-if="hoveredDay.scheduled === 0 && hoveredDay.habits === 0 && hoveredDay.tasks === 0" class="text-gray-500 text-[10px]">No activity</div>
-    </div>
+    </Teleport>
 
     <!-- Legend -->
     <div v-if="weeks.length" class="flex items-center gap-1.5 mt-3 text-[10px] text-gray-500 justify-end">
