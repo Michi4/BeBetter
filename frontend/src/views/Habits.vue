@@ -544,10 +544,11 @@ async function undoHabit(habit, scheduledTime) {
 async function undoCompletedHabit(habit) {
   try {
     await api.delete('/logs/habit/' + habit.id + '/today')
+    await api.put('/habits/' + habit.id, { active: true })
     completedHabits.value = completedHabits.value.filter(h => h.id !== habit.id)
-    const fresh = await api.get('/habits')
-    activeHabits.value = fresh.data.habits || []
-    toast.info(`"${habit.title}" marked as not done`)
+    loadAll()
+    loadHistory()
+    toast.info(`"${habit.title}" reactivated`)
   } catch {
     toast.error('Failed')
   }

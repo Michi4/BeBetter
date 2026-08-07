@@ -330,7 +330,7 @@ router.put('/:id', authMiddleware, demoFieldGuard(['reminderMinutes', 'isPublic'
     const habit = await prisma.habit.findUnique({ where: { id } });
     if (!habit || habit.userId !== req.userId) return res.status(404).json({ error: 'Not found' });
 
-    const { title, description, emoji, frequencyType, daysPerWeek, schedule, schedules, reminderMinutes, verificationType, config, isPublic } = req.body;
+    const { title, description, emoji, frequencyType, daysPerWeek, schedule, schedules, reminderMinutes, verificationType, config, isPublic, active } = req.body;
     const sched = schedule || daysPerWeek;
 
     if ((schedules && schedules.some((s) => s && s.time)) || verificationType === 'be_better_cam' || verificationType === 'photo') {
@@ -347,6 +347,7 @@ router.put('/:id', authMiddleware, demoFieldGuard(['reminderMinutes', 'isPublic'
       config: config !== undefined ? config : undefined,
       isPublic: isPublic !== undefined ? isPublic : undefined,
       reminderMinutes: reminderMinutes !== undefined ? reminderMinutes : undefined,
+      active: active !== undefined ? active : undefined,
     };
 
     if (Array.isArray(schedules) && schedules.length > 0) {
