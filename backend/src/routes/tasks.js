@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const prisma = require('../lib/prisma');
-const { authMiddleware } = require('../middleware/auth');
+const { authMiddleware, demoFieldGuard } = require('../middleware/auth');
 
 const router = Router();
 
@@ -75,7 +75,7 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 });
 
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/', authMiddleware, demoFieldGuard(['scheduledTime', 'scheduledDays', 'isEveryday', 'reminderMinutes']), async (req, res) => {
   try {
     const { title, description, emoji, dueDate, isScheduled, isEveryday, scheduledTime, scheduledDays, reminderMinutes } = req.body;
     if (!title) return res.status(400).json({ error: 'Title required' });
@@ -156,7 +156,7 @@ router.get('/completed', authMiddleware, async (req, res) => {
   }
 });
 
-router.put('/:id', authMiddleware, async (req, res) => {
+router.put('/:id', authMiddleware, demoFieldGuard(['scheduledTime', 'scheduledDays', 'isEveryday', 'reminderMinutes', 'isScheduled']), async (req, res) => {
   try {
     const { id } = req.params;
     const task = await prisma.task.findUnique({ where: { id } });

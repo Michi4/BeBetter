@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const prisma = require('../lib/prisma');
-const { authMiddleware } = require('../middleware/auth');
+const { authMiddleware, demoGuard } = require('../middleware/auth');
 const { getVapidKeys } = require('../lib/vapid');
 
 const router = Router();
@@ -66,7 +66,7 @@ router.get('/preferences', authMiddleware, async (req, res) => {
   }
 });
 
-router.put('/preferences', authMiddleware, async (req, res) => {
+router.put('/preferences', authMiddleware, demoGuard, async (req, res) => {
   try {
     const { morningEnabled, morningTime, habitRemindersEnabled, eveningEnabled, eveningTime, announcementsEnabled } = req.body;
 
@@ -88,7 +88,7 @@ router.put('/preferences', authMiddleware, async (req, res) => {
   }
 });
 
-router.post('/subscribe', authMiddleware, async (req, res) => {
+router.post('/subscribe', authMiddleware, demoGuard, async (req, res) => {
   try {
     const { endpoint, p256dh, auth } = req.body;
     if (!endpoint || !p256dh || !auth) return res.status(400).json({ error: 'Missing subscription fields' });
@@ -106,7 +106,7 @@ router.post('/subscribe', authMiddleware, async (req, res) => {
   }
 });
 
-router.post('/unsubscribe', authMiddleware, async (req, res) => {
+router.post('/unsubscribe', authMiddleware, demoGuard, async (req, res) => {
   try {
     const { endpoint } = req.body;
     if (endpoint) {

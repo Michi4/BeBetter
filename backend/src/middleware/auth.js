@@ -43,4 +43,22 @@ function demoGuard(req, res, next) {
   });
 }
 
-module.exports = { signToken, authMiddleware, JWT_SECRET, demoGuard, isDemoUser, DEMO_USERNAME };
+function demoFieldGuard(fields) {
+  return (req, res, next) => {
+    isDemoUser(req.userId).then((isDemo) => {
+      if (!isDemo) return next();
+      const restricted = fields.filter((f) => {
+        const v = req.body?.[f];
+        if (v === undefined || v === null || v === false) return false;
+        if (Array.isArray(v) && v.length === 0) return false;
+        return true;
+      });
+      if (restricted.length > 0) {
+        return res.status(403).json({ error: 'Not available in the demo account. Sign up to use this.' });
+      }
+      next();
+    });
+  };
+}
+
+module.exports = { signToken, authMiddleware, JWT_SECRET, demoGuard, demoFieldGuard, isDemoUser, DEMO_USERNAME };
