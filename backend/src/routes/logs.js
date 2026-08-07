@@ -194,6 +194,11 @@ router.get('/with-scheduled', authMiddleware, async (req, res) => {
       const activeBreak = h.breaks.find((b) => !b.endDate);
       if (activeBreak) continue;
 
+      // A habit can only be scheduled on days after it was created
+      const createdDay = new Date(h.createdAt);
+      createdDay.setHours(0, 0, 0, 0);
+      if (d < createdDay) continue;
+
       const sched = JSON.parse(typeof h.daysPerWeek === 'string' ? h.daysPerWeek : JSON.stringify(h.daysPerWeek || '[]'));
       const isScheduled = !isOnVacation && (
         h.frequencyType === 'daily' ||

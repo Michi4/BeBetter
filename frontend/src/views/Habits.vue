@@ -145,7 +145,8 @@
             <span class="text-sm truncate" :class="h.completed ? 'text-gray-300' : 'text-gray-500'">{{ h.emoji || '' }} {{ h.title }}</span>
           </div>
           <span v-if="h.scheduledTime" class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 shrink-0">{{ formatTime(h.scheduledTime) }}</span>
-          <span v-if="!h.completed" class="text-[10px] text-gray-600 shrink-0">missed</span>
+          <span v-if="!h.completed && isFutureDay" class="text-[10px] text-gray-600 shrink-0">upcoming</span>
+          <span v-else-if="!h.completed" class="text-[10px] text-gray-600 shrink-0">missed</span>
         </div>
       </div>
       <div v-if="historyTasks.length" class="space-y-2">
@@ -226,6 +227,8 @@ const camHabit = ref(null)
 const clearAllModal = ref(null)
 
 const todayStr = () => new Date().toISOString().slice(0, 10)
+
+const isFutureDay = computed(() => selectedDate.value > todayStr())
 
 function prevDay() {
   const d = new Date(selectedDate.value)
@@ -447,6 +450,7 @@ async function completeTask(task) {
       completingTaskId.value = null
       incompleteTasks.value = incompleteTasks.value.filter(t => t.id !== task.id)
       completedTasks.value.unshift({ ...task, isCompletedToday: true, completedAt: new Date().toISOString() })
+      loadHistory()
     }, 600)
   } catch {
     toast.error('Failed')
@@ -468,6 +472,7 @@ async function undoCompletedTask(task) {
     await api.delete(`/tasks/${task.id}/uncomplete`)
     completedTasks.value = completedTasks.value.filter(t => t.id !== task.id)
     incompleteTasks.value.unshift({ ...task, isCompletedToday: false, completedAt: null })
+    loadHistory()
     toast.info(`"${task.title}" moved back to tasks`)
   } catch {
     toast.error('Failed')
@@ -478,6 +483,7 @@ async function deleteCompletedTask(task) {
   try {
     await api.delete(`/tasks/${task.id}`)
     completedTasks.value = completedTasks.value.filter(t => t.id !== task.id)
+    loadHistory()
     toast.success('Task deleted')
   } catch {
     toast.error('Failed')
@@ -528,6 +534,7 @@ async function undoHabit(habit, scheduledTime) {
       h.id === habit.id && (h.scheduledTime || null) === (scheduledTime || null)
         ? { ...h, completedToday: false } : h
     )
+    loadHistory()
     toast.info(`"${habit.title}" marked as not done`)
   } catch {
     toast.error('Failed')
@@ -577,6 +584,7 @@ async function deleteCompletedHabit(habit) {
       try {
         await api.delete(`/habits/${habit.id}`)
         completedHabits.value = completedHabits.value.filter(h => h.id !== habit.id)
+        loadHistory()
         toast.success(`"${habit.title}" deleted`)
       } catch {
         toast.error('Failed to delete habit')
