@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const prisma = require('../lib/prisma');
-const { authMiddleware } = require('../middleware/auth');
+const { authMiddleware, demoFieldGuard, demoGuard, isDemoUser } = require('../middleware/auth');
 
 const router = Router();
 
@@ -182,10 +182,16 @@ router.get('/scheduled', authMiddleware, async (req, res) => {
   }
 });
 
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/', authMiddleware, demoFieldGuard(['makePublic', 'buddyIds', 'challengeFriendIds', 'reminderMinutes', 'wagerDays', 'wagerAmount']), async (req, res) => {
   try {
     const { title, description, emoji, frequencyType, daysPerWeek, schedule, schedules, reminderMinutes, verificationType, wagerDays, wagerAmount, makePublic, config, buddyIds, challengeFriendIds, endDate } = req.body;
     if (!title) return res.status(400).json({ error: 'Title required' });
+
+    const hasScheduledTimes = Array.isArray(schedules) && schedules.some((s) => s && s.time);
+    const needsPhotoProof = verificationType === 'be_better_cam' || verificationType === 'photo';
+    if ((hasScheduledTimes || needsPhotoProof) && (await isDemoUser(req.userId))) {
+      return res.status(403).json({ error: 'Not available in the demo account. Sign up to use this.' });
+    }
 
     let finalFreqType = frequencyType || 'daily';
     let finalDaysPerWeek;
@@ -318,7 +324,7 @@ router.post('/', authMiddleware, async (req, res) => {
   }
 });
 
-router.put('/:id', authMiddleware, async (req, res) => {
+router.put('/:id', authMiddleware, demoFieldGuard(['reminderMinutes', 'isPublic']), async (req, res) => {
   try {
     const { id } = req.params;
     const habit = await prisma.habit.findUnique({ where: { id } });
@@ -326,6 +332,12 @@ router.put('/:id', authMiddleware, async (req, res) => {
 
     const { title, description, emoji, frequencyType, daysPerWeek, schedule, schedules, reminderMinutes, verificationType, config, isPublic } = req.body;
     const sched = schedule || daysPerWeek;
+
+    if ((schedules && schedules.some((s) => s && s.time)) || verificationType === 'be_better_cam' || verificationType === 'photo') {
+      if (await isDemoUser(req.userId)) {
+        return res.status(403).json({ error: 'Not available in the demo account. Sign up to use this.' });
+      }
+    }
 
     const updateData = {
       title: title !== undefined ? title.trim() : undefined,
@@ -539,7 +551,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-router.post('/:id/buddy', authMiddleware, async (req, res) => {
+router.post('/:id/buddy', authMiddleware, demoGuard, async (req, res) => {
   try {
     const { id } = req.params;
     const { friendId } = req.body;
@@ -572,7 +584,7 @@ router.post('/:id/buddy', authMiddleware, async (req, res) => {
   }
 });
 
-router.delete('/:id/buddy/:buddyId', authMiddleware, async (req, res) => {
+router.delete('/:id/buddy/:buddyId', authMiddleware, demoGuard, async (req, res) => {
   try {
     const { buddyId } = req.params;
     const buddy = await prisma.habitBuddy.findUnique({ where: { id: buddyId } });

@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const prisma = require('../lib/prisma');
-const { authMiddleware } = require('../middleware/auth');
+const { authMiddleware, isDemoUser } = require('../middleware/auth');
 const { calculateBestStreak } = require('../lib/streak');
 
 const router = Router();
@@ -9,6 +9,10 @@ router.post('/', authMiddleware, async (req, res) => {
   try {
     const { habitId, photo, proofUrl, date, scheduledTime } = req.body;
     if (!habitId) return res.status(400).json({ error: 'habitId required' });
+
+    if ((photo || proofUrl) && (await isDemoUser(req.userId))) {
+      return res.status(403).json({ error: 'Not available in the demo account. Sign up to use this.' });
+    }
 
     const habit = await prisma.habit.findUnique({ where: { id: habitId }, include: { breaks: true } });
     if (!habit) return res.status(404).json({ error: 'Not found' });
@@ -267,6 +271,38 @@ router.get('/:id', authMiddleware, async (req, res) => {
     if (!log || log.userId !== req.userId) return res.status(404).json({ error: 'Not found' });
 
     res.json({ log });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.delete('/habit/:habitId/today', authMiddleware, async (req, res) => {
+  try {
+    const { habitId } = req.params;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const { scheduledTime } = req.query;
+    const where = { habitId, userId: req.userId, completedAt: { gte: today, lt: tomorrow } };
+    if (scheduledTime) where.scheduledTime = scheduledTime;
+    else where.scheduledTime = null;
+
+    const log = await prisma.habitLog.findFirst({ where });
+    if (!log) return res.status(404).json({ error: 'No completion found' });
+
+    await prisma.habitLog.delete({ where: { id: log.id } });
+
+    const allLogs = await prisma.habitLog.findMany({
+      where: { habitId, userId: req.userId },
+      orderBy: { completedAt: 'asc' },
+    });
+    const { bestStreak } = calculateBestStreak(allLogs);
+    await prisma.habit.update({ where: { id: habitId }, data: { bestStreak } });
+
+    res.json({ ok: true });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Server error' });

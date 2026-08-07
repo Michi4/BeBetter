@@ -53,6 +53,9 @@
               <h4 class="font-medium text-sm truncate text-gray-400 line-through">{{ task.title }}</h4>
               <p v-if="task.completedAt" class="text-[10px] text-gray-500">Completed {{ formatDate(task.completedAt) }}</p>
             </div>
+            <button @click="undoCompletedTask(task)" class="delete-btn shrink-0 p-1.5 rounded text-gray-600 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all" title="Mark as incomplete">
+              <Undo2 :size="13" />
+            </button>
             <button @click="deleteCompletedTask(task)" class="delete-btn shrink-0 p-1.5 rounded text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-all" title="Delete">
               <Trash2 :size="13" />
             </button>
@@ -72,13 +75,13 @@
       <!-- Habits with time slots -->
       <template v-if="timedHabits.length">
         <div v-for="h in timedHabits" :key="h.id + '-' + (h.scheduledTime || '')" class="rounded-xl border border-gray-800 bg-gray-900/50" :class="{ 'animate-celebrate': completingHabitId === h.id }">
-          <HabitCard :habit="h" :scheduled-time="h.scheduledTime" @finish="completeHabit" @cam="openCamHabit" />
+          <HabitCard :habit="h" :scheduled-time="h.scheduledTime" @finish="completeHabit" @cam="openCamHabit" @undo="undoHabit" />
         </div>
       </template>
 
       <!-- Unscheduled habits -->
       <div v-for="h in unscheduledHabits" :key="h.id" class="rounded-xl border border-gray-800 bg-gray-900/50" :class="{ 'animate-celebrate': completingHabitId === h.id }">
-        <HabitCard :habit="h" @finish="completeHabit" @cam="openCamHabit" />
+        <HabitCard :habit="h" @finish="completeHabit" @cam="openCamHabit" @undo="undoHabit" />
       </div>
 
       <div v-if="completedHabits.length > 0" class="rounded-xl border border-gray-800 bg-gray-900/50 overflow-hidden">
@@ -101,6 +104,9 @@
               <h4 class="font-medium text-sm truncate text-gray-400 line-through">{{ habit.title }}</h4>
               <p v-if="habit.finishedAt" class="text-[10px] text-gray-500">Finished {{ formatDate(habit.finishedAt) }}</p>
             </div>
+            <button @click="undoCompletedHabit(habit)" class="delete-btn shrink-0 p-1.5 rounded text-gray-600 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all" title="Mark as not done">
+              <Undo2 :size="13" />
+            </button>
             <button @click="deleteCompletedHabit(habit)" class="delete-btn shrink-0 p-1.5 rounded text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-all" title="Delete habit and all its data">
               <Trash2 :size="13" />
             </button>
@@ -173,7 +179,7 @@
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import api from '../api'
 import { useToast } from 'vue-toastification'
-import { Plus, ChevronDown, ChevronLeft, ChevronRight, CheckCircle2, Circle, Check, Trash2, Target, Loader2 } from 'lucide-vue-next'
+import { Plus, ChevronDown, ChevronLeft, ChevronRight, CheckCircle2, Circle, Check, Trash2, Target, Loader2, Undo2 } from 'lucide-vue-next'
 import HabitCard from '../components/HabitCard.vue'
 import TaskCard from '../components/TaskCard.vue'
 import BeBetterCam from '../components/BeBetterCam.vue'
@@ -435,6 +441,17 @@ async function deleteTask(task) {
   }
 }
 
+async function undoCompletedTask(task) {
+  try {
+    await api.delete(`/tasks/${task.id}/uncomplete`)
+    completedTasks.value = completedTasks.value.filter(t => t.id !== task.id)
+    incompleteTasks.value.unshift({ ...task, isCompletedToday: false, completedAt: null })
+    toast.info(`"${task.title}" moved back to tasks`)
+  } catch {
+    toast.error('Failed')
+  }
+}
+
 async function deleteCompletedTask(task) {
   try {
     await api.delete(`/tasks/${task.id}`)
@@ -473,6 +490,31 @@ async function completeHabit(habit) {
   } catch (e) {
     if (e.response?.status === 409) toast.info('Already completed today!')
     else toast.error('Failed')
+  }
+}
+
+async function undoHabit(habit, scheduledTime) {
+  try {
+    await api.delete('/logs/habit/' + habit.id + '/today', { params: { scheduledTime: scheduledTime || undefined } })
+    activeHabits.value = activeHabits.value.map(h =>
+      h.id === habit.id && (h.scheduledTime || null) === (scheduledTime || null)
+        ? { ...h, completedToday: false } : h
+    )
+    toast.info(`"${habit.title}" marked as not done`)
+  } catch {
+    toast.error('Failed')
+  }
+}
+
+async function undoCompletedHabit(habit) {
+  try {
+    await api.delete('/logs/habit/' + habit.id + '/today')
+    completedHabits.value = completedHabits.value.filter(h => h.id !== habit.id)
+    const fresh = await api.get('/habits')
+    activeHabits.value = fresh.data.habits || []
+    toast.info(`"${habit.title}" marked as not done`)
+  } catch {
+    toast.error('Failed')
   }
 }
 

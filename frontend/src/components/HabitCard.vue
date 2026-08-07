@@ -18,21 +18,27 @@
       <p v-if="habit.description" class="text-xs text-gray-500 truncate mt-0.5">{{ habit.description }}</p>
       <p v-if="habit.challengeId && habit.challengeOpponent" class="text-[10px] text-amber-400/70 mt-0.5">vs {{ habit.challengeOpponent.username }}</p>
     </div>
-    <div v-if="isCompleted" class="text-emerald-400 text-[10px] font-medium">Done</div>
+    <div v-if="isCompleted" class="flex items-center gap-1 shrink-0">
+      <span class="text-emerald-400 text-[10px] font-medium">Done</span>
+      <button @click.stop="emit('undo', habit, scheduledTime)"
+        class="p-1.5 rounded text-gray-600 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all" title="Mark as not done">
+        <Undo2 :size="14" />
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { CheckCircle2, Camera } from 'lucide-vue-next'
+import { CheckCircle2, Camera, Undo2 } from 'lucide-vue-next'
 import { formatTime } from '../utils/timeFormat'
 
 const props = defineProps({
   habit: { type: Object, required: true },
   scheduledTime: { type: String, default: null },
 })
-const emit = defineEmits(['finish', 'cam'])
+const emit = defineEmits(['finish', 'cam', 'undo'])
 const router = useRouter()
 
 const needsCamera = computed(() => {
