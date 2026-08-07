@@ -371,7 +371,7 @@ onMounted(() => {
       if (!s) throw new Error('no stats')
       const completions = formatCompletions(s.completions || 0)
       stats.value = {
-        habits: Math.round((s.habitsCreated || 0) / 1000 * 10) / 10,
+        habits: Math.round(s.habitsCreated || 0),
         completionsValue: completions.value,
         completionsSuffix: completions.suffix,
         streakRetention: s.streakRetention || 0,
