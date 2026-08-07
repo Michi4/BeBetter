@@ -4,7 +4,7 @@
     <div v-if="editing" class="rounded-xl border border-emerald-500/30 bg-gray-800/80 p-4 space-y-3">
       <input v-model="editForm.title" class="input" placeholder="Title" ref="titleInput" />
       <textarea v-model="editForm.description" class="input min-h-[60px]" placeholder="Description" rows="2"></textarea>
-      <input v-model="editForm.dueDate" type="date" class="input text-sm" />
+      <input v-model="editForm.dueDate" type="datetime-local" class="input text-sm" />
       <div>
         <button type="button" @click="editForm.setScheduledTime = !editForm.setScheduledTime"
           class="flex items-center gap-2 text-xs transition-colors"
@@ -109,7 +109,7 @@ const titleInput = ref(null)
 const editForm = reactive({ title: '', description: '', dueDate: '', setScheduledTime: false, scheduledTime: '', reminderMinutes: [] })
 let longPressTimer = null
 
-const dayAbbr = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+const dayAbbr = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 
 const reminderPresets = [
   { label: 'At time', value: 0 },
@@ -125,8 +125,8 @@ function formatDays(days) {
   }
   if (!Array.isArray(days) || !days.length) return ''
   if (days.length === 7) return 'Daily'
-  if (days.length === 5 && days.every(d => d >= 1 && d <= 5)) return 'Wkdays'
-  if (days.length === 2 && days.includes(0) && days.includes(6)) return 'Wkends'
+  if (days.length === 5 && days.every(d => d >= 1 && d <= 5)) return 'Weekdays'
+  if (days.length === 2 && days.includes(0) && days.includes(6)) return 'Weekends'
   return days.map(d => dayAbbr[d]).join(' ')
 }
 
@@ -150,12 +150,18 @@ function cancelLongPress() {
 function startEdit() {
   editForm.title = props.task.title
   editForm.description = props.task.description || ''
-  editForm.dueDate = props.task.dueDate ? props.task.dueDate.slice(0, 10) : ''
+  editForm.dueDate = props.task.dueDate ? toLocalDateTime(props.task.dueDate) : ''
   editForm.scheduledTime = props.task.scheduledTime || ''
   editForm.setScheduledTime = !!props.task.scheduledTime
   editForm.reminderMinutes = Array.isArray(props.task.reminderMinutes) ? [...props.task.reminderMinutes] : []
   editing.value = true
   nextTick(() => titleInput.value?.focus())
+}
+
+function toLocalDateTime(iso) {
+  const d = new Date(iso)
+  const s = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${s(d.getMonth() + 1)}-${s(d.getDate())}T${s(d.getHours())}:${s(d.getMinutes())}`
 }
 
 function cancelEdit() {
@@ -212,12 +218,19 @@ const dueDateClass = computed(() => {
 const dueDateLabel = computed(() => {
   if (!props.task.dueDate) return ''
   const d = new Date(props.task.dueDate)
+  const now = new Date()
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const diff = Math.floor((d - today) / 86400000)
-  if (diff < 0) return `${Math.abs(diff)}d overdue`
-  if (diff === 0) return 'Today'
-  if (diff === 1) return 'Tomorrow'
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  const hasTime = d.getHours() !== 0 || d.getMinutes() !== 0
+  const timePart = hasTime ? ` ${formatTime(`${d.getHours()}`.padStart(2, '0') + ':' + `${d.getMinutes()}`.padStart(2, '0'))}` : ''
+  const overdue = d < now
+  let base
+  if (diff < 0) base = `${Math.abs(diff)}d overdue`
+  else if (diff === 0) base = 'Today'
+  else if (diff === 1) base = 'Tomorrow'
+  else base = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  if (overdue && diff === 0 && hasTime) base = 'Overdue'
+  return base + timePart
 })
 </script>
