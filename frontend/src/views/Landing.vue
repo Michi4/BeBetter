@@ -437,6 +437,13 @@ onBeforeUnmount(() => {
 html.light .bb-dots {
   color: rgba(6, 95, 70, 0.16);
 }
+/* How-it-works + Competitive teaser: keep headings strong in both themes */
+html.light #how h2,
+html.light #how h3,
+html.light #challenges h2,
+html.light #challenges h3 {
+  color: var(--bb-ink);
+}
 @media (max-width: 639px) {
   .bb-dots { background-size: 14px 14px; }
 }
