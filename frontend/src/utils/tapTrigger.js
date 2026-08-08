@@ -31,5 +31,5 @@ export function useTap(cb) {
     }
   }
 
-  return { onPointerDown, onPointerUp, onPointerCancel, onKeydown }
+  return { onPointerdown: onPointerDown, onPointerup: onPointerUp, onPointercancel: onPointerCancel, onKeydown }
 }
