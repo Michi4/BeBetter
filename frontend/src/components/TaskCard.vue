@@ -36,6 +36,9 @@
       <div class="flex items-center gap-2 pt-1">
         <button @click="saveEdit" class="btn flex-1 text-xs">Save</button>
         <button @click="cancelEdit" class="btn-secondary flex-1 text-xs">Cancel</button>
+        <button @click="$emit('delete', task)" class="btn-secondary flex-1 text-xs !text-red-400 hover:!text-red-300">
+          <Trash2 :size="14" /> Delete
+        </button>
       </div>
       <button @click="convertToHabit" class="btn-secondary w-full text-xs">
         <ArrowRightLeft :size="14" /> Convert to Habit

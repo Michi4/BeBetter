@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const prisma = require('../lib/prisma');
 const { authMiddleware, demoGuard } = require('../middleware/auth');
 const { sendPushNotification } = require('../scheduler');
+const { dayKey } = require('../utils/dayKey');
 
 const router = Router();
 
@@ -395,12 +396,12 @@ router.get('/:id/grid', authMiddleware, async (req, res) => {
 
     const grid = {};
     for (const log of creatorLogs) {
-      const day = new Date(log.completedAt).toISOString().split('T')[0];
+      const day = dayKey(log.completedAt);
       if (!grid[day]) grid[day] = { creator: 0, opponent: 0 };
       grid[day].creator++;
     }
     for (const log of opponentLogs) {
-      const day = new Date(log.completedAt).toISOString().split('T')[0];
+      const day = dayKey(log.completedAt);
       if (!grid[day]) grid[day] = { creator: 0, opponent: 0 };
       grid[day].opponent++;
     }
@@ -409,7 +410,7 @@ router.get('/:id/grid', authMiddleware, async (req, res) => {
     const days = [];
     const cur = new Date(from);
     while (cur <= to) {
-      const ds = cur.toISOString().split('T')[0];
+      const ds = dayKey(cur);
       const data = grid[ds] || { creator: 0, opponent: 0 };
       days.push({ date: ds, creator: data.creator, opponent: data.opponent });
       cur.setDate(cur.getDate() + 1);

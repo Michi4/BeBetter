@@ -92,6 +92,10 @@ async function resetDemoAccount(db = prisma) {
       { title: 'Evening Stretch', description: 'Wind down with a stretching routine', emoji: '🧘', frequencyType: 'daily', verificationType: 'honor', bestStreak: 21, time: '21:30' },
     ];
 
+    const demoStart = new Date();
+    demoStart.setDate(demoStart.getDate() - 40);
+    demoStart.setHours(0, 0, 0, 0);
+
     const created = [];
     for (const h of habits) {
       const habit = await db.habit.create({
@@ -103,6 +107,7 @@ async function resetDemoAccount(db = prisma) {
           frequencyType: h.frequencyType,
           verificationType: h.verificationType,
           bestStreak: h.bestStreak,
+          createdAt: demoStart,
           schedules: JSON.stringify([{ time: h.time, days: h.days || [0, 1, 2, 3, 4, 5, 6] }]),
           reminderMinutes: JSON.stringify([0, 15]),
           config: {},

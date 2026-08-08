@@ -74,11 +74,6 @@
             </div>
           </div>
 
-          <div class="flex gap-2 pt-1">
-            <button @click="switchToHabit" class="btn-secondary flex-1 text-xs">
-              <ArrowRightLeft :size="14" /> Convert to Habit
-            </button>
-          </div>
           <div class="pt-2">
             <button @click="createTask" class="btn w-full" :disabled="!taskForm.title.trim()">
               <Plus :size="16" /> Create Task
@@ -245,7 +240,7 @@
 
 <script setup>
 import { ref, reactive, nextTick, watch, computed } from 'vue'
-import { Plus, X, ListTodo, Target, ChevronDown, Shield, Camera, Check, Globe, ArrowRightLeft, Clock, Bell, Lock } from 'lucide-vue-next'
+import { Plus, X, ListTodo, Target, ChevronDown, Shield, Camera, Check, Globe, Clock, Bell, Lock } from 'lucide-vue-next'
 import api from '../api'
 import RecurrenceBuilder from './RecurrenceBuilder.vue'
 import TimeInput from './TimeInput.vue'
@@ -308,10 +303,17 @@ function switchMode(next) {
     taskForm.title = habitForm.title
     taskForm.description = habitForm.description
     taskForm.reminderMinutes = [...habitForm.reminderMinutes]
+    if (!taskForm.setScheduledTime) {
+      taskForm.scheduledTime = habitForm.schedules?.[0]?.time || ''
+      taskForm.setScheduledTime = !!taskForm.scheduledTime
+    }
   } else {
     habitForm.title = taskForm.title
     habitForm.description = taskForm.description
     habitForm.reminderMinutes = [...taskForm.reminderMinutes]
+    if (taskForm.scheduledTime && !habitForm.schedules.some(s => s.time)) {
+      habitForm.schedules = [{ time: taskForm.scheduledTime, days: [0, 1, 2, 3, 4, 5, 6] }]
+    }
   }
   mode.value = next
 }
@@ -511,11 +513,5 @@ function setVerification(type) {
 function toggleMakePublic() {
   if (demoBlocked()) return
   habitForm.makePublic = !habitForm.makePublic
-}
-
-function switchToHabit() {
-  habitForm.title = taskForm.title
-  habitForm.description = taskForm.description
-  mode.value = 'habit'
 }
 </script>

@@ -61,15 +61,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <link rel="preconnect" href="https://bebetter.websters.at" />
   <link rel="dns-prefetch" href="https://bebetter.websters.at" />
-  <script>
-    (function() {
-      var theme = localStorage.getItem('theme');
-      if (theme === 'light') {
-        document.documentElement.classList.remove('dark');
-        document.documentElement.classList.add('light');
-      }
-    })();
-  </script>
+  <script src="/theme-init.js"></script>
 </head>
 <body class="bg-gray-950 text-gray-100 min-h-[100dvh] overscroll-none">
   <div id="app"></div>

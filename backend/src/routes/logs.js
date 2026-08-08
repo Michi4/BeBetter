@@ -2,6 +2,7 @@ const { Router } = require('express');
 const prisma = require('../lib/prisma');
 const { authMiddleware, isDemoUser } = require('../middleware/auth');
 const { calculateBestStreak } = require('../lib/streak');
+const { parseDayKey } = require('../utils/dayKey');
 
 const router = Router();
 
@@ -160,7 +161,7 @@ router.get('/today', authMiddleware, async (req, res) => {
 router.get('/with-scheduled', authMiddleware, async (req, res) => {
   try {
     const { date } = req.query;
-    const d = date ? new Date(date) : new Date();
+    const d = date ? parseDayKey(date) : new Date();
     d.setHours(0, 0, 0, 0);
     const dayOfWeek = d.getDay();
 
@@ -282,16 +283,16 @@ router.get('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-router.delete('/habit/:habitId/today', authMiddleware, async (req, res) => {
+router.delete('/habit/:habitId', authMiddleware, async (req, res) => {
   try {
     const { habitId } = req.params;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const { scheduledTime, date } = req.query;
+    const target = date ? parseDayKey(date) : new Date();
+    target.setHours(0, 0, 0, 0);
+    const upper = new Date(target);
+    upper.setDate(upper.getDate() + 1);
 
-    const { scheduledTime } = req.query;
-    const where = { habitId, userId: req.userId, completedAt: { gte: today, lt: tomorrow } };
+    const where = { habitId, userId: req.userId, completedAt: { gte: target, lt: upper } };
     if (scheduledTime) where.scheduledTime = scheduledTime;
     else where.scheduledTime = null;
 

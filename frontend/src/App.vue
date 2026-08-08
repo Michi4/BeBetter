@@ -4,7 +4,7 @@
     <nav v-if="!publicRoutes.includes(route.name)" class="border-b border-[var(--app-nav-border)] bg-[var(--app-nav-bg)] backdrop-blur-xl sticky top-0 z-50 safe-top">
       <div class="max-w-3xl mx-auto px-4 h-12 flex items-center justify-between">
         <div class="flex items-center gap-2 shrink-0">
-          <router-link to="/dashboard" class="flex items-center gap-2 font-bold text-lg">
+          <router-link to="/" class="flex items-center gap-2 font-bold text-lg">
             <Logo :size="28" />
             <span class="bg-gradient-to-r from-emerald-400 to-emerald-300 bg-clip-text text-transparent">BeBetter</span>
           </router-link>
@@ -110,7 +110,7 @@ const router = useRouter()
 const { isDark, toggleTheme } = useTheme()
 const { online } = useOnline()
 
-const publicRoutes = ['landing', 'login', 'register', 'forgot-password', 'reset-password', 'privacy', 'terms', 'imprint']
+const publicRoutes = ['landing', 'landing-alt', 'forgot-password', 'reset-password', 'privacy', 'terms', 'imprint']
 
 const desktopNavItems = computed(() => {
   const items = [

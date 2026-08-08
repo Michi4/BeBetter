@@ -31,7 +31,7 @@
       </div>
       <div v-if="incompleteTasks.length === 0" class="text-sm text-gray-500 py-2">No incomplete tasks</div>
       <div v-for="task in incompleteTasks" :key="task.id" class="space-y-1" :class="{ 'animate-celebrate': completingTaskId === task.id }">
-        <TaskCard :task="task" @complete="completeTask" @delete="deleteTask" @edit="updateTaskFromCard" @convert="convertTask" />
+        <TaskCard :task="task" @complete="completeTask" @delete="confirmDeleteTask" @edit="updateTaskFromCard" @convert="convertTask" />
       </div>
       <div v-if="completedTasks.length > 0" class="rounded-xl border border-gray-800 bg-gray-900/50 overflow-hidden">
         <button @click="showCompletedTasks = !showCompletedTasks" class="min-h-[44px] w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-400 hover:bg-gray-800/50 transition-colors">
@@ -147,6 +147,10 @@
           <span v-if="h.scheduledTime" class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 shrink-0">{{ formatTime(h.scheduledTime) }}</span>
           <span v-if="!h.completed && isFutureDay" class="text-[10px] text-gray-600 shrink-0">upcoming</span>
           <span v-else-if="!h.completed" class="text-[10px] text-gray-600 shrink-0">missed</span>
+          <button v-if="h.completed && h.logId" v-bind="undoHistoryHabitTap(h)" @click.stop.prevent
+            class="delete-btn shrink-0 p-1.5 rounded text-gray-600 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all" title="Mark as not done">
+            <Undo2 :size="13" />
+          </button>
         </div>
       </div>
       <div v-if="historyTasks.length" class="space-y-2">
@@ -155,7 +159,11 @@
           <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-emerald-500/20 text-emerald-400">
             <Check :size="16" />
           </div>
-          <span class="text-sm text-gray-300 truncate">{{ t.title }}</span>
+          <span class="text-sm text-gray-300 truncate flex-1">{{ t.title }}</span>
+          <button v-bind="undoHistoryTaskTap(t)" @click.stop.prevent
+            class="shrink-0 p-1.5 rounded text-gray-600 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all" title="Mark as not done">
+            <Undo2 :size="13" />
+          </button>
         </div>
       </div>
       <div v-if="!scheduledForDay.length && !historyTasks.length" class="text-sm text-gray-500 py-2">No data for this day</div>
@@ -227,20 +235,25 @@ const camHabit = ref(null)
 
 const clearAllModal = ref(null)
 
-const todayStr = () => new Date().toISOString().slice(0, 10)
+const todayStr = () => {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
+const shiftDay = (offset) => {
+  const d = new Date(selectedDate.value + 'T12:00:00')
+  d.setDate(d.getDate() + offset)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
 const isFutureDay = computed(() => selectedDate.value > todayStr())
 
 function prevDay() {
-  const d = new Date(selectedDate.value)
-  d.setDate(d.getDate() - 1)
-  selectedDate.value = d.toISOString().slice(0, 10)
+  selectedDate.value = shiftDay(-1)
 }
 
 function nextDay() {
-  const d = new Date(selectedDate.value)
-  d.setDate(d.getDate() + 1)
-  selectedDate.value = d.toISOString().slice(0, 10)
+  selectedDate.value = shiftDay(1)
 }
 
 async function loadHistory() {
@@ -253,6 +266,7 @@ async function loadHistory() {
     const scheduledHabits = dayRes.data.scheduled || []
     const loggedIds = new Set()
     const loggedSlots = new Map()
+    const logIds = new Map()
 
     try {
       const logsForDay = await api.get('/grid/day', { params: { date: selectedDate.value } })
@@ -263,17 +277,23 @@ async function loadHistory() {
           const key = `${h.habitId || h.id}-${h.scheduledTime}`
           loggedSlots.set(key, true)
         }
+        if (h.habitId && h.id) {
+          const key = h.scheduledTime ? `${h.habitId}-${h.scheduledTime}` : String(h.habitId)
+          logIds.set(key, h.id)
+        }
       })
     } catch {}
 
-    scheduledForDay.value = scheduledHabits.map(h => ({
-      ...h,
-      completed: loggedIds.has(h.id) || (h.scheduledTime && loggedSlots.has(`${h.id}-${h.scheduledTime}`)),
-    }))
+    scheduledForDay.value = scheduledHabits.map(h => {
+      const completed = loggedIds.has(h.id) || (h.scheduledTime && loggedSlots.has(`${h.id}-${h.scheduledTime}`))
+      const logId = h.scheduledTime ? logIds.get(`${h.id}-${h.scheduledTime}`) : logIds.get(String(h.id))
+      return { ...h, completed, logId: completed ? logId : null }
+    })
 
     historyTasks.value = (tasksRes.data.logs || []).map(l => ({
       ...l,
       title: l.task?.title || 'Task',
+      taskId: l.task?.id || l.taskId,
     }))
   } catch {
     scheduledForDay.value = []
@@ -458,6 +478,28 @@ async function completeTask(task) {
   }
 }
 
+function confirmDeleteTask(task) {
+  clearAllModal.value = {
+    title: `Delete "${task.title}"?`,
+    body: 'This permanently removes the task and its completion history from the grid, streaks and stats. This cannot be undone.',
+    onConfirm: async () => {
+      clearAllModal.value = null
+      await deleteTask(task)
+    },
+  }
+}
+
+function confirmDeleteCompletedTask(task) {
+  clearAllModal.value = {
+    title: `Delete "${task.title}"?`,
+    body: 'This permanently removes the task and its completion history from the grid, streaks and stats. This cannot be undone.',
+    onConfirm: async () => {
+      clearAllModal.value = null
+      await deleteCompletedTask(task)
+    },
+  }
+}
+
 async function deleteTask(task) {
   try {
     await api.delete(`/tasks/${task.id}`)
@@ -492,9 +534,36 @@ async function deleteCompletedTask(task) {
 }
 
 function undoTaskTap(task) { return useTap(() => undoCompletedTask(task)) }
-function deleteTaskTap(task) { return useTap(() => deleteCompletedTask(task)) }
+function deleteTaskTap(task) { return useTap(() => confirmDeleteCompletedTask(task)) }
 function undoHabitTap(habit) { return useTap(() => undoCompletedHabit(habit)) }
 function deleteHabitTap(habit) { return useTap(() => deleteCompletedHabit(habit)) }
+
+function undoHistoryHabitTap(h) { return useTap(() => undoHistoryHabit(h)) }
+function undoHistoryTaskTap(t) { return useTap(() => undoHistoryTask(t)) }
+
+async function undoHistoryHabit(h) {
+  try {
+    if (h.logId) {
+      await api.delete(`/logs/${h.logId}`)
+    } else {
+      await api.delete('/logs/habit/' + h.id, { params: { scheduledTime: h.scheduledTime || undefined, date: selectedDate.value } })
+    }
+    toast.info(`"${h.title}" marked as not done`)
+    loadHistory()
+  } catch {
+    toast.error('Failed')
+  }
+}
+
+async function undoHistoryTask(t) {
+  try {
+    await api.delete(`/tasks/${t.taskId}/uncomplete`, { params: { date: selectedDate.value } })
+    toast.info('Task marked as not done')
+    loadHistory()
+  } catch {
+    toast.error('Failed')
+  }
+}
 
 async function confirmDeleteAllTasks() {
   clearAllModal.value = {
@@ -535,7 +604,7 @@ async function completeHabit(habit) {
 
 async function undoHabit(habit, scheduledTime) {
   try {
-    await api.delete('/logs/habit/' + habit.id + '/today', { params: { scheduledTime: scheduledTime || undefined } })
+    await api.delete('/logs/habit/' + habit.id, { params: { scheduledTime: scheduledTime || undefined, date: todayStr() } })
     activeHabits.value = activeHabits.value.map(h =>
       h.id === habit.id && (h.scheduledTime || null) === (scheduledTime || null)
         ? { ...h, completedToday: false } : h
@@ -549,7 +618,7 @@ async function undoHabit(habit, scheduledTime) {
 
 async function undoCompletedHabit(habit) {
   try {
-    await api.delete('/logs/habit/' + habit.id + '/today')
+    await api.delete('/logs/habit/' + habit.id, { params: { date: todayStr() } })
     await api.put('/habits/' + habit.id, { active: true })
     completedHabits.value = completedHabits.value.filter(h => h.id !== habit.id)
     loadAll()

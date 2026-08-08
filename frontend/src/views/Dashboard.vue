@@ -151,6 +151,18 @@
     <DayDetail :show="!!selectedDay" :day="selectedDay" @close="selectedDay = null" />
     <BeBetterCam :show="!!camHabit" @close="camHabit = null" @capture="submitCamProof" />
 
+    <!-- Delete confirm modal -->
+    <div v-if="confirmDelete" class="fixed inset-0 z-[65] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm" @click.self="confirmDelete = null">
+      <div class="w-full sm:w-[400px] bg-gray-900 border border-gray-800 rounded-t-2xl sm:rounded-2xl p-5 m-0 sm:m-4 shadow-2xl">
+        <h3 class="text-base font-bold text-red-400">Delete task?</h3>
+        <p class="text-sm text-gray-400 mt-1">This permanently removes "{{ confirmDelete.title }}" and its history. This cannot be undone.</p>
+        <div class="flex gap-2 mt-4">
+          <button @click="confirmDelete = null" class="flex-1 btn-secondary">Cancel</button>
+          <button @click="confirmDeleteTaskNow" class="flex-1 btn bg-red-600 hover:bg-red-500 text-white">Delete</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Mobile floating add button (above bottom nav) -->
     <div class="fixed bottom-20 left-0 right-0 z-40 flex justify-center md:hidden pointer-events-none">
       <button @click="createInitialMode = 'task'; showCreateModal = true"
@@ -414,6 +426,13 @@ async function completeTask(task) {
 }
 
 async function deleteTask(task) {
+  confirmDelete.value = task
+}
+
+async function confirmDeleteTaskNow() {
+  const task = confirmDelete.value
+  confirmDelete.value = null
+  if (!task) return
   try {
     await api.delete(`/tasks/${task.id}`)
     todayTasks.value = todayTasks.value.filter(t => t.id !== task.id)

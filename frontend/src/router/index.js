@@ -4,6 +4,7 @@ import Landing from '../views/Landing.vue'
 
 const routes = [
   { path: '/', name: 'landing', component: Landing },
+  { path: '/landing', name: 'landing-alt', component: Landing, meta: { publicLanding: true } },
   { path: '/login', name: 'login', component: () => import('../views/Login.vue'), meta: { guest: true } },
   { path: '/register', name: 'register', component: () => import('../views/Register.vue'), meta: { guest: true } },
   { path: '/forgot-password', name: 'forgot-password', component: () => import('../views/ForgotPassword.vue'), meta: { guest: true } },

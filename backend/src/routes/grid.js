@@ -1,14 +1,15 @@
 const { Router } = require('express');
 const prisma = require('../lib/prisma');
 const { authMiddleware } = require('../middleware/auth');
+const { dayKey, parseDayKey, startOfDay } = require('../utils/dayKey');
 
 const router = Router();
 
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const { from, to } = req.query;
-    const start = from ? new Date(from) : new Date(new Date().getFullYear(), 0, 1);
-    const end = to ? new Date(to) : new Date();
+    const start = from ? parseDayKey(from) : new Date(new Date().getFullYear(), 0, 1);
+    const end = to ? parseDayKey(to) : new Date();
 
     const vacationDays = await prisma.vacation.findMany({
       where: {
@@ -26,7 +27,7 @@ router.get('/', authMiddleware, async (req, res) => {
       const vEnd = v.endDate ? (v.endDate < end ? v.endDate : end) : end;
       const current = new Date(vStart);
       while (current <= vEnd) {
-        vacationSet.add(current.toISOString().split('T')[0]);
+        vacationSet.add(dayKey(current));
         current.setDate(current.getDate() + 1);
       }
     }
@@ -48,7 +49,7 @@ router.get('/', authMiddleware, async (req, res) => {
 
     const grid = {};
     for (const l of logs) {
-      const day = new Date(l.completedAt).toISOString().split('T')[0];
+      const day = dayKey(l.completedAt);
       if (vacationSet.has(day)) continue;
       if (!grid[day]) grid[day] = { scheduled: 0, completed: 0, habits: 0, tasks: 0, items: [] };
       grid[day].completed++;
@@ -56,7 +57,7 @@ router.get('/', authMiddleware, async (req, res) => {
       grid[day].items.push({ type: 'habit', title: l.habit.title, emoji: l.habit.emoji });
     }
     for (const t of tasks) {
-      const day = new Date(t.completedAt).toISOString().split('T')[0];
+      const day = dayKey(t.completedAt);
       if (vacationSet.has(day)) continue;
       if (!grid[day]) grid[day] = { scheduled: 0, completed: 0, habits: 0, tasks: 0, items: [] };
       grid[day].tasks++;
@@ -68,14 +69,15 @@ router.get('/', authMiddleware, async (req, res) => {
       sched: JSON.parse(typeof h.daysPerWeek === 'string' ? h.daysPerWeek : JSON.stringify(h.daysPerWeek || '[]')),
     }));
 
-    const cur = new Date(start);
-    while (cur <= end) {
-      const ds = cur.toISOString().split('T')[0];
+    const cur = startOfDay(start);
+    const last = startOfDay(end);
+    while (cur <= last) {
+      const ds = dayKey(cur);
       if (!vacationSet.has(ds)) {
         const dow = cur.getDay();
         for (const h of parsedHabits) {
           if (h.breaks.length > 0) continue;
-          if (h.createdAt && cur < new Date(h.createdAt)) continue;
+          if (h.createdAt && cur < startOfDay(h.createdAt)) continue;
           if (h.frequencyType === 'daily' || h.frequencyType === 'always' || (Array.isArray(h.sched) && h.sched.includes(dow))) {
             if (!grid[ds]) grid[ds] = { scheduled: 0, completed: 0, habits: 0, tasks: 0, items: [] };
             grid[ds].scheduled++;
@@ -120,8 +122,7 @@ router.get('/day', authMiddleware, async (req, res) => {
     const { date } = req.query;
     if (!date) return res.status(400).json({ error: 'date required' });
 
-    const d = new Date(date);
-    d.setHours(0, 0, 0, 0);
+    const d = parseDayKey(date);
     const tomorrow = new Date(d);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
@@ -152,7 +153,7 @@ router.get('/day', authMiddleware, async (req, res) => {
     const dow = d.getDay();
     for (const h of habitsWithScheduled) {
       if (h.breaks.length > 0) continue;
-      if (h.createdAt && d < new Date(h.createdAt)) continue;
+      if (h.createdAt && d < startOfDay(h.createdAt)) continue;
       const sched = JSON.parse(typeof h.daysPerWeek === 'string' ? h.daysPerWeek : JSON.stringify(h.daysPerWeek || '[]'));
       if (h.frequencyType === 'daily' || h.frequencyType === 'always' || (Array.isArray(sched) && sched.includes(dow))) {
         scheduledHabitIds.add(h.id);
@@ -162,7 +163,7 @@ router.get('/day', authMiddleware, async (req, res) => {
     const completedHabitIds = new Set(habitLogs.map(l => l.habitId));
 
     res.json({
-      date: d.toISOString().split('T')[0],
+      date: dayKey(d),
       habits: habitLogs,
       tasks: taskLogs,
       scheduledHabits: [...scheduledHabitIds].map(id => {

@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const prisma = require('../lib/prisma');
 const { authMiddleware, demoFieldGuard } = require('../middleware/auth');
+const { parseDayKey } = require('../utils/dayKey');
 
 const router = Router();
 
@@ -206,7 +207,8 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 router.delete('/:id/uncomplete', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const today = new Date();
+    const { date } = req.query;
+    const today = date ? parseDayKey(date) : new Date();
     today.setHours(0, 0, 0, 0);
 
     const log = await prisma.taskLog.findFirst({

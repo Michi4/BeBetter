@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const prisma = require('../lib/prisma');
 const { authMiddleware } = require('../middleware/auth');
+const { dayKey } = require('../utils/dayKey');
 
 const router = Router();
 
@@ -185,7 +186,7 @@ router.get('/consistency', authMiddleware, async (req, res) => {
     if (habitId) where.habitId = habitId;
 
     const logs = await prisma.habitLog.findMany({ where });
-    const uniqueDays = new Set(logs.map((l) => new Date(l.completedAt).toISOString().split('T')[0]));
+    const uniqueDays = new Set(logs.map((l) => dayKey(l.completedAt)));
 
     const vacationDays = await prisma.vacation.findMany({
       where: {
@@ -246,10 +247,10 @@ router.get('/weekly', authMiddleware, async (req, res) => {
         },
       });
 
-      const uniqueDays = new Set(logs.map((l) => new Date(l.completedAt).toISOString().split('T')[0]));
+      const uniqueDays = new Set(logs.map((l) => dayKey(l.completedAt)));
 
       weeksData.push({
-        weekStart: weekStart.toISOString().split('T')[0],
+        weekStart: dayKey(weekStart),
         logs: logs.length,
         uniqueDays: uniqueDays.size,
       });

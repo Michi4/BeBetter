@@ -7,6 +7,9 @@ export function useTap(cb) {
     startId = e.pointerId
     sx = e.clientX
     sy = e.clientY
+    try {
+      if (e.currentTarget?.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId)
+    } catch {}
     try { if (e.cancelable) e.preventDefault() } catch {}
   }
 
@@ -17,6 +20,10 @@ export function useTap(cb) {
     if (d < 14) cb()
   }
 
+  const onPointerCancel = () => {
+    startId = null
+  }
+
   const onKeydown = (e) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
@@ -24,5 +31,5 @@ export function useTap(cb) {
     }
   }
 
-  return { onPointerDown, onPointerUp, onKeydown }
+  return { onPointerDown, onPointerUp, onPointerCancel, onKeydown }
 }
