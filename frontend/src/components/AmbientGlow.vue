@@ -29,7 +29,7 @@ const TAU = Math.PI * 2
 function rand(a, b) { return a + Math.random() * (b - a) }
 
 function build() {
-  const count = Math.min(smallScreen ? 80 : 150, Math.max(smallScreen ? 40 : 70, Math.round(w * h / (smallScreen ? 26000 : 16000))))
+  const count = Math.min(smallScreen ? 70 : 110, Math.max(smallScreen ? 35 : 50, Math.round(w * h / (smallScreen ? 26000 : 20000))))
   particles = []
   for (let i = 0; i < count; i++) {
     particles.push({
@@ -59,7 +59,34 @@ function build() {
       ph: i * 1.7,
       sp: rand(0.004, 0.008),
       warm: i % 2 === 0,
+      grad: null,
     }))
+  }
+}
+
+let cachedLight = null
+
+// Rebuild auras (gradients are cached, cheap to recreate on theme flip).
+function ensureAuraGradients(ctx, light) {
+  let needRebuild = light !== cachedLight
+  if (!needRebuild) {
+    for (const a of auras) {
+      if (!a.grad) { needRebuild = true; break }
+    }
+  }
+  if (!needRebuild) return
+  cachedLight = light
+  for (const a of auras) {
+    const g = ctx.createRadialGradient(a.x, a.y, 0, a.x, a.y, a.r)
+    if (a.warm) {
+      g.addColorStop(0, 'rgba(52, 211, 153, 1)')
+      g.addColorStop(0.5, 'rgba(16, 185, 129, 0.4)')
+    } else {
+      g.addColorStop(0, 'rgba(94, 234, 212, 1)')
+      g.addColorStop(0.5, 'rgba(45, 212, 191, 0.35)')
+    }
+    g.addColorStop(1, 'rgba(16, 185, 129, 0)')
+    a.grad = g
   }
 }
 
@@ -67,27 +94,21 @@ function draw() {
   const ctx = canvasRef.value.getContext('2d')
   const light = isLight()
   ctx.clearRect(0, 0, w, h)
+  ensureAuraGradients(ctx, light)
 
-  // Auras — large ultra-soft color washes.
+  // Auras — large ultra-soft color washes, one cached gradient each
+  // with the alpha applied via globalAlpha (no per-frame gradient allocs).
   for (const a of auras) {
     a.ph += a.sp
-    a.x += Math.sin(a.ph * 0.8) * 0.1 * dpr
-    a.y += Math.cos(a.ph * 0.6) * 0.08 * dpr
-    const alpha = light ? 0.11 : 0.12
     const pulse = 0.8 + Math.sin(a.ph) * 0.2
-    const g = ctx.createRadialGradient(a.x, a.y, 0, a.x, a.y, a.r)
-    if (a.warm) {
-      g.addColorStop(0, `rgba(52, 211, 153, ${alpha * pulse})`)
-      g.addColorStop(0.5, `rgba(16, 185, 129, ${alpha * pulse * 0.4})`)
-    } else {
-      g.addColorStop(0, `rgba(94, 234, 212, ${alpha * pulse})`)
-      g.addColorStop(0.5, `rgba(45, 212, 191, ${alpha * pulse * 0.35})`)
-    }
-    g.addColorStop(1, 'rgba(16, 185, 129, 0)')
-    ctx.fillStyle = g
+    const totalAlpha = (light ? 0.11 : 0.12) * pulse
+    ctx.save()
+    ctx.globalAlpha = totalAlpha
+    ctx.fillStyle = a.grad
     ctx.beginPath()
     ctx.arc(a.x, a.y, a.r, 0, TAU)
     ctx.fill()
+    ctx.restore()
   }
 
   const parallax = scrollY * 0.04 * dpr
@@ -162,7 +183,7 @@ function setup() {
   const canvas = canvasRef.value
   if (!canvas) return
   smallScreen = window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 768
-  dpr = Math.min(window.devicePixelRatio || 1, smallScreen ? 1.5 : 2)
+  dpr = Math.min(window.devicePixelRatio || 1, 1.5)
   const nw = Math.max(1, Math.round(window.innerWidth * dpr))
   const nh = Math.max(1, Math.round(window.innerHeight * dpr))
   if (smallScreen !== prevSmall) particles = []

@@ -234,8 +234,13 @@ function onCellEnter(day, e) {
   positionTooltip(e)
 }
 
+let tipRaf = null
 function onCellMove(e) {
-  positionTooltip(e)
+  if (tipRaf) return
+  tipRaf = requestAnimationFrame(() => {
+    tipRaf = null
+    positionTooltip(e)
+  })
 }
 
 function positionTooltip(e) {
@@ -260,6 +265,10 @@ function positionTooltip(e) {
 
 function onCellLeave() {
   hoveredDay.value = null
+  if (tipRaf) {
+    cancelAnimationFrame(tipRaf)
+    tipRaf = null
+  }
 }
 
 function onScroll() {

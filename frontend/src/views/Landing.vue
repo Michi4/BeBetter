@@ -93,7 +93,7 @@
 
       <!-- ============ FEATURES ============ -->
       <section id="features" class="border-b border-[var(--bb-line)] bg-[var(--bb-bg)] py-20 sm:py-28 relative overflow-hidden">
-        <div class="absolute top-0 right-0 w-[300px] h-[300px] bg-[var(--bb-accent)]/5 rounded-full blur-[120px] pointer-events-none" aria-hidden="true"></div>
+        <div class="glow-orb glow-orb-a" aria-hidden="true"></div>
 
         <ScrollReveal variant="fade-up" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex items-end justify-between gap-6 mb-16">
@@ -159,7 +159,7 @@
 
       <!-- ============ COMPETITIVE TEASER ============ -->
       <section id="challenges" class="border-b border-[var(--bb-line)] bg-[var(--bb-bg)] py-20 sm:py-28 relative overflow-hidden">
-        <div class="absolute top-0 left-0 w-[300px] h-[300px] bg-[var(--bb-accent)]/5 rounded-full blur-[120px] pointer-events-none" aria-hidden="true"></div>
+        <div class="glow-orb glow-orb-b" aria-hidden="true"></div>
         <ScrollReveal variant="fade-up" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             <div class="space-y-6">
@@ -292,8 +292,9 @@ const demoGrid = (() => {
 
 const hero = ref(null)
 let heroRaf = null
+let tiltEnabled = false
 function onHeroMouse(e) {
-  if (heroRaf) return
+  if (heroRaf || !tiltEnabled) return
   heroRaf = requestAnimationFrame(() => {
     heroRaf = null
     const el = hero.value
@@ -360,8 +361,13 @@ function formatCompletions(n) {
 }
 
 onMounted(() => {
-  window.addEventListener('mousemove', onHeroMouse, { passive: true })
-  hero.value?.addEventListener('mouseleave', onHeroLeave)
+  tiltEnabled =
+    !window.matchMedia('(prefers-reduced-motion: reduce)').matches &&
+    window.matchMedia('(hover: hover) and (pointer: fine)').matches
+  if (tiltEnabled) {
+    window.addEventListener('mousemove', onHeroMouse, { passive: true })
+    hero.value?.addEventListener('mouseleave', onHeroLeave)
+  }
   fetch('/api/public/landing', { headers: { Accept: 'application/json' } })
     .then((res) => (res.ok ? res.json() : Promise.reject()))
     .then((data) => {
@@ -441,6 +447,37 @@ onBeforeUnmount(() => {
 }
 .cta-scrim {
   background: radial-gradient(ellipse 80% 90% at 50% 45%, color-mix(in srgb, var(--bb-bg) 42%, transparent), transparent 70%);
+}
+.glow-orb {
+  position: absolute;
+  width: 560px;
+  height: 560px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--bb-accent) 9%, transparent) 0%, color-mix(in srgb, var(--bb-accent) 4%, transparent) 34%, transparent 62%);
+  pointer-events: none;
+}
+.glow-orb-a {
+  top: -60px;
+  right: -140px;
+}
+.glow-orb-b {
+  top: -60px;
+  left: -140px;
+}
+#features,
+#how,
+#challenges,
+#cta {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 1100px;
+}
+@media (max-width: 639px) {
+  #features,
+  #how,
+  #challenges,
+  #cta {
+    contain-intrinsic-size: auto 800px;
+  }
 }
 .bb-dots {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18'%3E%3Crect x='3' y='3' width='10' height='10' rx='2.2' fill='%2394a3b8' fill-opacity='0.12'/%3E%3C/svg%3E");
