@@ -3,6 +3,40 @@ const prisma = require('../lib/prisma');
 const { authMiddleware } = require('../middleware/auth');
 const { dayKey } = require('../utils/dayKey');
 
+function parseSchedules(h) {
+  return JSON.parse(typeof h.daysPerWeek === 'string' ? h.daysPerWeek : JSON.stringify(h.daysPerWeek || '[]'));
+}
+
+// Streak = consecutive scheduled days (completions), counted backwards from a
+// given end day. Default end = most recent completed day.
+function computeStreakFrom(logDates, isDaily, sched, endDay) {
+  if (!logDates.size) return 0;
+  let streak = 0;
+  for (let i = 0; i < 365 * 3; i++) {
+    const checkDate = new Date(endDay);
+    checkDate.setDate(checkDate.getDate() - i);
+    const dow = checkDate.getDay();
+    if (!(isDaily || sched.includes(dow))) continue;
+    if (logDates.has(checkDate.getTime())) streak++;
+    else break;
+  }
+  return streak;
+}
+
+function computeCurrentStreak(logDates, isDaily, sched) {
+  if (!logDates.size) return 0;
+  return computeStreakFrom(logDates, isDaily, sched, new Date(Math.max(...logDates)));
+}
+
+function computeBestStreak(logDates, isDaily, sched) {
+  let best = 0;
+  for (const ts of logDates) {
+    const s = computeStreakFrom(logDates, isDaily, sched, new Date(ts));
+    if (s > best) best = s;
+  }
+  return best;
+}
+
 const router = Router();
 
 router.get('/overview', authMiddleware, async (req, res) => {
@@ -103,12 +137,8 @@ router.get('/streak', authMiddleware, async (req, res) => {
         orderBy: { completedAt: 'asc' },
       });
 
-      const sched = JSON.parse(typeof habit.daysPerWeek === 'string' ? habit.daysPerWeek : JSON.stringify(habit.daysPerWeek || '[]'));
+      const sched = parseSchedules(habit);
       const isDaily = habit.frequencyType === 'daily' || habit.frequencyType === 'always';
-
-      let bestStreak = 0;
-      let currentStreak = 0;
-      let lastScheduledDate = null;
 
       const logDates = new Set(logs.map(l => {
         const d = new Date(l.completedAt);
@@ -116,54 +146,44 @@ router.get('/streak', authMiddleware, async (req, res) => {
         return d.getTime();
       }));
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const currentStreak = computeCurrentStreak(logDates, isDaily, sched);
+      const bestStreak = Math.max(computeBestStreak(logDates, isDaily, sched), habit.bestStreak || 0);
 
-      for (let i = 0; i < 365 * 3; i++) {
-        const checkDate = new Date(today);
-        checkDate.setDate(checkDate.getDate() - i);
-        const dow = checkDate.getDay();
-        const isScheduled = isDaily || sched.includes(dow);
-        if (!isScheduled) continue;
-
-        const ts = checkDate.getTime();
-        if (logDates.has(ts)) {
-          if (lastScheduledDate) {
-            const diff = (lastScheduledDate - ts) / (1000 * 60 * 60 * 24);
-            if (diff <= 1.5) {
-              currentStreak++;
-            } else {
-              currentStreak = 1;
-            }
-          } else {
-            currentStreak = 1;
-          }
-          if (currentStreak > bestStreak) bestStreak = currentStreak;
-          lastScheduledDate = ts;
-        } else {
-          if (i === 0) {
-            currentStreak = 0;
-            lastScheduledDate = null;
-          } else {
-            break;
-          }
-        }
-      }
-
-      return res.json({ bestStreak: Math.max(bestStreak, habit.bestStreak || 0), currentStreak });
+      return res.json({ bestStreak, currentStreak });
     }
 
     const habits = await prisma.habit.findMany({
       where: { userId: req.userId, active: true },
-      select: { id: true, bestStreak: true },
+      select: { id: true, daysPerWeek: true, frequencyType: true, bestStreak: true },
     });
 
     let maxBest = 0;
+    let maxCurrent = 0;
     for (const h of habits) {
       if ((h.bestStreak || 0) > maxBest) maxBest = h.bestStreak;
+
+      const logs = await prisma.habitLog.findMany({
+        where: { userId: req.userId, habitId: h.id },
+        orderBy: { completedAt: 'asc' },
+      });
+      if (!logs.length) continue;
+
+      const logDates = new Set(logs.map(l => {
+        const d = new Date(l.completedAt);
+        d.setHours(0, 0, 0, 0);
+        return d.getTime();
+      }));
+
+      const sched = parseSchedules(h);
+      const isDaily = h.frequencyType === 'daily' || h.frequencyType === 'always';
+
+      const current = computeCurrentStreak(logDates, isDaily, sched);
+      if (current > maxCurrent) maxCurrent = current;
+      const best = computeBestStreak(logDates, isDaily, sched);
+      if (best > maxBest) maxBest = best;
     }
 
-    res.json({ bestStreak: maxBest, currentStreak: 0 });
+    res.json({ bestStreak: maxBest, currentStreak: maxCurrent });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Server error' });

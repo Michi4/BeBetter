@@ -244,6 +244,7 @@
         </div>
       </div>
     </Teleport>
+    <ConfirmDialog ref="confirmDialog" />
   </div>
 </template>
 
@@ -252,6 +253,7 @@ import { ref, computed, onMounted } from 'vue'
 import api from '../api'
 import { useToast } from 'vue-toastification'
 import { Inbox, Loader2, Ban, ShieldCheck, Trash2, EyeOff, CheckCircle, Bell, Megaphone } from 'lucide-vue-next'
+import ConfirmDialog from '../components/ConfirmDialog.vue'
 
 const toast = useToast()
 
@@ -268,6 +270,7 @@ const testStatus = ref([])
 const testTargetSearch = ref('')
 const testTargetResults = ref([])
 const announceLoading = ref(false)
+const confirmDialog = ref(null)
 const announceResult = ref(null)
 const announcementForm = ref({ title: '', message: '', sendPush: false })
 
@@ -326,7 +329,13 @@ async function searchUsers() {
 
 async function toggleAdmin(u) {
   const newRole = u.role === 'admin' ? 'user' : 'admin'
-  if (!confirm(`Set ${u.username} to ${newRole}?`)) return
+  const ok = await confirmDialog.value?.open({
+    title: `Change role?`,
+    message: `Set ${u.username} to ${newRole}?`,
+    confirmLabel: 'Confirm',
+    danger: true,
+  })
+  if (!ok) return
   try {
     await api.post(`/admin/users/${u.id}/role`, { role: newRole })
     u.role = newRole
@@ -448,7 +457,13 @@ async function sendAnnouncement() {
   if (!announcementForm.value.title.trim() || !announcementForm.value.message.trim()) return
   const title = announcementForm.value.title.trim()
   const message = announcementForm.value.message.trim()
-  if (!confirm(`Broadcast "${title}" to all users? This cannot be undone.`)) return
+  const ok = await confirmDialog.value?.open({
+    title: 'Broadcast to all users?',
+    message: `"${title}" will be delivered to every user. This cannot be undone.`,
+    confirmLabel: 'Broadcast',
+    danger: true,
+  })
+  if (!ok) return
 
   announceLoading.value = true
   announceResult.value = null
