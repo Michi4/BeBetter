@@ -443,14 +443,13 @@ onBeforeUnmount(() => {
   background: radial-gradient(ellipse 80% 90% at 50% 45%, color-mix(in srgb, var(--bb-bg) 42%, transparent), transparent 70%);
 }
 .bb-dots {
-  color: var(--bb-grid);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18'%3E%3Crect x='3' y='3' width='10' height='10' rx='2.2' fill='currentColor'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18'%3E%3Crect x='3' y='3' width='10' height='10' rx='2.2' fill='%2394a3b8' fill-opacity='0.12'/%3E%3C/svg%3E");
   background-size: 18px 18px;
   mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 30%, transparent 75%);
   -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 30%, transparent 75%);
 }
 html.light .bb-dots {
-  color: rgba(6, 95, 70, 0.16);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18'%3E%3Crect x='3' y='3' width='10' height='10' rx='2.2' fill='%2378716c' fill-opacity='0.24'/%3E%3C/svg%3E");
 }
 /* How-it-works + Competitive teaser: keep headings strong in both themes */
 html.light #how h2,

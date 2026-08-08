@@ -1,0 +1,89 @@
+# Dev stack — https://betterdev.home.websters.at (behind Authelia)
+# Live-reloads: backend restarts via nodemon (backend/src mounted),
+# frontend rebuilt by vite --watch into frontend/dist, served via backend.
+services:
+  dev-postgres:
+    image: postgres:18-alpine
+    container_name: bebetter-dev-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DEV_POSTGRES_USER:-bebetter}
+      POSTGRES_PASSWORD: ${DEV_POSTGRES_PASSWORD:-devpassword}
+      POSTGRES_DB: ${DEV_POSTGRES_DB:-bebetter_dev_db}
+      TZ: Europe/Vienna
+      PGTZ: Europe/Vienna
+    volumes:
+      - dev-pgdata:/var/lib/postgresql
+    networks:
+      - bebetter-dev-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DEV_POSTGRES_USER:-bebetter} -d ${DEV_POSTGRES_DB:-bebetter_dev_db}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  dev-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: bebetter-backend:dev
+    container_name: bebetter-dev-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${DEV_POSTGRES_USER:-bebetter}:${DEV_POSTGRES_PASSWORD:-devpassword}@dev-postgres:5432/${DEV_POSTGRES_DB:-bebetter_dev_db}
+      JWT_SECRET: ${DEV_JWT_SECRET:-bebetter-dev-jwt-secret-change-me}
+      PORT: "3000"
+      TZ: Europe/Vienna
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/prisma:/app/prisma
+      - ./frontend/dist:/app/public
+      - ./uploads-dev:/app/uploads
+      - ./vapid-keys.json:/app/vapid-keys.json:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.betterdev.entrypoints=websecure"
+      - "traefik.http.routers.betterdev.rule=Host(`betterdev.home.websters.at`)"
+      - "traefik.http.routers.betterdev.middlewares=crowdsec@docker,authelia@docker,bebetter-security@file"
+      - "traefik.http.routers.betterdev.tls.certresolver=myresolver"
+      - "traefik.http.services.betterdev.loadbalancer.healthcheck.path=/api/health"
+      - "traefik.http.services.betterdev.loadbalancer.healthcheck.interval=4s"
+      - "traefik.http.services.betterdev.loadbalancer.healthcheck.timeout=3s"
+      - "traefik.http.services.betterdev.loadbalancer.server.port=3000"
+    networks:
+      - bebetter-dev-net
+      - proxy
+    depends_on:
+      dev-postgres:
+        condition: service_healthy
+
+  # Rebuilds frontend/dist on every source change (vite --watch)
+  dev-web:
+    image: node:20-alpine
+    container_name: bebetter-dev-web
+    restart: unless-stopped
+    working_dir: /frontend
+    command: sh -c "npm ci --silent && npx vite build --watch"
+    volumes:
+      - ./frontend:/frontend
+      - dev-node-modules:/frontend/node_modules
+    networks:
+      - bebetter-dev-net
+
+volumes:
+  dev-pgdata:
+  dev-node-modules:
+
+networks:
+  bebetter-dev-net:
+    driver: bridge
+  proxy:
+    external: true
+    name: traefik
