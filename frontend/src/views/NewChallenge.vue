@@ -58,6 +58,7 @@
       <div>
         <label class="text-xs font-medium text-gray-400 mb-1 block">End date (optional)</label>
         <input v-model="form.endDate" type="date" class="input" :min="todayStr" />
+        <p class="text-[10px] text-gray-500 mt-1">Leave empty for an open-ended battle. Anyone can resolve it with a winner or a draw.</p>
       </div>
 
       <button @click="createChallenge" class="btn w-full" :disabled="!isValid">

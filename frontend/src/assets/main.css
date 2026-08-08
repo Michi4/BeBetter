@@ -19,6 +19,10 @@
       color 0.25s ease, fill 0.25s ease, stroke 0.25s ease,
       opacity 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
   }
+  :focus-visible {
+    outline: 2px solid var(--app-accent, #34d399);
+    outline-offset: 2px;
+  }
 }
 
 @layer components {
@@ -183,6 +187,11 @@
 .page-leave-to {
   opacity: 0;
   transform: translateY(-6px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-enter-active, .page-leave-active { transition: none; }
+  .page-enter-from, .page-leave-to { opacity: 1; transform: none; }
+  .animate-celebrate, .animate-check, .animate-done { animation: none; }
 }
 
 /* ============================================
@@ -365,6 +374,7 @@ html.light .from-gray-950 { --tw-gradient-from: #f9fafb !important; }
   --app-btn-sec-hover: #2a2f3a;
   --app-nav-bg: rgba(11, 13, 18, 0.86);
   --app-nav-border: rgba(255, 255, 255, 0.06);
+  --app-accent: #34d399;
 }
 html.light {
   --bb-bg: #faf9f6;
@@ -394,6 +404,7 @@ html.light {
   --app-btn-sec-hover: #e2e5ea;
   --app-nav-bg: rgba(255, 255, 255, 0.9);
   --app-nav-border: rgba(0, 0, 0, 0.07);
+  --app-accent: #047857;
 }
 /* fix landing navs clobbered by global html.light nav rules */
 html.light nav.bb-nav { background: transparent !important; border-color: var(--bb-line) !important; }

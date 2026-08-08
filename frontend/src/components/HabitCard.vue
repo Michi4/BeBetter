@@ -1,6 +1,6 @@
 <template>
   <div class="card-hover flex items-center gap-3" @click="handleCardClick">
-    <button v-bind="checkTap" class="w-11 h-11 rounded-full flex items-center justify-center transition-colors duration-150"
+    <button v-bind="checkTap" @click.stop.prevent class="w-11 h-11 rounded-full flex items-center justify-center transition-colors duration-150"
       :class="isCompleted ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-800 text-gray-400 hover:bg-emerald-500/10 hover:text-emerald-400'">
       <Camera v-if="needsCamera && !isCompleted" :size="18" />
       <CheckCircle2 v-else :size="18" />
@@ -20,7 +20,7 @@
     </div>
     <div v-if="isCompleted" class="flex items-center gap-1 shrink-0">
       <span class="text-emerald-400 text-[10px] font-medium">Done</span>
-      <button v-bind="undoTap"
+      <button v-bind="undoTap" @click.stop.prevent
         class="p-1.5 rounded text-gray-600 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all" title="Mark as not done">
         <Undo2 :size="14" />
       </button>

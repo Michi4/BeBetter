@@ -45,7 +45,7 @@
     <!-- Normal mode -->
     <div v-else class="flex items-center gap-3 group" @contextmenu.prevent="showContextMenu" @touchstart="startLongPress" @touchend="cancelLongPress" @touchmove="cancelLongPress">
       <!-- Checkbox -->
-      <button v-bind="completeTap"
+      <button v-bind="completeTap" @click.stop.prevent
         class="shrink-0 w-10 h-10 rounded-lg border-2 flex items-center justify-center transition-all duration-200"
         :class="task.completed
           ? 'bg-emerald-500 border-emerald-500 text-white scale-110 animate-check'

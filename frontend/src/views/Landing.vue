@@ -166,8 +166,8 @@
               <p class="text-xs font-bold tracking-[0.25em] uppercase text-[var(--bb-accent-strong)]">03 &mdash; Competition</p>
               <h2 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-[var(--bb-ink)]">Turn whatever<br class="hidden sm:inline" /> you want into a competition</h2>
               <p class="text-[var(--bb-muted)] leading-relaxed">
-                Challenge a friend to a 7-day streak battle. Live progress bars, streak counters, and a shared leaderboard.
-                The loser buys coffee. The winner rubs it in &mdash; right inside the app.
+                Challenge a friend to a streak battle that runs as long as you want. Live progress bars, streak counters, and a shared leaderboard.
+                End it whenever — declare a winner or shake hands on a draw.
               </p>
               <ul class="space-y-3">
                 <li v-for="item in competitivePoints" :key="item" class="flex items-center gap-3 text-sm text-[var(--bb-muted)]">

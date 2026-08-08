@@ -60,6 +60,7 @@
       </div>
     </div>
     </template>
+    <ConfirmDialog ref="confirmDialog" />
   </div>
 </template>
 
@@ -70,6 +71,7 @@ import api from '../api'
 import { useToast } from 'vue-toastification'
 import { Bell, Trophy, Users, Eye, Shield, Megaphone, Check, X } from 'lucide-vue-next'
 import DemoLock from '../components/DemoLock.vue'
+import ConfirmDialog from '../components/ConfirmDialog.vue'
 import { useAuthStore } from '../stores/auth'
 
 const toast = useToast()
@@ -78,6 +80,7 @@ const auth = useAuthStore()
 
 const notifications = ref([])
 const unread = ref(0)
+const confirmDialog = ref(null)
 
 async function loadNotifications() {
   try {
@@ -121,7 +124,8 @@ async function acceptChallenge(n) {
 }
 
 async function declineChallenge(n) {
-  if (!confirm('Decline this challenge?')) return
+  const ok = await confirmDialog.value.open({ title: 'Decline challenge?', message: 'The challenge will be closed. This cannot be undone.', confirmLabel: 'Decline' })
+  if (!ok) return
   try {
     await api.post(`/challenges/${n.data.challengeId}/decline`)
     toast.success('Challenge declined')
@@ -142,7 +146,8 @@ async function acceptFriendRequest(n) {
 }
 
 async function declineFriendRequest(n) {
-  if (!confirm('Decline this friend request?')) return
+  const ok = await confirmDialog.value.open({ title: 'Decline friend request?', message: 'The request will be closed.', confirmLabel: 'Decline' })
+  if (!ok) return
   try {
     await api.post(`/friends/request/${n.data.requestId}/decline`)
     toast.success('Request declined')

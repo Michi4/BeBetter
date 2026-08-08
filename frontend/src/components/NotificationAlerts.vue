@@ -33,6 +33,7 @@
       </div>
     </div>
   </div>
+  <ConfirmDialog ref="confirmDialog" />
 </template>
 
 <script setup>
@@ -41,9 +42,11 @@ import { Trophy, Users, Bell, Megaphone, Check, X } from 'lucide-vue-next'
 import api from '../api'
 import { useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
+import ConfirmDialog from './ConfirmDialog.vue'
 
 const router = useRouter()
 const toast = useToast()
+const confirmDialog = ref(null)
 
 const alerts = ref([])
 let pollInterval = null
@@ -75,7 +78,8 @@ async function acceptChallenge(n) {
 }
 
 async function declineChallenge(n) {
-  if (!confirm('Decline this challenge?')) return
+  const ok = await confirmDialog.value.open({ title: 'Decline challenge?', message: 'The challenge will be closed. This cannot be undone.', confirmLabel: 'Decline' })
+  if (!ok) return
   try {
     await api.post(`/challenges/${n.data.challengeId}/decline`)
     toastSuccess('Challenge declined')
@@ -96,7 +100,8 @@ async function acceptFriendRequest(n) {
 }
 
 async function declineFriendRequest(n) {
-  if (!confirm('Decline this friend request?')) return
+  const ok = await confirmDialog.value.open({ title: 'Decline friend request?', message: 'The request will be closed.', confirmLabel: 'Decline' })
+  if (!ok) return
   try {
     await api.post(`/friends/request/${n.data.requestId}/decline`)
     toastSuccess('Request declined')
