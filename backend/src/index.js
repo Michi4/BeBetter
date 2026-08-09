@@ -75,6 +75,11 @@ app.use(express.static(publicDir, {
     if (filePath.endsWith('index.html')) {
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     }
+    // Never cache the service worker or manifest — stale SW/manifest is
+    // the classic reason installed PWAs never update (incl. fullscreen).
+    if (filePath.endsWith('sw.js') || filePath.endsWith('manifest.webmanifest')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
   },
 }));
 

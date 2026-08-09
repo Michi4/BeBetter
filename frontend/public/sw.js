@@ -1,6 +1,6 @@
 // BeBetter Service Worker — Push Notifications + Offline Support
 
-const CACHE_VERSION = 'bebetter-v1';
+const CACHE_VERSION = 'bebetter-v2';
 const SHELL_CACHE = `${CACHE_VERSION}-shell`;
 const DATA_CACHE = `${CACHE_VERSION}-data`;
 

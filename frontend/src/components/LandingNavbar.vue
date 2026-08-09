@@ -48,7 +48,7 @@
         </div>
         <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1" aria-label="Mobile">
           <a v-for="item in mobileItems" :key="item.href" :href="item.href" @click="mobileOpen = false"
-            class="nav-link block px-3 py-3.5 rounded-lg text-sm font-medium text-[var(--bb-muted)] touch-target">
+            class="nav-link block text-center px-3 py-4 rounded-xl text-base font-semibold text-[var(--bb-muted)] touch-target">
             {{ item.label }}
           </a>
         </nav>
