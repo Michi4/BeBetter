@@ -45,7 +45,7 @@
       </section>
 
       <!-- Year grid artifact -->
-      <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 sm:pb-28">
+      <section id="showcase" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 sm:pb-28">
         <ScrollReveal variant="fade-up">
           <div class="rounded-2xl border border-[var(--bb-line)] bg-[var(--bb-bg-soft)] p-5 sm:p-8">
             <div class="flex items-center justify-between flex-wrap gap-2 mb-6">

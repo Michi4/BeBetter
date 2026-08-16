@@ -4,9 +4,8 @@
       <div
         v-if="visible"
         class="fixed inset-0 z-[100] flex items-center justify-center p-4"
-        @click.self="close"
       >
-        <div class="absolute inset-0 bg-black/45 backdrop-blur-md" aria-hidden="true"></div>
+        <div class="absolute inset-0 bg-black/45 backdrop-blur-md" aria-hidden="true" @click="close"></div>
         <div
           class="relative w-full max-w-sm rounded-2xl border border-white/15 p-6 space-y-4 shadow-2xl backdrop-blur-2xl demo-card"
           role="dialog"

@@ -9,7 +9,7 @@
 
         <nav class="bb-nav hidden sm:flex items-center gap-1" aria-label="Main">
           <a v-for="item in desktopItems" :key="item.href" :href="item.href"
-            class="nav-link px-3 py-2 rounded-lg text-sm font-medium text-[var(--bb-muted)] touch-target">
+            class="nav-link inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium text-[var(--bb-muted)] touch-target">
             {{ item.label }}
           </a>
         </nav>
@@ -23,7 +23,7 @@
           <a href="/register" class="btn text-sm px-6 py-2.5 bg-emerald-700 hover:bg-emerald-600 shadow-[0_0_10px_rgba(16,185,129,0.12)] font-semibold">
             Sign Up
           </a>
-          <button @click="mobileOpen = !mobileOpen" class="nav-btn sm:hidden p-2.5 rounded-lg text-[var(--bb-muted)] hover:text-[var(--bb-ink)] transition-colors duration-150 touch-target" aria-label="Menu" :aria-expanded="mobileOpen">
+          <button @click="mobileOpen = !mobileOpen" class="nav-btn sm:hidden p-2.5 rounded-lg text-[var(--bb-muted)] hover:text-[var(--bb-ink)] transition-colors duration-150 touch-target inline-flex items-center justify-center" aria-label="Menu" :aria-expanded="mobileOpen">
             <Menu v-if="!mobileOpen" :size="20" />
             <X v-else :size="20" />
           </button>
@@ -36,11 +36,11 @@
     </transition>
 
     <transition name="drawer">
-      <div v-if="mobileOpen" class="bb-nav fixed inset-y-0 right-0 z-50 w-[84%] max-w-xs bg-[var(--bb-bg)] border-l border-[var(--bb-line)] sm:hidden flex flex-col shadow-xl" aria-label="Mobile" role="dialog" aria-modal="true">
+      <div v-if="mobileOpen" class="bb-nav fixed inset-y-0 right-0 z-50 w-[84%] max-w-xs bg-[var(--bb-bg)] border-l border-[var(--bb-line)] sm:hidden flex flex-col shadow-xl" role="dialog" aria-modal="true" aria-label="Mobile menu" aria-labelledby="bb-drawer-title">
         <div class="flex items-center justify-between px-4 h-16 shrink-0 border-b border-[var(--bb-line)] safe-top">
           <a href="/" class="flex items-center gap-2.5" @click="mobileOpen = false">
             <Logo :size="26" />
-            <span class="font-extrabold text-base tracking-tight text-[var(--bb-ink)]">BeBetter</span>
+            <span id="bb-drawer-title" class="font-extrabold text-base tracking-tight text-[var(--bb-ink)]">BeBetter</span>
           </a>
           <button @click="mobileOpen = false" class="nav-btn p-2.5 rounded-lg text-[var(--bb-muted)] touch-target inline-flex items-center justify-center" aria-label="Close menu">
             <X :size="20" />
@@ -90,9 +90,17 @@ function onScroll() {
   if (mobileOpen.value) mobileOpen.value = false
 }
 
-onMounted(() => window.addEventListener('scroll', onScroll, { passive: true }))
+function onKeydown(e) {
+  if (e.key === 'Escape' && mobileOpen.value) mobileOpen.value = false
+}
+
+onMounted(() => {
+  window.addEventListener('scroll', onScroll, { passive: true })
+  window.addEventListener('keydown', onKeydown)
+})
 onUnmounted(() => {
   window.removeEventListener('scroll', onScroll)
+  window.removeEventListener('keydown', onKeydown)
   document.body.style.overflow = ''
 })
 </script>
@@ -100,9 +108,6 @@ onUnmounted(() => {
 <style scoped>
 .nav-link,
 .nav-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   background: transparent;
   border: 1px solid transparent;
   transition: color 0.15s ease, background-color 0.15s ease;
