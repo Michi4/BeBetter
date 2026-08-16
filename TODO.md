@@ -42,7 +42,20 @@ Status tracker for the full audit + feedback pass (Michi & Jonas).
 - [x] Slot edge case — habit with a timed schedule on other days vanished from today's list entirely (Dashboard + Habits); days without a matching timed slot now fall back to an untimed entry
 - [x] History grouping — scheduled habits without a time disappeared from the day view when any timed habit existed (scheduledGroups dropped the untimed bucket); now shown as an "Any time"-style group after timed groups
 - [x] History selectedDate — initialized with UTC toISOString (showed yesterday after 22:00 local); now local date
+- [x] TimeInput 12h empty state — selects rendered with fabricated "8:00 AM" before the user ever picked a time; now a dashed "Anytime" button that reveals the selects on click (to24h() NaN bug fixed earlier)
 - [x] Final build/lint verification
+
+## Round 2 sweep (fresh audit)
+
+- [x] LandingNavbar responsive break — scoped `.nav-link/.nav-btn { display: inline-flex }` overrode Tailwind `hidden sm:block`/`sm:hidden` (higher specificity): Sign In was visible on mobile, hamburger visible+dead on desktop, drawer links lost block layout. Display utilities removed from scoped CSS, `inline-flex` added where needed; drawer now closes on Escape + has aria-labelledby
+- [x] SignUpPrompt backdrop — `@click.self` on the modal container never fired (overlay child covers it), tapping the dark backdrop couldn't dismiss; handler moved to the overlay
+- [x] Landing footer "Showcase" link — pointed at `#showcase` which didn't exist (click was a no-op); id added to the year-grid section
+- [x] Password-show/hide buttons — icon-only, no accessible name; aria-label + aria-pressed added (Login, Register, ResetPassword)
+- [x] Login — missing autocomplete attrs (username / current-password); added for password managers
+- [x] ResetPassword — 2s redirect timer never cancelled (stale redirect after unmount); cleared in onBeforeUnmount
+- [x] FriendAccept — unused useRouter/router dead code removed
+- [x] FeaturePillar — hardcoded text-white/text-gray-300 invisible in light theme; now theme tokens (unused component, latent fix)
+- [x] ChallengeInvite — back button aria-label
 
 ## Infra notes (dev stack)
 
