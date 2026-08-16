@@ -187,6 +187,7 @@ router.get('/with-scheduled', authMiddleware, async (req, res) => {
       },
     });
     const loggedIds = new Set(dayLogs.map((l) => l.habitId));
+    const loggedSlots = new Set(dayLogs.filter(l => l.scheduledTime).map(l => `${l.habitId}-${l.scheduledTime}`));
 
     const scheduled = [];
     const unscheduled = [];
@@ -207,9 +208,26 @@ router.get('/with-scheduled', authMiddleware, async (req, res) => {
         sched.includes(dayOfWeek)
       );
 
-      const entry = { ...h, isScheduled, logged: loggedIds.has(h.id) };
-      if (isScheduled) scheduled.push(entry);
-      else unscheduled.push(entry);
+      if (isScheduled) {
+        // Expand each timed slot into its own entry so the day view shows times
+        const habitSchedules = Array.isArray(h.schedules)
+          ? h.schedules
+          : (typeof h.schedules === 'string' ? (() => { try { return JSON.parse(h.schedules) } catch { return null } })() : null);
+        const todaySlots = Array.isArray(habitSchedules) && habitSchedules.length > 0
+          ? habitSchedules.filter(s => s.time && Array.isArray(s.days) && s.days.includes(dayOfWeek))
+          : [];
+
+        if (todaySlots.length > 0) {
+          for (const s of todaySlots) {
+            const slotKey = `${h.id}-${s.time}`;
+            scheduled.push({ ...h, isScheduled: true, scheduledTime: s.time, logged: loggedSlots.has(slotKey) });
+          }
+        } else {
+          scheduled.push({ ...h, isScheduled: true, scheduledTime: null, logged: loggedIds.has(h.id) });
+        }
+      } else {
+        unscheduled.push({ ...h, isScheduled: false, scheduledTime: null, logged: loggedIds.has(h.id) });
+      }
     }
 
     res.json({ scheduled, unscheduled, isOnVacation: !!isOnVacation });

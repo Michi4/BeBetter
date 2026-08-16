@@ -147,7 +147,7 @@ router.get('/day', authMiddleware, async (req, res) => {
 
     const habitsWithScheduled = await prisma.habit.findMany({
       where: { userId: req.userId, active: true },
-      select: { id: true, daysPerWeek: true, frequencyType: true, createdAt: true, breaks: { where: { endDate: null }, select: { startDate: true } } },
+      select: { id: true, title: true, emoji: true, daysPerWeek: true, frequencyType: true, createdAt: true, breaks: { where: { endDate: null }, select: { startDate: true } } },
     });
     const scheduledHabitIds = new Set();
     const dow = d.getDay();

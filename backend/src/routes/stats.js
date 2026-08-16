@@ -91,6 +91,11 @@ router.get('/overview', authMiddleware, async (req, res) => {
         if (currentStreak > activeStreak) activeStreak = currentStreak;
         lastDate = d;
       }
+      // A "current" streak is only current if it hasn't been broken for 2+ days
+      if (lastDate && lastDate < today) {
+        const gapDays = Math.round((today - lastDate) / (1000 * 60 * 60 * 24));
+        if (gapDays > 1) activeStreak = 0;
+      }
     }
 
     let consistency = 0;

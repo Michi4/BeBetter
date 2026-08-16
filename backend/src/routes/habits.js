@@ -330,7 +330,7 @@ router.put('/:id', authMiddleware, demoFieldGuard(['reminderMinutes', 'isPublic'
     const habit = await prisma.habit.findUnique({ where: { id } });
     if (!habit || habit.userId !== req.userId) return res.status(404).json({ error: 'Not found' });
 
-    const { title, description, emoji, frequencyType, daysPerWeek, schedule, schedules, reminderMinutes, verificationType, config, isPublic, active } = req.body;
+    const { title, description, emoji, frequencyType, daysPerWeek, schedule, schedules, reminderMinutes, verificationType, config, isPublic, active, wagers } = req.body;
     const sched = schedule || daysPerWeek;
 
     if ((schedules && schedules.some((s) => s && s.time)) || verificationType === 'be_better_cam' || verificationType === 'photo') {
@@ -374,6 +374,22 @@ router.put('/:id', authMiddleware, demoFieldGuard(['reminderMinutes', 'isPublic'
       data: updateData,
       include: habitInclude,
     });
+
+    if (wagers !== undefined && Array.isArray(wagers)) {
+      await prisma.wager.deleteMany({ where: { habitId: id } });
+      const validWagers = wagers.filter(w => w && (w.condition || w.penaltyText));
+      if (validWagers.length > 0) {
+        await prisma.wager.createMany({
+          data: validWagers.map(w => ({
+            habitId: id,
+            userId: req.userId,
+            condition: w.condition || 'Missing days',
+            penaltyText: w.penaltyText || '',
+            status: 'active',
+          })),
+        });
+      }
+    }
 
     res.json({ habit: updated });
   } catch (e) {

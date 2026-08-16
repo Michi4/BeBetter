@@ -77,7 +77,7 @@ router.get('/', authMiddleware, async (req, res) => {
         OR: [{ creatorId: req.userId }, { opponentId: req.userId }],
       },
       include: {
-        habit: { select: { id: true, title: true, emoji: true } },
+        habit: { select: { id: true, title: true, emoji: true, description: true, frequencyType: true, verificationType: true } },
         creator: { select: { id: true, username: true, avatar: true } },
         opponent: { select: { id: true, username: true, avatar: true } },
       },
@@ -129,7 +129,7 @@ router.post('/', authMiddleware, demoGuard, async (req, res) => {
         status: 'pending',
       },
       include: {
-        habit: { select: { id: true, title: true, emoji: true } },
+        habit: { select: { id: true, title: true, emoji: true, description: true, frequencyType: true, verificationType: true } },
         creator: { select: { id: true, username: true, avatar: true } },
         opponent: { select: { id: true, username: true, avatar: true } },
       },
@@ -234,7 +234,7 @@ router.post('/invite/:token/accept', authMiddleware, async (req, res) => {
       where: { id: challenge.id },
       data: { opponentId: req.userId, status: 'active' },
       include: {
-        habit: { select: { id: true, title: true, emoji: true } },
+        habit: { select: { id: true, title: true, emoji: true, description: true, frequencyType: true, verificationType: true } },
         creator: { select: { id: true, username: true, avatar: true } },
         opponent: { select: { id: true, username: true, avatar: true } },
       },
@@ -273,7 +273,7 @@ router.post('/:id/accept', authMiddleware, async (req, res) => {
       where: { id },
       data: { status: 'active' },
       include: {
-        habit: { select: { id: true, title: true, emoji: true } },
+        habit: { select: { id: true, title: true, emoji: true, description: true, frequencyType: true, verificationType: true } },
         creator: { select: { id: true, username: true, avatar: true } },
         opponent: { select: { id: true, username: true, avatar: true } },
       },
@@ -336,7 +336,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
     const challenge = await prisma.challenge.findUnique({
       where: { id },
       include: {
-        habit: { select: { id: true, title: true, emoji: true } },
+        habit: { select: { id: true, title: true, emoji: true, description: true, frequencyType: true, verificationType: true } },
         creator: { select: { id: true, username: true, avatar: true } },
         opponent: { select: { id: true, username: true, avatar: true } },
       },

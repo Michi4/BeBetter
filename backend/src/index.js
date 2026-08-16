@@ -2,7 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const compression = require('compression');
-const path = require('path');
+const path = require("path");
+const fs = require("fs");
 
 const authRoutes = require('./routes/auth');
 const habitRoutes = require('./routes/habits');
@@ -83,11 +84,44 @@ app.use(express.static(publicDir, {
   },
 }));
 
+// Serve the SPA shell from a cached copy of index.html. Reads happen at most
+// once per file change, so an in-flight frontend rebuild (vite wipes dist
+// before writing) can never turn a page navigation into a 500 crash.
+const indexFile = path.join(publicDir, 'index.html');
+let cachedIndex = null;
+let cachedMtime = 0;
+
+function getIndexHtml(cb) {
+  fs.stat(indexFile, (statErr, st) => {
+    if (statErr) return cb(null)
+    if (cachedIndex && st.mtimeMs === cachedMtime) return cb(cachedIndex)
+    fs.readFile(indexFile, (readErr, data) => {
+      if (readErr) return cb(null)
+      cachedMtime = st.mtimeMs
+      cachedIndex = data
+      cb(data)
+    })
+  })
+}
+
 app.get('*', (req, res) => {
-  if (!req.path.startsWith('/api/')) {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.sendFile(path.join(publicDir, 'index.html'));
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'Not found' })
   }
+  // Only the SPA shell falls through — real files (assets, favicons) are
+  // already handled above; anything else with an extension is a miss.
+  if (/\.(?:[a-z0-9]+)$/i.test(req.path)) {
+    return res.status(404).type('text/plain').send('Not found')
+  }
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
+  getIndexHtml((html) => {
+    if (html) return res.type('html').send(html)
+    res.status(503).type('html').send(
+      '<!doctype html><html><body style="font-family:system-ui;background:#0b0c0f;color:#f2f4f8;display:grid;place-items:center;height:100vh;margin:0">' +
+      '<div style="text-align:center"><h1 style="margin-bottom:.5rem">BeBetter is booting…</h1>' +
+      '<p style="color:#a3abb8">The app is being rebuilt right now. Please refresh in a moment.</p></div></body></html>'
+    )
+  })
 });
 
 app.listen(PORT, '0.0.0.0', () => {
