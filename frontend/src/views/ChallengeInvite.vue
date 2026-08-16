@@ -1,7 +1,7 @@
 <template>
   <div class="page">
     <div class="flex items-center gap-2 mb-4">
-      <button @click="$router.back()" class="btn-ghost p-1"><ArrowLeft :size="18" /></button>
+      <button @click="$router.back()" class="btn-ghost p-1" aria-label="Go back"><ArrowLeft :size="18" /></button>
       <h1 class="text-xl font-bold">Challenge Invite</h1>
     </div>
 
