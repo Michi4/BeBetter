@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen text-[var(--bb-ink)] flex flex-col selection:bg-emerald-500/30 selection:text-emerald-300 overflow-x-clip">
+  <div class="min-h-screen text-[var(--bb-ink)] flex flex-col selection:bg-emerald-500/30 selection:text-emerald-300 overflow-x-clip landing-root" style="overscroll-behavior-y: none">
     <AmbientGlow />
 
     <div class="relative z-10 flex flex-col flex-1">
@@ -29,7 +29,7 @@
 
           <ScrollReveal variant="fade-up" :delay="300">
             <div class="flex flex-col sm:flex-row gap-4 justify-center pt-2">
-              <a href="/register" class="btn px-8 py-4 bg-emerald-700 hover:bg-emerald-600 shadow-[0_0_25px_rgba(16,185,129,0.3)] text-lg font-semibold group">
+              <a href="/register" class="btn px-8 py-4 bg-emerald-700 hover:bg-emerald-600 shadow-[0_0_16px_rgba(16,185,129,0.16)] text-lg font-semibold group">
                 Sign Up
                 <ArrowRight :size="18" class="group-hover:translate-x-0.5 transition-transform" />
               </a>
@@ -225,7 +225,7 @@
             Bragging rights are on the line.
           </p>
           <div class="pt-4 flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="/register" class="btn px-10 py-4 bg-emerald-700 hover:bg-emerald-600 shadow-[0_0_35px_rgba(16,185,129,0.35)] text-lg font-semibold group">
+            <a href="/register" class="btn px-10 py-4 bg-emerald-700 hover:bg-emerald-600 shadow-[0_0_20px_rgba(16,185,129,0.18)] text-lg font-semibold group">
               Sign Up
               <ArrowRight :size="18" class="group-hover:translate-x-0.5 transition-transform" />
             </a>

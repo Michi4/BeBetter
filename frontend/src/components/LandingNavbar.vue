@@ -1,29 +1,29 @@
 <template>
   <header class="sticky top-0 z-50">
     <div class="border-b border-[var(--bb-line)] bg-[var(--bb-bg)]/85 backdrop-blur-xl safe-top">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 grid grid-cols-[1fr_auto_1fr] items-center">
-        <a href="/" class="flex items-center gap-2.5 justify-self-start group" aria-label="BeBetter Home">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+        <a href="/" class="flex items-center gap-2.5 group shrink-0" aria-label="BeBetter Home">
           <Logo :size="30" class="transform group-hover:scale-105 transition-transform" />
           <span class="font-extrabold text-lg tracking-tight text-[var(--bb-ink)]">BeBetter</span>
         </a>
 
-        <nav class="bb-nav hidden md:flex items-center gap-1" aria-label="Main">
+        <nav class="bb-nav hidden sm:flex items-center gap-1" aria-label="Main">
           <a v-for="item in desktopItems" :key="item.href" :href="item.href"
             class="nav-link px-3 py-2 rounded-lg text-sm font-medium text-[var(--bb-muted)] touch-target">
             {{ item.label }}
           </a>
         </nav>
 
-        <div class="flex items-center gap-3 justify-self-end">
+        <div class="flex items-center gap-3 shrink-0">
           <button @click="toggleTheme" class="nav-btn p-2.5 rounded-lg text-[var(--bb-muted)] hover:text-[var(--bb-ink)] transition-colors duration-150 touch-target inline-flex items-center justify-center shrink-0" aria-label="Toggle theme">
             <Sun v-if="isDark" :size="18" />
             <Moon v-else :size="18" />
           </button>
           <a href="/login" class="nav-link hidden sm:block text-sm font-medium text-[var(--bb-muted)] px-4 py-2 rounded-lg touch-target">Sign In</a>
-          <a href="/register" class="btn text-sm px-6 py-2.5 bg-emerald-700 hover:bg-emerald-600 shadow-[0_0_15px_rgba(16,185,129,0.2)] font-semibold">
+          <a href="/register" class="btn text-sm px-6 py-2.5 bg-emerald-700 hover:bg-emerald-600 shadow-[0_0_10px_rgba(16,185,129,0.12)] font-semibold">
             Sign Up
           </a>
-          <button @click="mobileOpen = !mobileOpen" class="nav-btn md:hidden p-2.5 rounded-lg text-[var(--bb-muted)] hover:text-[var(--bb-ink)] transition-colors duration-150 touch-target" aria-label="Menu" :aria-expanded="mobileOpen">
+          <button @click="mobileOpen = !mobileOpen" class="nav-btn sm:hidden p-2.5 rounded-lg text-[var(--bb-muted)] hover:text-[var(--bb-ink)] transition-colors duration-150 touch-target" aria-label="Menu" :aria-expanded="mobileOpen">
             <Menu v-if="!mobileOpen" :size="20" />
             <X v-else :size="20" />
           </button>
@@ -32,11 +32,11 @@
     </div>
 
     <transition name="fade">
-      <div v-if="mobileOpen" class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden" aria-hidden="true" @click="mobileOpen = false"></div>
+      <div v-if="mobileOpen" class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm sm:hidden" aria-hidden="true" @click="mobileOpen = false"></div>
     </transition>
 
     <transition name="drawer">
-      <div v-if="mobileOpen" class="bb-nav fixed inset-y-0 right-0 z-50 w-[84%] max-w-xs bg-[var(--bb-bg)] border-l border-[var(--bb-line)] md:hidden flex flex-col shadow-2xl" aria-label="Mobile" role="dialog" aria-modal="true">
+      <div v-if="mobileOpen" class="bb-nav fixed inset-y-0 right-0 z-50 w-[84%] max-w-xs bg-[var(--bb-bg)] border-l border-[var(--bb-line)] sm:hidden flex flex-col shadow-xl" aria-label="Mobile" role="dialog" aria-modal="true">
         <div class="flex items-center justify-between px-4 h-16 shrink-0 border-b border-[var(--bb-line)] safe-top">
           <a href="/" class="flex items-center gap-2.5" @click="mobileOpen = false">
             <Logo :size="26" />
@@ -54,7 +54,7 @@
         </nav>
         <div class="px-4 py-4 shrink-0 border-t border-[var(--bb-line)] space-y-2.5 safe-bottom">
           <a href="/login" class="block w-full text-center text-sm font-medium text-[var(--bb-muted)] hover:text-[var(--bb-ink)] px-4 py-3 rounded-xl border border-[var(--bb-line)] transition-colors touch-target">Sign In</a>
-          <a href="/register" class="block w-full text-center btn text-sm px-4 py-3 rounded-xl bg-emerald-700 hover:bg-emerald-600 shadow-[0_0_15px_rgba(16,185,129,0.2)] font-semibold">Sign Up</a>
+          <a href="/register" class="block w-full text-center btn text-sm px-4 py-3 rounded-xl bg-emerald-700 hover:bg-emerald-600 shadow-[0_0_10px_rgba(16,185,129,0.12)] font-semibold">Sign Up</a>
         </div>
       </div>
     </transition>
@@ -100,6 +100,9 @@ onUnmounted(() => {
 <style scoped>
 .nav-link,
 .nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   border: 1px solid transparent;
   transition: color 0.15s ease, background-color 0.15s ease;

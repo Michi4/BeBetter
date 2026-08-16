@@ -1,7 +1,7 @@
 <template>
   <svg :width="size" :height="size" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
-    <rect width="500" height="500" :fill="isLight ? '#eef1f5' : '#0f1722'" rx="22"/>
-    <rect x="0" y="0" width="500" height="500" rx="22" fill="none" :stroke="isLight ? '#d8dde3' : '#1e293b'" stroke-width="6"/>
+    <rect width="500" height="500" rx="22" fill="color-mix(in srgb, var(--bb-bg) 85%, transparent)"/>
+    <rect x="0" y="0" width="500" height="500" rx="22" fill="none" :stroke="isLight ? '#d8dde3' : 'var(--bb-line)'" stroke-width="6"/>
     <g fill="#21c55d" rx="22" ry="22">
       <rect x="20" y="20" width="80" height="80" rx="22"/>
       <rect x="115" y="20" width="80" height="80" rx="22"/>

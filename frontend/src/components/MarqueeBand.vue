@@ -1,18 +1,14 @@
 <template>
   <div class="marquee-band" role="presentation" aria-hidden="true">
     <div class="marquee-track">
-      <div class="marquee-group">
-        <template v-for="(item, i) in items" :key="i">
-          <span class="item">{{ item }}</span>
-          <span class="sep">✦</span>
-        </template>
-      </div>
-      <div class="marquee-group" aria-hidden="true">
-        <template v-for="(item, i) in items" :key="i">
-          <span class="item">{{ item }}</span>
-          <span class="sep">✦</span>
-        </template>
-      </div>
+      <template v-for="group in groupCount" :key="group">
+        <div class="marquee-group" aria-hidden="true">
+          <template v-for="(item, i) in items" :key="i">
+            <span class="item">{{ item }}</span>
+            <span class="sep">✦</span>
+          </template>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -21,6 +17,10 @@
 defineProps({
   items: { type: Array, required: true },
 })
+
+// Four identical groups + translateX(-50%) = seamless loop that stays wide
+// enough on large screens even with a short item list.
+const groupCount = 4
 </script>
 
 <style scoped>
@@ -59,5 +59,8 @@ defineProps({
 }
 @media (prefers-reduced-motion: reduce) {
   .marquee-track { animation: none; }
+}
+@media (min-width: 1024px) {
+  .item { margin-inline: 2.25rem; }
 }
 </style>
