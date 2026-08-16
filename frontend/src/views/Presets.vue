@@ -87,8 +87,8 @@
           <span class="px-1.5 py-0.5 rounded bg-gray-800 text-[10px] text-gray-400">{{ p.category }}</span>
         </div>
         <div class="flex items-center gap-3 text-xs text-gray-500 pt-1 border-t border-gray-800">
-          <span class="flex items-center gap-1"><Heart :size="12" /> {{ p.likes || 0 }}</span>
-          <span class="flex items-center gap-1"><GitFork :size="12" /> {{ p.forks || 0 }}</span>
+          <span class="flex items-center gap-1"><Heart :size="12" /> {{ p.likesCount || 0 }}</span>
+          <span class="flex items-center gap-1"><GitFork :size="12" /> {{ p.forksCount || 0 }}</span>
         </div>
       </router-link>
     </div>
@@ -183,6 +183,7 @@ async function createPreset() {
       title: createForm.title,
       description: createForm.description,
       category: createForm.category,
+      verificationType: createForm.verificationType,
       config: {
         title: createForm.title,
         description: createForm.description,

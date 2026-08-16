@@ -140,9 +140,9 @@ onMounted(async () => {
   const userId = route.query.user
   if (userId) {
     try {
-      const res = await api.get('/friends/search', { params: { q: userId } })
-      const users = res.data.users || []
-      const match = users.find(u => u.id === userId || u.username === userId)
+      const res = await api.get('/friends')
+      const users = Array.isArray(res.data) ? res.data : (res.data.friends || res.data.users || [])
+      const match = users.find(u => String(u.id) === String(userId) || u.username === userId)
       if (match) selectOpponent(match)
     } catch {}
   }

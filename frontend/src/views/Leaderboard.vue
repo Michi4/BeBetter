@@ -2,7 +2,12 @@
   <div class="page">
     <DemoLock v-if="auth.isDemo" />
     <template v-else>
-    <h1 class="text-xl font-bold">Leaderboard</h1>
+    <div class="flex items-center justify-between">
+      <h1 class="text-xl font-bold">Leaderboard</h1>
+      <router-link v-if="activeTab === 'challenges'" to="/challenges/new" class="btn-secondary text-xs min-h-[36px] py-1.5 px-3">
+        <Swords :size="14" /> New Challenge
+      </router-link>
+    </div>
 
     <div class="flex gap-2">
       <button
@@ -99,7 +104,7 @@
 import { ref, computed, onMounted } from 'vue'
 import api from '../api'
 import { useToast } from 'vue-toastification'
-import { Loader2, Trophy } from 'lucide-vue-next'
+import { Loader2, Trophy, Swords } from 'lucide-vue-next'
 import DemoLock from '../components/DemoLock.vue'
 import { useAuthStore } from '../stores/auth'
 

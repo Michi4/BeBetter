@@ -108,11 +108,12 @@ async function handleDemo() {
   demoLoading.value = true
   error.value = ''
   try {
+    auth.logout()
     await auth.demoLogin()
     toast.success('Welcome to the demo! Everything is safe to try.')
     router.push('/dashboard')
   } catch (e) {
-    error.value = e.response?.data?.error || 'Demo is temporarily unavailable'
+    error.value = e.response?.data?.error || 'Demo is temporarily unavailable. Please try again in a moment.'
   } finally {
     demoLoading.value = false
   }

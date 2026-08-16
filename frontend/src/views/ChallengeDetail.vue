@@ -23,7 +23,7 @@
       </div>
 
       <!-- Pending actions -->
-      <div v-if="challenge.status === 'pending' && isOpponent" class="card space-y-3">
+      <div v-if="challenge.status === 'pending' && (isOpponent || isCreator)" class="card space-y-3">
         <p class="text-sm text-gray-400">{{ challenge.creator?.username }} challenged you!</p>
         <div class="flex gap-2">
           <button @click="acceptChallenge" class="btn flex-1"><Check :size="14" /> Accept</button>
@@ -149,9 +149,10 @@ const challenge = ref({})
 const gridDays = ref([])
 const loading = ref(true)
 const iLoggedToday = ref(false)
-const logTap = useTap(() => logChallengeHabit)
+const logTap = useTap(() => logChallengeHabit())
 
 const isOpponent = computed(() => auth.user && challenge.value.opponentId === auth.user.id)
+const isCreator = computed(() => auth.user && challenge.value.creatorId === auth.user.id)
 const creatorPercent = computed(() => {
   const total = (challenge.value.creatorProgress || 0) + (challenge.value.opponentProgress || 0)
   return total ? Math.round(((challenge.value.creatorProgress || 0) / total) * 100) : 50

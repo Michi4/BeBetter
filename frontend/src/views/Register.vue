@@ -13,7 +13,6 @@
           <Logo :size="56" />
           <div class="text-center">
             <h1 class="text-2xl font-bold tracking-tight">Start your journey</h1>
-            <p class="text-[var(--bb-muted)] text-sm mt-1">It takes 60 seconds. Your future self will thank you.</p>
           </div>
         </div>
 

@@ -47,8 +47,8 @@
         </div>
       </div>
 
-      <!-- Contribution Grid (shown on all profiles) -->
-      <div class="card">
+      <!-- Contribution Grid (own profile only - other users share no grid endpoint) -->
+      <div v-if="isOwn && auth.user" class="card">
         <div class="flex items-center justify-between mb-3">
           <h3 class="section-title">{{ isOwn ? 'Your Activity' : profile.username + "'s Activity" }}</h3>
           <div v-if="gridYearRange.lastYear > gridYearRange.firstYear" class="flex items-center gap-1">
@@ -328,8 +328,8 @@
 
       <!-- Delete Account Modal -->
       <Teleport to="body">
-        <div v-if="showDeleteConfirm" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60" @click.self="showDeleteConfirm = false">
-          <div class="card w-full max-w-sm mx-0 sm:mx-4 space-y-4 rounded-b-none sm:rounded-xl safe-bottom">
+        <div v-if="showDeleteConfirm" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm" @click.self="showDeleteConfirm = false">
+          <div class="card w-full max-w-sm mx-0 sm:mx-4 space-y-4 rounded-b-2xl sm:rounded-2xl safe-bottom" style="padding-bottom: max(env(safe-area-inset-bottom, 0px), 20px)">
             <h3 class="font-semibold text-red-400 flex items-center gap-2">
               <AlertTriangle :size="18" /> Delete Account
             </h3>
@@ -688,9 +688,16 @@ async function loadProfileGrid() {
 
 watch(gridYear, loadProfileGrid)
 
-onMounted(async () => {
+async function loadAll() {
   await loadProfile()
   if (isOwn.value) loadSettings()
   loadProfileGrid()
+}
+
+watch(() => route.params.id, () => {
+  profileGrid.value = []
+  loadAll()
 })
+
+onMounted(loadAll)
 </script>
