@@ -23,6 +23,16 @@
     outline: 2px solid var(--app-accent, #34d399);
     outline-offset: 2px;
   }
+  /* Inputs/textarea use their own focus ring — skip the global outline so it
+     doesn't flash in and out during focus. */
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: none;
+  }
+  html, body {
+    overscroll-behavior-y: none;
+  }
 }
 
 @layer components {
@@ -73,7 +83,7 @@
     border-color: var(--app-card-border);
   }
   .card-hover {
-    @apply card hover:border-emerald-500/50 cursor-pointer active:scale-[0.99] hover:shadow-lg hover:shadow-emerald-500/5 hover:-translate-y-0.5;
+    @apply card hover:border-emerald-500/40 cursor-pointer active:scale-[0.99] hover:shadow-md hover:shadow-emerald-500/5 hover:-translate-y-0.5;
   }
   .page {
     @apply max-w-3xl mx-auto px-4 pb-24 pt-4 space-y-5;
@@ -123,17 +133,29 @@
 /* ============================================
    Toast — small, top-center, clickable feel
    ============================================ */
+/* Keep toasts below the sticky app nav (h-12 + safe area + 8px gap) so they
+   never overlap it — and stack new toasts BELOW old ones (newestOnTop: false)
+   so the topmost toast never jumps down when another arrives. */
+.Vue-Toastification__container.top-center {
+  top: calc(3rem + env(safe-area-inset-top, 0px) + 8px) !important;
+  width: min(100vw - 32px, 420px) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  left: 0 !important;
+  right: 0 !important;
+  align-items: center !important;
+}
 .Vue-Toastification__toast {
   border-radius: 10px !important;
   padding: 10px 14px !important;
-  margin: 8px 16px !important;
+  margin: 0 0 8px !important;
   font-size: 13px !important;
   font-weight: 500 !important;
   min-height: auto !important;
   max-width: calc(100vw - 32px) !important;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.3) !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.18) !important;
   cursor: pointer !important;
-  animation: toast-slide-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  animation: toast-slide-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
   transition: opacity 0.2s, transform 0.2s !important;
 }
 .Vue-Toastification__toast:active {
@@ -167,7 +189,7 @@
 }
 
 @keyframes toast-slide-in {
-  0% { opacity: 0; transform: translateY(-20px) scale(0.95); }
+  0% { opacity: 0; transform: translateY(-6px) scale(0.97); }
   100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
@@ -235,16 +257,19 @@
 }
 .completed-row .delete-btn {
   opacity: 0;
+  pointer-events: none;
   transition: opacity 0.15s;
 }
 .completed-row:hover .delete-btn,
 .completed-row:focus-within .delete-btn {
   opacity: 1;
+  pointer-events: auto;
 }
 /* On mobile, always show delete button */
 @media (hover: none) {
   .completed-row .delete-btn {
     opacity: 0.6;
+    pointer-events: auto;
   }
 }
 

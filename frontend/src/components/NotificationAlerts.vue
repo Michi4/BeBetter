@@ -1,37 +1,39 @@
 <template>
-  <div v-if="alerts.length" class="space-y-2">
-    <div
-      v-for="n in alerts"
-      :key="n.id"
-      class="card flex items-start gap-3 py-3"
-      :class="alertClass(n.type)"
-    >
-      <div class="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5"
-        :class="iconBg(n.type)">
-        <component :is="iconFor(n.type)" :size="13" />
-      </div>
-      <div class="flex-1 min-w-0">
-        <p v-if="n.type === 'announcement'" class="text-sm font-semibold">{{ n.data?.title || 'Announcement' }}</p>
-        <p class="text-sm leading-snug" :class="n.type === 'announcement' ? 'text-gray-400' : ''">{{ n.message }}</p>
-        <div class="flex items-center gap-2 mt-2 flex-wrap">
-          <template v-if="n.type === 'challenge_invite' && n.data?.challengeId">
-            <button @click="acceptChallenge(n)" class="btn text-xs px-3 py-1.5"><Check :size="13" /> Accept</button>
-            <button @click="declineChallenge(n)" class="btn-secondary text-xs px-3 py-1.5"><X :size="13" /> Decline</button>
-            <button @click="dismiss(n.id)" class="text-[10px] text-gray-500 hover:text-gray-300 transition-colors">Later</button>
-          </template>
-          <template v-else-if="n.type === 'friend_request' && n.data?.requestId">
-            <button @click="acceptFriendRequest(n)" class="btn text-xs px-3 py-1.5"><Check :size="13" /> Accept</button>
-            <button @click="declineFriendRequest(n)" class="btn-secondary text-xs px-3 py-1.5"><X :size="13" /> Decline</button>
-          </template>
-          <template v-else-if="n.type === 'buddy_request'">
-            <button @click="dismiss(n.id)" class="btn text-xs px-3 py-1.5">Got it</button>
-          </template>
-          <template v-else>
-            <button @click="dismiss(n.id)" class="text-[10px] text-gray-500 hover:text-gray-300 transition-colors">Dismiss</button>
-          </template>
+  <div v-if="alerts.length" class="fixed inset-x-0 top-[calc(3rem+env(safe-area-inset-top,0px)+8px)] z-[45] flex justify-center px-3 sm:px-4 pointer-events-none">
+    <TransitionGroup name="alert" tag="div" class="w-full max-w-lg space-y-2 pointer-events-auto">
+      <div
+        v-for="n in alerts"
+        :key="n.id"
+        class="card flex items-start gap-3 py-3"
+        :class="alertClass(n.type)"
+      >
+        <div class="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5"
+          :class="iconBg(n.type)">
+          <component :is="iconFor(n.type)" :size="13" />
+        </div>
+        <div class="flex-1 min-w-0">
+          <p v-if="n.type === 'announcement'" class="text-sm font-semibold">{{ n.data?.title || 'Announcement' }}</p>
+          <p class="text-sm leading-snug" :class="n.type === 'announcement' ? 'text-gray-400' : ''">{{ n.message }}</p>
+          <div class="flex items-center gap-2 mt-2 flex-wrap">
+            <template v-if="n.type === 'challenge_invite' && n.data?.challengeId">
+              <button @click="acceptChallenge(n)" class="btn text-xs px-3 py-1.5"><Check :size="13" /> Accept</button>
+              <button @click="declineChallenge(n)" class="btn-secondary text-xs px-3 py-1.5"><X :size="13" /> Decline</button>
+              <button @click="dismiss(n.id)" class="text-[10px] text-gray-500 hover:text-gray-300 transition-colors">Later</button>
+            </template>
+            <template v-else-if="n.type === 'friend_request' && n.data?.requestId">
+              <button @click="acceptFriendRequest(n)" class="btn text-xs px-3 py-1.5"><Check :size="13" /> Accept</button>
+              <button @click="declineFriendRequest(n)" class="btn-secondary text-xs px-3 py-1.5"><X :size="13" /> Decline</button>
+            </template>
+            <template v-else-if="n.type === 'buddy_request'">
+              <button @click="dismiss(n.id)" class="btn text-xs px-3 py-1.5">Got it</button>
+            </template>
+            <template v-else>
+              <button @click="dismiss(n.id)" class="text-[10px] text-gray-500 hover:text-gray-300 transition-colors">Dismiss</button>
+            </template>
+          </div>
         </div>
       </div>
-    </div>
+    </TransitionGroup>
   </div>
   <ConfirmDialog ref="confirmDialog" />
 </template>
@@ -147,3 +149,22 @@ onUnmounted(() => {
   if (pollInterval) clearInterval(pollInterval)
 })
 </script>
+
+<style scoped>
+.alert-enter-active {
+  transition: opacity 0.18s ease;
+}
+.alert-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.alert-enter-from {
+  opacity: 0;
+}
+.alert-leave-to {
+  opacity: 0;
+  transform: translateY(-3px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .alert-enter-active, .alert-leave-active { transition: none; }
+}
+</style>

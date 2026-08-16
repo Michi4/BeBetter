@@ -1,51 +1,72 @@
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 
 const isDark = ref(true)
+
+function isLightDom() {
+  return document.documentElement.classList.contains('light')
+}
 
 function setThemeClasses(light) {
   document.documentElement.classList.toggle('light', !!light)
   document.documentElement.classList.toggle('dark', !light)
 }
 
+function syncFromDom() {
+  isDark.value = !isLightDom()
+}
+
+function persistedTheme() {
+  return localStorage.getItem('theme')
+}
+
+function applyTheme(light) {
+  setThemeClasses(light)
+  localStorage.setItem('theme', light ? 'light' : 'dark')
+  isDark.value = !light
+}
+
+// Make sure the DOM reflects the stored/system theme and the ref matches it.
+// Runs on every mount so navigation can never leave the toggle out of sync.
 function initTheme() {
-  const saved = localStorage.getItem('theme')
-  if (saved === 'light') {
-    isDark.value = false
-    setThemeClasses(true)
-  } else if (saved === 'dark') {
-    isDark.value = true
-    setThemeClasses(false)
-  } else {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-    isDark.value = prefersDark
-    setThemeClasses(!prefersDark)
-  }
+  const saved = persistedTheme()
+  const light =
+    saved === 'light'
+      ? true
+      : saved === 'dark'
+        ? false
+        : !window.matchMedia('(prefers-color-scheme: dark)').matches
+  setThemeClasses(light)
+  isDark.value = !light
 }
 
 function toggleTheme() {
-  isDark.value = !isDark.value
-  setThemeClasses(!isDark.value)
-  localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
+  applyTheme(!isLightDom())
 }
+
+let mediaQuery = null
+let systemHandler = null
 
 function useTheme() {
   onMounted(() => {
-    // Only init once
-    if (!document.documentElement.classList.contains('light') && !document.documentElement.classList.contains('dark')) {
-      initTheme()
+    initTheme()
+    if (!mediaQuery) {
+      mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+      systemHandler = (e) => {
+        // Only follow the system when the user hasn't chosen explicitly.
+        if (!persistedTheme()) {
+          setThemeClasses(!e.matches)
+          isDark.value = e.matches
+        }
+      }
+      mediaQuery.addEventListener('change', systemHandler)
     }
   })
-
-  // Watch for system theme changes
-  onMounted(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    const handler = (e) => {
-      if (!localStorage.getItem('theme')) {
-        isDark.value = e.matches
-        setThemeClasses(!e.matches)
-      }
+  onUnmounted(() => {
+    if (mediaQuery && systemHandler) {
+      mediaQuery.removeEventListener('change', systemHandler)
+      mediaQuery = null
+      systemHandler = null
     }
-    mediaQuery.addEventListener('change', handler)
   })
 
   return {

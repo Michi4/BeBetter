@@ -32,7 +32,7 @@
               class="btn w-full"
               @click="close"
             >
-              <UserPlus :size="16" /> Create free account
+              <UserPlus :size="16" /> Sign Up
             </router-link>
             <button
               class="btn-secondary w-full"

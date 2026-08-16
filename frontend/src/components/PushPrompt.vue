@@ -1,5 +1,6 @@
 <template>
-  <div v-if="show && auth.user && isSupported" class="card border border-emerald-500/30 bg-emerald-500/5">
+  <div v-if="show && auth.user && isSupported" class="pb-24 md:pb-4">
+    <div class="card border border-emerald-500/30 bg-emerald-500/5">
     <div class="flex items-start gap-3">
       <div class="shrink-0 w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center">
         <BellRing :size="20" class="text-emerald-400" />
@@ -22,6 +23,7 @@
     <p class="text-[10px] text-gray-500 mt-2">
       A one-time browser permission is required — iOS Safari: add the app to your Home Screen for full background delivery on standalone.
     </p>
+    </div>
   </div>
 </template>
 
