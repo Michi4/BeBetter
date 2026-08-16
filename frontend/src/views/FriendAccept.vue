@@ -55,7 +55,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../api'
 import { useToast } from 'vue-toastification'
@@ -63,7 +63,6 @@ import { Loader2, Check, AlertTriangle, UserPlus, Users } from 'lucide-vue-next'
 import Logo from '../components/Logo.vue'
 
 const route = useRoute()
-const router = useRouter()
 const auth = useAuthStore()
 const toast = useToast()
 

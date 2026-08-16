@@ -7,8 +7,8 @@
       >
         <component :is="icon" :size="28" :stroke-width="1.5" :style="{ color: iconColor }" />
       </div>
-      <h3 class="text-xl font-bold text-white group-hover:text-emerald-400 transition-colors">{{ title }}</h3>
-      <p class="text-sm text-gray-300 leading-relaxed">{{ description }}</p>
+      <h3 class="text-xl font-bold text-[var(--bb-ink)] group-hover:text-emerald-400 transition-colors">{{ title }}</h3>
+      <p class="text-sm text-[var(--bb-muted)] leading-relaxed">{{ description }}</p>
     </div>
   </ScrollReveal>
 </template>
