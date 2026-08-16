@@ -50,11 +50,8 @@
           <h4 class="text-xs font-medium text-gray-400 mb-2">Tasks</h4>
           <div class="space-y-1.5">
             <div v-for="t in day.tasks" :key="t.id" class="flex items-center gap-2 text-sm">
-              <span :class="t.completed ? 'text-emerald-400' : 'text-gray-600'">
-                <CheckCircle2 v-if="t.completed" :size="14" />
-                <Circle v-else :size="14" />
-              </span>
-              <span :class="t.completed ? 'text-gray-300 line-through' : 'text-gray-500'">{{ t.task?.title || t.title }}</span>
+              <span class="text-emerald-400"><CheckCircle2 :size="14" /></span>
+              <span class="text-gray-300">{{ t.task?.title || t.title }}</span>
             </div>
           </div>
         </div>
@@ -72,7 +69,7 @@
 </template>
 
 <script setup>
-import { X, CheckCircle2, Circle } from 'lucide-vue-next'
+import { X, CheckCircle2 } from 'lucide-vue-next'
 import { ref, watch, nextTick } from 'vue'
 
 const props = defineProps({ show: Boolean, day: Object })

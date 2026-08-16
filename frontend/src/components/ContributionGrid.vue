@@ -34,7 +34,7 @@
                     @mouseenter="day ? onCellEnter(day, $event) : null"
                     @mousemove="onCellMove($event)"
                     @mouseleave="onCellLeave"
-                    @click="day && (day.scheduled > 0 || day.completed > 0) && $emit('select', day)">
+                    @click="day && (day.scheduled > 0 || day.completed > 0 || day.tasks > 0) && $emit('select', day)">
                   </div>
                 </div>
               </div>
@@ -46,7 +46,7 @@
 
     <!-- Tooltip -->
     <Teleport to="body">
-      <div v-if="hoveredDay" ref="tipRef" class="fixed z-50 bg-gray-800 border border-gray-700 rounded-xl p-3 shadow-xl text-xs max-w-[220px] pointer-events-none">
+      <div v-if="hoveredDay" ref="tipRef" class="fixed z-50 bg-gray-800 border border-gray-700 rounded-xl p-3 shadow-lg text-xs max-w-[220px] pointer-events-none">
         <div class="font-medium mb-1">{{ formatTipDate(hoveredDay.date) }}</div>
         <div v-if="hoveredDay.scheduled > 0" class="text-gray-400 mb-1">
           {{ hoveredDay.habits }}/{{ hoveredDay.scheduled }} habits done
@@ -151,7 +151,7 @@ const legendClasses = [
   'bg-emerald-950',
   'bg-emerald-700',
   'bg-emerald-500',
-  'bg-emerald-400 shadow-[0_0_6px_rgba(74,222,128,0.3)]',
+  'bg-emerald-400 shadow-[0_0_4px_rgba(74,222,128,0.16)]',
 ]
 
 const weeks = computed(() => {
@@ -211,20 +211,17 @@ const weeks = computed(() => {
 const monthLabels = computed(() => {
   if (!weeks.value.length) return []
   const labels = []
-  let lastMonth = -1
-  for (let wi = 0; wi < weeks.value.length; wi++) {
-    const first = weeks.value[wi].find(d => d !== null)
-    if (first && first.date) {
-      const d = new Date(first.date + 'T12:00:00Z')
-      const month = d.getUTCMonth()
-      if (month !== lastMonth) {
-        labels.push({
-          label: d.toLocaleString('en', { month: 'short' }),
-          left: (dayLabelW + GAP) + wi * (cell.value + GAP),
-        })
-        lastMonth = month
-      }
-    }
+  const jan1 = new Date(Date.UTC(props.year, 0, 1))
+  const startDow = (jan1.getUTCDay() + 6) % 7
+  const week0Start = Date.UTC(props.year, 0, 1 - startDow)
+  for (let m = 0; m < 12; m++) {
+    const firstOfMonth = Date.UTC(props.year, m, 1)
+    const wi = Math.max(0, Math.floor((firstOfMonth - week0Start) / 604800000))
+    if (wi >= weeks.value.length) continue
+    labels.push({
+      label: new Date(firstOfMonth).toLocaleString('en', { month: 'short' }),
+      left: (dayLabelW + GAP) + wi * (cell.value + GAP),
+    })
   }
   return labels
 })
@@ -311,13 +308,17 @@ function getCellClass(day) {
   if (day.scheduled === 0 && day.habits === 0 && day.tasks === 0 && day.completed === 0) {
     return 'bg-gray-800/40 hover:bg-gray-700/40 cursor-default' + todayRing
   }
+  // Task-only days (no habits scheduled) still deserve a visible mark
+  if (day.tasks > 0 && day.scheduled === 0 && day.habits === 0) {
+    return 'bg-emerald-950/60 hover:bg-emerald-900/60 cursor-pointer' + todayRing
+  }
   if (day.ratio === null || isNaN(day.ratio) || day.ratio === 0) {
     return 'bg-gray-800/80 hover:bg-gray-700/60 cursor-pointer' + todayRing
   }
   if (day.ratio > 0 && day.ratio <= 0.33) return 'bg-emerald-950 hover:brightness-110 cursor-pointer' + todayRing
   if (day.ratio <= 0.66) return 'bg-emerald-700 hover:brightness-110 cursor-pointer' + todayRing
   if (day.ratio < 1.0) return 'bg-emerald-500 hover:brightness-110 cursor-pointer' + todayRing
-  return 'bg-emerald-400 shadow-[0_0_6px_rgba(74,222,128,0.3)] hover:brightness-110 cursor-pointer' + todayRing
+  return 'bg-emerald-400 shadow-[0_0_4px_rgba(74,222,128,0.16)] hover:brightness-110 cursor-pointer' + todayRing
 }
 
 function formatTipDate(dateStr) {

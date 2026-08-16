@@ -112,8 +112,17 @@ const editing = ref(false)
 const titleInput = ref(null)
 const editForm = reactive({ title: '', description: '', dueDate: '', setScheduledTime: false, scheduledTime: '', reminderMinutes: [] })
 let longPressTimer = null
+let longPressFired = false
 
-const completeTap = useTap(() => emit('complete', props.task))
+const completeTap = useTap(() => {
+  if (longPressFired) return
+  emit('complete', props.task)
+})
+const originalPointerDown = completeTap.onPointerdown
+completeTap.onPointerdown = (e) => {
+  longPressFired = false
+  originalPointerDown(e)
+}
 
 const dayAbbr = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 
@@ -143,7 +152,8 @@ function showContextMenu(e) {
 
 function startLongPress(e) {
   longPressTimer = setTimeout(() => {
-    const touch = e.touches[0]
+    longPressFired = true
+    const touch = e.touches[0] || e.changedTouches[0]
     menuPos.value = { top: touch.clientY + 'px', left: Math.min(touch.clientX, window.innerWidth - 200) + 'px' }
     showMenu.value = true
   }, 500)

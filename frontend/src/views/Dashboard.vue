@@ -19,7 +19,7 @@
             <p class="text-xs text-emerald-400/80">Shared public account - data resets hourly. Sign up to save your own streaks.</p>
           </div>
         </div>
-        <router-link to="/register" class="text-xs text-emerald-300 hover:text-emerald-100 transition-colors">Sign up free</router-link>
+        <router-link to="/register" class="text-xs text-emerald-300 hover:text-emerald-100 transition-colors">Sign Up</router-link>
       </div>
     </div>
 
@@ -153,7 +153,7 @@
 
     <!-- Delete confirm modal -->
     <div v-if="confirmDelete" class="fixed inset-0 z-[65] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm" @click.self="confirmDelete = null">
-      <div class="w-full sm:w-[400px] bg-gray-900 border border-gray-800 rounded-t-2xl sm:rounded-2xl p-5 m-0 sm:m-4 shadow-2xl">
+      <div class="w-full sm:w-[400px] bg-gray-900/95 backdrop-blur-xl border border-gray-800 rounded-t-2xl sm:rounded-2xl p-5 m-0 sm:m-4 shadow-xl safe-bottom" style="padding-bottom: max(env(safe-area-inset-bottom, 0px), 20px)">
         <h3 class="text-base font-bold text-red-400">Delete task?</h3>
         <p class="text-sm text-gray-400 mt-1">This permanently removes "{{ confirmDelete.title }}" and its history. This cannot be undone.</p>
         <div class="flex gap-2 mt-4">
@@ -166,7 +166,7 @@
     <!-- Mobile floating add button (above bottom nav) -->
     <div class="fixed bottom-20 left-0 right-0 z-40 flex justify-center md:hidden pointer-events-none">
       <button @click="createInitialMode = 'task'; showCreateModal = true"
-        class="pointer-events-auto touch-target shrink-0 flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-500/25 hover:bg-emerald-500 transition-colors active:scale-95">
+        class="pointer-events-auto touch-target shrink-0 flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-600 text-white shadow-md shadow-emerald-500/15 hover:bg-emerald-500 transition-colors active:scale-95">
         <Plus :size="24" />
       </button>
     </div>
@@ -274,12 +274,16 @@ async function loadStats() {
     const logs = todayLogsRes.data.logs || []
 
     const expanded = []
+    const today = new Date().getDay()
     for (const h of rawHabits) {
       const sched = h.schedules
-      if (sched && sched.length && sched.some(s => s.time)) {
-        const today = new Date().getDay()
-        for (const s of sched) {
-          if (s.time && s.days.includes(today)) {
+      const todayEntries = Array.isArray(sched) && sched.length
+        ? sched.filter(s => Array.isArray(s.days) && s.days.includes(today))
+        : null
+      if (Array.isArray(todayEntries)) {
+        const timed = todayEntries.filter(s => s.time)
+        if (timed.length > 0) {
+          for (const s of timed) {
             const logForSlot = logs.find(l => l.habitId === h.id && l.scheduledTime === s.time)
             expanded.push({
               ...h,
@@ -288,6 +292,14 @@ async function loadStats() {
               hasBreak: !!h.breaks?.find(b => !b.endDate),
             })
           }
+        } else {
+          const hasLog = logs.some(l => l.habitId === h.id)
+          expanded.push({
+            ...h,
+            scheduledTime: null,
+            completedToday: hasLog,
+            hasBreak: !!h.breaks?.find(b => !b.endDate),
+          })
         }
       } else {
         const hasLog = logs.some(l => l.habitId === h.id)
@@ -508,11 +520,24 @@ async function submitCamProof(dataUrl) {
 async function selectDay(day) {
   try {
     const res = await api.get('/grid/day', { params: { date: day.date } })
+    const habits = res.data.habits || []
+    const tasks = res.data.tasks || []
+    const scheduledHabits = res.data.scheduledHabits || []
+    const showable = habits.length || tasks.length || scheduledHabits.length || day.scheduled > 0 || day.completed > 0 || day.tasks > 0
+    if (!showable) {
+      toast.info('No activity on this day')
+      return
+    }
     selectedDay.value = {
-      ...day, habits: res.data.habits || [], tasks: res.data.tasks || [],
-      scheduledHabits: res.data.scheduledHabits || [], isOnVacation: res.data.isOnVacation || false,
+      ...day, habits, tasks,
+      scheduledHabits, isOnVacation: res.data.isOnVacation || false,
     }
   } catch {
+    const showable = day.scheduled > 0 || day.completed > 0 || day.tasks > 0
+    if (!showable) {
+      toast.info('No activity on this day')
+      return
+    }
     selectedDay.value = day
   }
 }
@@ -524,6 +549,7 @@ async function endVacation() {
     toast.success('Vacation ended')
     loadStats()
     loadTasks()
+    loadGrid()
   } catch {
     toast.error('Failed to end vacation')
   }
