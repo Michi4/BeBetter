@@ -6,8 +6,9 @@ import App from './App.vue'
 import router from './router'
 import './assets/main.css'
 
-// Register Service Worker for Push Notifications
-if ('serviceWorker' in navigator) {
+// Register Service Worker for Push Notifications (production only — in dev it
+// would cache-first serve Vite's files and silently stale every edit)
+if ('serviceWorker' in navigator && !import.meta.env.DEV) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
       .then((reg) => {
@@ -28,7 +29,7 @@ app.use(Toast, {
   closeOnClick: true,
   pauseOnHover: false,
   hideProgressBar: true,
-  newestOnTop: true,
+  newestOnTop: false,
   maxToasts: 3,
   toastClassName: 'bebetter-toast',
   bodyClassName: 'bebetter-toast-body',

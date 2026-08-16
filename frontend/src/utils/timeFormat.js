@@ -2,9 +2,19 @@ import { ref } from 'vue'
 
 const timeFormat = ref('24h')
 
+const VALID = ['12h', '24h']
+
+function sanitize(fmt) {
+  return VALID.includes(fmt) ? fmt : '24h'
+}
+
 function initTimeFormat() {
   if (typeof window !== 'undefined') {
-    timeFormat.value = localStorage.getItem('bebetter_timeFormat') || '24h'
+    const stored = localStorage.getItem('bebetter_timeFormat')
+    timeFormat.value = sanitize(stored)
+    if (stored !== timeFormat.value) {
+      localStorage.setItem('bebetter_timeFormat', timeFormat.value)
+    }
   }
   return timeFormat.value
 }
@@ -14,11 +24,11 @@ export function getTimeFormat() {
 }
 
 export function setTimeFormat(fmt) {
-  timeFormat.value = fmt
+  timeFormat.value = sanitize(fmt)
   if (typeof window !== 'undefined') {
-    localStorage.setItem('bebetter_timeFormat', fmt)
+    localStorage.setItem('bebetter_timeFormat', timeFormat.value)
   }
-  return fmt
+  return timeFormat.value
 }
 
 export function formatTime(timeStr, format = null) {

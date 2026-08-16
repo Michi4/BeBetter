@@ -2,6 +2,8 @@ import axios from 'axios'
 
 const api = axios.create({ baseURL: '/api' })
 
+const AUTH_ENDPOINTS = ['/auth/login', '/auth/demo', '/auth/register', '/auth/me']
+
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token') || sessionStorage.getItem('token')
   if (token) config.headers.Authorization = `Bearer ${token}`
@@ -11,10 +13,16 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
+    const status = err.response?.status
+    const url = err.config?.url || ''
+    // Let the auth views handle 401s from their own endpoints so a failed
+    // login/register still renders its inline error instead of reloading.
+    if (status === 401 && !AUTH_ENDPOINTS.some((e) => url.startsWith(e))) {
       localStorage.removeItem('token')
       sessionStorage.removeItem('token')
-      window.location.href = '/login'
+      if (!window.location.pathname.startsWith('/login')) {
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(err)
   }

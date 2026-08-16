@@ -38,7 +38,12 @@ router.beforeEach(async (to, from, next) => {
   }
   if (to.path === '/' && auth.user) return next('/dashboard')
   if (to.meta.auth && !auth.user) return next({ path: '/login', query: { redirect: to.fullPath } })
+  // Demo entry: pass through to /login so Login.vue can swap into the demo
+  // account. The session is only replaced after a successful demo login, so a
+  // failed demo never costs the current user their session.
+  if (to.path === '/login' && to.query.demo === '1') return next()
   if (to.meta.guest && auth.user) return next('/dashboard')
+  if (to.path === '/admin' && auth.user && auth.user.role !== 'admin') return next('/dashboard')
   next()
 })
 

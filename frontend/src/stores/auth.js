@@ -47,17 +47,24 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function fetchUser() {
+    const currentToken = getToken()
+    if (!currentToken) {
+      user.value = null
+      return
+    }
     try {
-      const currentToken = getToken()
-      if (!currentToken) {
-        user.value = null
-        return
-      }
       api.defaults.headers.common['Authorization'] = `Bearer ${currentToken}`
       const res = await api.get('/auth/me')
       user.value = res.data.user || res.data
-    } catch {
+    } catch (err) {
+      if (err.response?.status === 401) {
+        // Invalid/expired token: clear the whole session so guards react.
+        logout()
+        throw err
+      }
+      // Transient network error: keep the stored session, just surface failure.
       user.value = null
+      throw err
     }
   }
 
@@ -67,6 +74,11 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('token')
     sessionStorage.removeItem('token')
     delete api.defaults.headers.common['Authorization']
+    // Drop any cached API responses from the service worker so the next
+    // visitor/account never sees this account's data while offline.
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: 'clear-data-cache' })
+    }
   }
 
   async function deleteAccount() {

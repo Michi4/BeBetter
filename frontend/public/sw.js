@@ -1,6 +1,6 @@
 // BeBetter Service Worker — Push Notifications + Offline Support
 
-const CACHE_VERSION = 'bebetter-v2';
+const CACHE_VERSION = 'bebetter-v4';
 const SHELL_CACHE = `${CACHE_VERSION}-shell`;
 const DATA_CACHE = `${CACHE_VERSION}-data`;
 
@@ -26,6 +26,13 @@ self.addEventListener('activate', (event) => {
       Promise.all(keys.filter((k) => !k.startsWith(CACHE_VERSION)).map((k) => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
+});
+
+// ---- Client messages: clear personal data from caches on logout ----
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'clear-data-cache') {
+    event.waitUntil(caches.delete(DATA_CACHE));
+  }
 });
 
 // ---- Push notifications ----
@@ -101,8 +108,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // API GET requests (data): network-first with cache fallback for offline
+  // API GET requests (data): network-first with cache fallback for offline.
+  // /auth/* is never cached — it's account-specific and must always hit the
+  // network so another visitor can never be shown a previous account's data.
   if (url.pathname.startsWith('/api/')) {
+    if (url.pathname.startsWith('/api/auth/')) {
+      event.respondWith(fetch(req));
+      return;
+    }
     event.respondWith(
       fetch(req)
         .then((res) => {
