@@ -3,7 +3,10 @@
     <!-- Title -->
     <div>
       <label class="text-xs font-medium text-gray-400 mb-1 block">Title *</label>
-      <input v-model="form.title" class="input" placeholder="Habit title" />
+      <div class="flex gap-2">
+        <EmojiPicker v-model="form.emoji" />
+        <input v-model="form.title" class="input flex-1" placeholder="Habit title" />
+      </div>
     </div>
 
     <!-- Description -->
@@ -131,6 +134,7 @@
 import { ref, reactive, watch } from 'vue'
 import { ChevronDown, Shield, Camera, Plus, X, Check, Globe, Bell } from 'lucide-vue-next'
 import RecurrenceBuilder from './RecurrenceBuilder.vue'
+import EmojiPicker from './EmojiPicker.vue'
 
 const props = defineProps({
   modelValue: { type: Object, default: () => ({}) },
@@ -145,6 +149,7 @@ const showAdvanced = ref(false)
 const form = reactive({
   title: '',
   description: '',
+  emoji: '🎯',
   schedules: [{ time: null, days: [0, 1, 2, 3, 4, 5, 6] }],
   verificationType: 'honor',
   wagers: [],
@@ -164,6 +169,7 @@ watch(form, (val) => {
 watch(() => props.modelValue, (val) => {
   if (val.title !== undefined) form.title = val.title
   if (val.description !== undefined) form.description = val.description
+  if (val.emoji !== undefined) form.emoji = val.emoji
   if (val.schedules !== undefined) form.schedules = val.schedules
   if (val.verificationType !== undefined) form.verificationType = val.verificationType
   if (val.wagers !== undefined) form.wagers = val.wagers

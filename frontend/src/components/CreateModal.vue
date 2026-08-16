@@ -92,10 +92,13 @@
             <label class="text-xs font-medium text-gray-400 mb-1.5 block">Description (optional)</label>
             <textarea v-model="habitForm.description" class="input min-h-[60px]" placeholder="Why is this important?" rows="2"></textarea>
           </div>
-          <div class="flex items-center gap-3">
-            <input v-model="habitForm.emoji" class="input w-16 text-center text-lg" placeholder="🎯" maxlength="2" />
-            <div class="flex-1 text-xs text-gray-500">
-              Pick an emoji to represent this habit
+          <div>
+            <label class="text-xs font-medium text-gray-400 mb-1.5 block">Emoji</label>
+            <div class="flex items-center gap-3">
+              <EmojiPicker v-model="habitForm.emoji" />
+              <div class="flex-1 text-xs text-gray-500">
+                Pick an emoji to represent this habit
+              </div>
             </div>
           </div>
 
@@ -244,6 +247,7 @@ import { Plus, X, ListTodo, Target, ChevronDown, Shield, Camera, Check, Globe, C
 import api from '../api'
 import RecurrenceBuilder from './RecurrenceBuilder.vue'
 import TimeInput from './TimeInput.vue'
+import EmojiPicker from './EmojiPicker.vue'
 import { formatTime } from '../utils/timeFormat'
 import { useAuthStore } from '../stores/auth'
 import { openDemoPrompt } from '../utils/demoPrompt'

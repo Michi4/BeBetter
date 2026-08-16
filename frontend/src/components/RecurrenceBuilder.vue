@@ -1,10 +1,10 @@
 <template>
-  <div class="space-y-3">
+  <div class="space-y-3" :class="{ 'opacity-50 pointer-events-none': disabled }">
     <label class="text-xs font-medium text-gray-400">Schedule</label>
 
     <!-- Quick presets -->
     <div class="flex flex-wrap gap-2">
-      <button v-for="p in presets" :key="p.value" type="button" @click="selectPreset(p)"
+      <button v-for="p in presets" :key="p.value" type="button" @click="selectPreset(p)" :disabled="disabled"
         class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-150"
         :class="activePreset === p.value ? 'bg-emerald-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'">
         {{ p.label }}
@@ -17,7 +17,7 @@
         class="rounded-xl border border-gray-700 bg-gray-800/50 p-3 space-y-2.5">
         <div class="flex items-center justify-between" v-if="entries.length > 1">
           <span class="text-[10px] text-gray-500 font-medium">Time slot {{ idx + 1 }}</span>
-          <button type="button" @click="removeEntry(idx)"
+          <button type="button" @click="removeEntry(idx)" :disabled="disabled"
             class="w-8 h-8 rounded-full flex items-center justify-center text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors">
             <X :size="12" />
           </button>
@@ -26,14 +26,14 @@
         <!-- Time input -->
         <div class="flex items-center gap-2">
           <Clock :size="14" class="text-gray-500 shrink-0" />
-          <TimeInput :model-value="entry.time" :allow-clear="true" empty-label="Anytime"
+          <TimeInput :model-value="entry.time" :allow-clear="true" empty-label="Anytime" :disabled="disabled"
             @update:model-value="time => updateTime(idx, time || null)" class="flex-1" />
-          <span class="text-[10px] text-gray-500 shrink-0">{{ entry.time ? 'At ' + formatTime(entry.time) : 'Any time' }}</span>
+          <span v-if="entry.time" class="text-[10px] text-gray-500 shrink-0">At {{ formatTime(entry.time) }}</span>
         </div>
 
         <!-- Day picker -->
         <div class="flex gap-1.5">
-          <button v-for="(day, di) in weekDays" :key="di" type="button" @click="toggleDay(idx, di)"
+          <button v-for="(day, di) in weekDays" :key="di" type="button" @click="toggleDay(idx, di)" :disabled="disabled"
             class="flex-1 h-8 rounded-lg text-[11px] font-medium transition-colors duration-150"
             :class="entry.days.includes(di) ? 'bg-emerald-600 text-white' : 'bg-gray-700/50 text-gray-400 hover:bg-gray-700'">
             {{ day }}
@@ -43,7 +43,7 @@
     </div>
 
     <!-- Add another time -->
-    <button type="button" @click="addEntry"
+    <button type="button" @click="addEntry" :disabled="disabled"
       class="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-emerald-400 hover:bg-emerald-500/10 border border-dashed border-emerald-500/30 transition-colors">
       <Plus :size="14" />
       Add another time
@@ -61,6 +61,10 @@ const props = defineProps({
   modelValue: {
     type: Array,
     default: () => [{ time: null, days: [0, 1, 2, 3, 4, 5, 6] }],
+  },
+  disabled: {
+    type: Boolean,
+    default: false,
   },
 })
 const emit = defineEmits(['update:modelValue'])
