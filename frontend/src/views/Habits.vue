@@ -121,58 +121,89 @@
     <!-- History Section -->
     <section class="space-y-3">
       <h2 class="section-title">History</h2>
-      <div class="flex flex-wrap items-center gap-2">
-        <button @click="prevDay" class="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg p-2 text-gray-400 hover:bg-gray-800 transition-colors">
-          <ChevronLeft :size="18" />
-        </button>
-        <input v-model="selectedDate" type="date" class="min-h-[44px] flex-1 min-w-0 rounded-lg border border-gray-700 bg-gray-800/50 px-3 py-2 text-sm text-gray-200 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
-        <button @click="nextDay" class="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg p-2 text-gray-400 hover:bg-gray-800 transition-colors">
-          <ChevronRight :size="18" />
-        </button>
-        <button @click="selectedDate = todayStr()" class="min-h-[44px] rounded-lg bg-gray-800 px-3 py-2 text-xs font-medium text-gray-300 hover:bg-gray-700 transition-colors">
-          Today
-        </button>
+      <div class="card space-y-4">
+        <div class="flex items-center justify-between gap-2">
+          <button @click="prevDay" class="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-800 transition-colors" aria-label="Previous day">
+            <ChevronLeft :size="18" />
+          </button>
+          <div class="text-center min-w-0 flex-1">
+            <div class="text-sm font-semibold truncate">{{ selectedDateLabel }}</div>
+            <div class="text-[10px] text-gray-500 mt-0.5">{{ selectedDateStatus }}</div>
+          </div>
+          <button @click="nextDay" class="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-800 transition-colors" aria-label="Next day">
+            <ChevronRight :size="18" />
+          </button>
+        </div>
+        <div class="flex items-center gap-2">
+          <input v-model="selectedDate" type="date" class="min-h-[44px] flex-1 min-w-0 rounded-lg border border-gray-700 bg-gray-800/50 px-3 py-2 text-sm text-gray-200 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+          <button @click="selectedDate = todayStr()" class="min-h-[44px] rounded-lg bg-gray-800 px-4 py-2 text-xs font-medium text-gray-300 hover:bg-gray-700 transition-colors shrink-0">Today</button>
+        </div>
+        <div v-if="scheduledForDay.length" class="flex items-center gap-2">
+          <span class="text-xs text-gray-400 shrink-0">{{ doneForDay }}/{{ scheduledForDay.length }} done</span>
+          <div class="flex-1 h-1.5 rounded-full bg-gray-800 overflow-hidden">
+            <div class="h-full rounded-full bg-emerald-500 transition-all duration-300" :style="{ width: donePct + '%' }"></div>
+          </div>
+        </div>
       </div>
-      <div v-if="scheduledForDay.length" class="space-y-2">
+
+      <template v-if="scheduledForDay.length">
         <h3 class="text-xs font-medium text-gray-500">Scheduled</h3>
-        <div v-for="(h, hi) in scheduledForDay" :key="hi" class="card flex items-center gap-3">
-          <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-            :class="h.completed ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-800 text-gray-500'">
-            <CheckCircle2 v-if="h.completed" :size="16" class="animate-done" />
-            <Circle v-else :size="16" />
+        <div class="space-y-3">
+          <div v-for="(group, gi) in scheduledGroups" :key="gi">
+            <div v-if="group.time" class="text-[10px] font-semibold text-gray-500 px-1 pb-1.5 flex items-center gap-1.5">
+              <Clock :size="10" /> {{ formatTime(group.time) }}
+            </div>
+            <div class="space-y-2">
+              <div v-for="(h, hi) in group.items" :key="hi" class="card flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                  :class="h.completed ? 'bg-emerald-500/20' : 'bg-gray-800'">
+                  <span v-if="h.emoji" class="text-sm">{{ h.emoji }}</span>
+                  <CheckCircle2 v-else-if="h.completed" :size="16" class="text-emerald-400 animate-done" />
+                  <Circle v-else :size="16" class="text-gray-500" />
+                </div>
+                <div class="flex-1 min-w-0">
+                  <span class="text-sm truncate block" :class="h.completed ? 'text-gray-300' : 'text-gray-500'">{{ h.title }}</span>
+                </div>
+                <span v-if="h.completed" class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-medium shrink-0">Done</span>
+                <span v-else-if="isFutureDay" class="text-[10px] px-2 py-0.5 rounded-full bg-gray-800 text-gray-500 font-medium shrink-0">upcoming</span>
+                <span v-else class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-medium shrink-0">missed</span>
+                <button v-if="h.completed && h.logId" v-bind="undoHistoryHabitTap(h)" @click.stop.prevent
+                  class="delete-btn shrink-0 p-1.5 rounded text-gray-600 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all" title="Mark as not done">
+                  <Undo2 :size="13" />
+                </button>
+              </div>
+            </div>
           </div>
-          <div class="flex-1 min-w-0">
-            <span class="text-sm truncate" :class="h.completed ? 'text-gray-300' : 'text-gray-500'">{{ h.emoji || '' }} {{ h.title }}</span>
-          </div>
-          <span v-if="h.scheduledTime" class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 shrink-0">{{ formatTime(h.scheduledTime) }}</span>
-          <span v-if="!h.completed && isFutureDay" class="text-[10px] text-gray-600 shrink-0">upcoming</span>
-          <span v-else-if="!h.completed" class="text-[10px] text-gray-600 shrink-0">missed</span>
-          <button v-if="h.completed && h.logId" v-bind="undoHistoryHabitTap(h)" @click.stop.prevent
-            class="delete-btn shrink-0 p-1.5 rounded text-gray-600 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all" title="Mark as not done">
-            <Undo2 :size="13" />
-          </button>
         </div>
-      </div>
-      <div v-if="historyTasks.length" class="space-y-2">
+      </template>
+
+      <template v-if="historyTasks.length">
         <h3 class="text-xs font-medium text-gray-500">Tasks</h3>
-        <div v-for="t in historyTasks" :key="t.id" class="card flex items-center gap-3">
-          <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-emerald-500/20 text-emerald-400">
-            <Check :size="16" />
+        <div class="space-y-2">
+          <div v-for="t in historyTasks" :key="t.id" class="card flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-emerald-500/20 text-emerald-400">
+              <Check :size="16" />
+            </div>
+            <span class="text-sm text-gray-300 truncate flex-1">{{ t.title }}</span>
+            <button v-bind="undoHistoryTaskTap(t)" @click.stop.prevent
+              class="shrink-0 p-1.5 rounded text-gray-600 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all" title="Mark as not done">
+              <Undo2 :size="13" />
+            </button>
           </div>
-          <span class="text-sm text-gray-300 truncate flex-1">{{ t.title }}</span>
-          <button v-bind="undoHistoryTaskTap(t)" @click.stop.prevent
-            class="shrink-0 p-1.5 rounded text-gray-600 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all" title="Mark as not done">
-            <Undo2 :size="13" />
-          </button>
         </div>
+      </template>
+
+      <div v-if="!scheduledForDay.length && !historyTasks.length" class="card flex flex-col items-center gap-2 py-10 text-center">
+        <CalendarX :size="22" class="text-gray-600" />
+        <p class="text-sm text-gray-500">Nothing logged on this day</p>
+        <p class="text-xs text-gray-600">{{ isFutureDay ? 'A fresh start awaits' : 'Complete a task or habit to fill this day' }}</p>
       </div>
-      <div v-if="!scheduledForDay.length && !historyTasks.length" class="text-sm text-gray-500 py-2">No data for this day</div>
     </section>
 
     <!-- Mobile floating add button -->
     <div class="fixed bottom-20 left-0 right-0 z-40 flex justify-center md:hidden pointer-events-none">
       <button @click="fabMode = 'task'; showCreateModal = true"
-        class="pointer-events-auto touch-target shrink-0 flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-500/25 hover:bg-emerald-500 transition-colors active:scale-95">
+        class="pointer-events-auto touch-target shrink-0 flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-600 text-white shadow-md shadow-emerald-500/15 hover:bg-emerald-500 transition-colors active:scale-95">
         <Plus :size="24" />
       </button>
     </div>
@@ -207,7 +238,7 @@
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import api from '../api'
 import { useToast } from 'vue-toastification'
-import { Plus, ChevronDown, ChevronLeft, ChevronRight, CheckCircle2, Circle, Check, Trash2, Target, Loader2, Undo2, AlertTriangle } from 'lucide-vue-next'
+import { Plus, ChevronDown, ChevronLeft, ChevronRight, CheckCircle2, Circle, Check, Trash2, Target, Loader2, Undo2, AlertTriangle, Clock, CalendarX } from 'lucide-vue-next'
 import HabitCard from '../components/HabitCard.vue'
 import TaskCard from '../components/TaskCard.vue'
 import BeBetterCam from '../components/BeBetterCam.vue'
@@ -221,7 +252,7 @@ import { openDemoPrompt } from '../utils/demoPrompt'
 const toast = useToast()
 const auth = useAuthStore()
 
-const selectedDate = ref(new Date().toISOString().slice(0, 10))
+const selectedDate = ref(todayStr())
 const scheduledForDay = ref([])
 const historyTasks = ref([])
 const showCreateModal = ref(false)
@@ -247,6 +278,44 @@ const shiftDay = (offset) => {
 }
 
 const isFutureDay = computed(() => selectedDate.value > todayStr())
+
+const selectedDateLabel = computed(() => {
+  const d = new Date(selectedDate.value + 'T12:00:00')
+  if (isNaN(d.getTime())) return ''
+  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
+})
+
+const selectedDateStatus = computed(() => {
+  if (selectedDate.value === todayStr()) return 'Today'
+  if (isFutureDay.value) return 'Upcoming'
+  return 'Past'
+})
+
+const doneForDay = computed(() => scheduledForDay.value.filter(h => h.completed).length)
+const donePct = computed(() =>
+  scheduledForDay.value.length ? Math.round((doneForDay.value / scheduledForDay.value.length) * 100) : 0
+)
+
+const scheduledGroups = computed(() => {
+  const groups = []
+  const byTime = new Map()
+  for (const h of scheduledForDay.value) {
+    const key = h.scheduledTime || ''
+    if (!byTime.has(key)) byTime.set(key, [])
+    byTime.get(key).push(h)
+  }
+  const hasAnyTime = [...byTime.keys()].some(k => k)
+  if (hasAnyTime) {
+    for (const [time, items] of byTime) {
+      if (time) groups.push({ time, items })
+    }
+    groups.sort((a, b) => a.time.localeCompare(b.time))
+    if (byTime.has('')) groups.push({ time: null, items: byTime.get('') })
+  } else {
+    groups.push({ time: null, items: scheduledForDay.value })
+  }
+  return groups
+})
 
 function prevDay() {
   selectedDate.value = shiftDay(-1)
@@ -336,8 +405,8 @@ function formatDate(dateStr) {
 
 async function updateTaskFromCard(task) {
   try {
-    await api.put(`/tasks/${task.id}`, { title: task.title, description: task.description || undefined, dueDate: task.dueDate || undefined })
-    incompleteTasks.value = incompleteTasks.value.map(t => t.id === task.id ? { ...t, title: task.title, description: task.description, dueDate: task.dueDate } : t)
+    await api.put(`/tasks/${task.id}`, { title: task.title, description: task.description || undefined, dueDate: task.dueDate || undefined, scheduledTime: task.scheduledTime || undefined, reminderMinutes: task.reminderMinutes })
+    incompleteTasks.value = incompleteTasks.value.map(t => t.id === task.id ? { ...t, title: task.title, description: task.description, dueDate: task.dueDate, scheduledTime: task.scheduledTime, reminderMinutes: task.reminderMinutes } : t)
     toast.success('Task updated')
   } catch {
     toast.error('Failed to update task')
@@ -353,7 +422,7 @@ async function handleCreated(type, data) {
   }
   if (type === 'task') {
     try {
-      const res = await api.post('/tasks', { title: data.title, description: data.description, emoji: data.emoji, dueDate: data.dueDate || undefined })
+      const res = await api.post('/tasks', { title: data.title, description: data.description, emoji: data.emoji, dueDate: data.dueDate || undefined, scheduledTime: data.scheduledTime || undefined, scheduledDays: data.scheduledDays?.length ? data.scheduledDays : undefined, reminderMinutes: data.reminderMinutes != null ? data.reminderMinutes : undefined })
       incompleteTasks.value.unshift(res.data.task || res.data)
       toast.success('Task created')
     } catch {
@@ -430,10 +499,14 @@ async function loadAll() {
     const expanded = []
     for (const h of allHabits.filter(h => h.active !== false)) {
       const sched = h.schedules
-      if (sched && sched.length && sched.some(s => s.time)) {
-        const today = new Date().getDay()
-        for (const s of sched) {
-          if (s.time && s.days.includes(today)) {
+      const today = new Date().getDay()
+      const todayEntries = Array.isArray(sched) && sched.length
+        ? sched.filter(s => Array.isArray(s.days) && s.days.includes(today))
+        : null
+      if (Array.isArray(todayEntries)) {
+        const timed = todayEntries.filter(s => s.time)
+        if (timed.length > 0) {
+          for (const s of timed) {
             const logForSlot = logs.find(l => l.habitId === h.id && l.scheduledTime === s.time)
             expanded.push({
               ...h,
@@ -442,6 +515,14 @@ async function loadAll() {
               hasBreak: !!h.breaks?.find(b => !b.endDate),
             })
           }
+        } else {
+          const hasLog = logs.some(l => l.habitId === h.id)
+          expanded.push({
+            ...h,
+            scheduledTime: null,
+            completedToday: hasLog,
+            hasBreak: !!h.breaks?.find(b => !b.endDate),
+          })
         }
       } else {
         const hasLog = logs.some(l => l.habitId === h.id)

@@ -317,7 +317,7 @@ const activeBreak = computed(() => {
   return habit.value.breaks?.find(b => !b.endDate) || null
 })
 
-const editForm = reactive({
+const editForm = ref({
   title: '',
   description: '',
   emoji: '🎯',
@@ -325,6 +325,7 @@ const editForm = reactive({
   verificationType: 'honor',
   config: null,
   reminderMinutes: [],
+  wagers: [],
 })
 
 async function loadHabit() {
@@ -353,15 +354,19 @@ async function loadHabit() {
     }
 
     habit.value = loadedHabit
-    editForm.title = habit.value.title
-    editForm.description = habit.value.description || ''
-    editForm.emoji = habit.value.emoji || '🎯'
-    editForm.verificationType = habit.value.verificationType || 'honor'
-    editForm.config = habit.value.config || null
-    editForm.reminderMinutes = Array.isArray(habit.value.reminderMinutes) ? [...habit.value.reminderMinutes] : (habit.value.reminderMinutes != null ? [habit.value.reminderMinutes] : [])
+    const ef = editForm.value
+    ef.title = habit.value.title
+    ef.description = habit.value.description || ''
+    ef.emoji = habit.value.emoji || '🎯'
+    ef.verificationType = habit.value.verificationType || 'honor'
+    ef.config = habit.value.config || null
+    ef.reminderMinutes = Array.isArray(habit.value.reminderMinutes) ? [...habit.value.reminderMinutes] : (habit.value.reminderMinutes != null ? [habit.value.reminderMinutes] : [])
+    ef.wagers = Array.isArray(habit.value.wagers)
+      ? habit.value.wagers.map(w => ({ condition: w.condition || '', penaltyText: w.penaltyText || '' }))
+      : []
 
     if (Array.isArray(habit.value.schedules) && habit.value.schedules.length) {
-      editForm.schedules = habit.value.schedules.map(s => ({
+      ef.schedules = habit.value.schedules.map(s => ({
         time: s.time || null,
         days: Array.isArray(s.days) ? [...s.days] : [0, 1, 2, 3, 4, 5, 6],
       }))
@@ -371,7 +376,7 @@ async function loadHabit() {
         : (typeof habit.value.daysPerWeek === 'string'
             ? JSON.parse(habit.value.daysPerWeek)
             : [0, 1, 2, 3, 4, 5, 6]);
-      editForm.schedules = [{ time: null, days: Array.isArray(sched) && sched.length ? sched : [0, 1, 2, 3, 4, 5, 6] }]
+      ef.schedules = [{ time: null, days: Array.isArray(sched) && sched.length ? sched : [0, 1, 2, 3, 4, 5, 6] }]
     }
 
     logs.value = habit.value.logs || []
@@ -394,16 +399,18 @@ async function loadChallenges() {
 }
 
 async function saveEdit() {
-  if (!editForm.title.trim()) return
+  if (!editForm.value.title.trim()) return
+  const ef = editForm.value
   try {
     await api.put(`/habits/${route.params.id}`, {
-      title: editForm.title,
-      description: editForm.description,
-      emoji: editForm.emoji,
-      schedules: editForm.schedules,
-      verificationType: editForm.verificationType,
-      config: editForm.config,
-      reminderMinutes: editForm.reminderMinutes.length ? editForm.reminderMinutes : null,
+      title: ef.title,
+      description: ef.description,
+      emoji: ef.emoji,
+      schedules: ef.schedules,
+      verificationType: ef.verificationType,
+      config: ef.config,
+      reminderMinutes: ef.reminderMinutes.length ? ef.reminderMinutes : null,
+      wagers: ef.wagers,
     })
     editing.value = false
     toast.success('Habit updated')
