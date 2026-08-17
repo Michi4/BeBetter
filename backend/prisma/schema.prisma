@@ -158,6 +158,7 @@ model Preset {
   category         String   @default("general")
   frequencyType    String   @default("daily")
   daysPerWeek      Json?
+  schedules        Json?
   verificationType String   @default("honor")
   config           Json?
   isPublished      Boolean  @default(false)

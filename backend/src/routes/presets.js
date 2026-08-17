@@ -52,10 +52,14 @@ router.get('/', async (req, res) => {
 
 router.post('/', demoGuard, async (req, res) => {
   try {
-    const { title, description, config, category, emoji, frequencyType, daysPerWeek, verificationType } = req.body;
+    const { title, description, config, category, emoji, frequencyType, daysPerWeek, verificationType, schedules } = req.body;
     if (!title) return res.status(400).json({ error: 'title is required' });
 
     const author = await prisma.user.findUnique({ where: { id: req.userId }, select: { username: true } });
+
+    const scheduleDays = Array.isArray(schedules) && schedules.length
+      ? [...new Set(schedules.flatMap(s => Array.isArray(s.days) ? s.days : []))]
+      : null;
 
     const preset = await prisma.preset.create({
       data: {
@@ -66,8 +70,9 @@ router.post('/', demoGuard, async (req, res) => {
         config: config || undefined,
         category: category || 'general',
         emoji: emoji || '🎯',
-        frequencyType: frequencyType || 'daily',
-        daysPerWeek: daysPerWeek || JSON.stringify([1, 2, 3, 4, 5, 6, 7]),
+        frequencyType: scheduleDays ? 'daily' : (frequencyType || 'daily'),
+        daysPerWeek: scheduleDays ? scheduleDays : (daysPerWeek || JSON.stringify([1, 2, 3, 4, 5, 6, 7])),
+        schedules: Array.isArray(schedules) && schedules.length ? schedules : undefined,
         verificationType: verificationType || 'honor',
         isPublished: true,
       },
@@ -166,8 +171,11 @@ router.post('/:id/fork', async (req, res) => {
         title: preset.title,
         description: preset.description || '',
         emoji: preset.emoji || '🎯',
-        frequencyType: preset.frequencyType || 'daily',
-        daysPerWeek: preset.daysPerWeek || JSON.stringify([1, 2, 3, 4, 5, 6, 7]),
+        frequencyType: Array.isArray(preset.schedules) && preset.schedules.length ? 'daily' : (preset.frequencyType || 'daily'),
+        daysPerWeek: Array.isArray(preset.schedules) && preset.schedules.length
+          ? [...new Set(preset.schedules.flatMap(s => Array.isArray(s.days) ? s.days : []))]
+          : (preset.daysPerWeek || JSON.stringify([1, 2, 3, 4, 5, 6, 7])),
+        schedules: Array.isArray(preset.schedules) && preset.schedules.length ? preset.schedules : undefined,
         verificationType: preset.verificationType || 'honor',
         config: preset.config || undefined,
       },
@@ -207,8 +215,11 @@ router.post('/:id/use', async (req, res) => {
         title: preset.title,
         description: preset.description || '',
         emoji: preset.emoji || '🎯',
-        frequencyType: preset.frequencyType || 'daily',
-        daysPerWeek: preset.daysPerWeek || JSON.stringify([1, 2, 3, 4, 5, 6, 7]),
+        frequencyType: Array.isArray(preset.schedules) && preset.schedules.length ? 'daily' : (preset.frequencyType || 'daily'),
+        daysPerWeek: Array.isArray(preset.schedules) && preset.schedules.length
+          ? [...new Set(preset.schedules.flatMap(s => Array.isArray(s.days) ? s.days : []))]
+          : (preset.daysPerWeek || JSON.stringify([1, 2, 3, 4, 5, 6, 7])),
+        schedules: Array.isArray(preset.schedules) && preset.schedules.length ? preset.schedules : undefined,
         verificationType: preset.verificationType || 'honor',
         config: preset.config || undefined,
       },
@@ -322,7 +333,7 @@ router.put('/:id', async (req, res) => {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
-    const { title, description, category, emoji, verificationType } = req.body;
+    const { title, description, category, emoji, verificationType, schedules } = req.body;
     const updated = await prisma.preset.update({
       where: { id: req.params.id },
       data: {
@@ -331,6 +342,7 @@ router.put('/:id', async (req, res) => {
         ...(category !== undefined && { category }),
         ...(emoji !== undefined && { emoji }),
         ...(verificationType !== undefined && { verificationType }),
+        ...(schedules !== undefined && { schedules }),
       },
     });
 

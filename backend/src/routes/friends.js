@@ -329,6 +329,7 @@ router.get('/profile/:userIdOrUsername', async (req, res) => {
     }
 
     let isFriend = false;
+    let requestSent = false;
     if (currentUserId && !isOwn) {
       const friendship = await prisma.friendship.findFirst({
         where: {
@@ -339,6 +340,12 @@ router.get('/profile/:userIdOrUsername', async (req, res) => {
         },
       });
       isFriend = !!friendship;
+      if (!isFriend) {
+        const pending = await prisma.friendRequest.findFirst({
+          where: { requesterId: currentUserId, receiverId: user.id, status: 'pending' },
+        });
+        requestSent = !!pending;
+      }
     }
 
     const habits = await prisma.habit.findMany({
@@ -358,7 +365,7 @@ router.get('/profile/:userIdOrUsername', async (req, res) => {
       bestStreak: habits.reduce((max, h) => Math.max(max, h.bestStreak || 0), 0),
     };
 
-    res.json({ user, habits, recentLogs, stats, isFriend });
+    res.json({ user, habits, recentLogs, stats, isFriend, requestSent });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Server error' });

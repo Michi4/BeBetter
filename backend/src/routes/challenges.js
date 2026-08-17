@@ -336,7 +336,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
     const challenge = await prisma.challenge.findUnique({
       where: { id },
       include: {
-        habit: { select: { id: true, title: true, emoji: true, description: true, frequencyType: true, verificationType: true } },
+        habit: { select: { id: true, title: true, emoji: true, description: true, frequencyType: true, verificationType: true, schedules: true } },
         creator: { select: { id: true, username: true, avatar: true } },
         opponent: { select: { id: true, username: true, avatar: true } },
       },
