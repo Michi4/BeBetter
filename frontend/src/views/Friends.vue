@@ -10,8 +10,8 @@
     <div class="card space-y-3">
       <h3 class="section-title">Invite Friends</h3>
       <div class="flex gap-2">
-        <input :value="inviteLink" readonly class="input text-xs flex-1" />
-        <button @click="copyInvite" class="btn whitespace-nowrap">
+        <input :value="inviteLink" readonly :disabled="!friendToken" class="input text-xs flex-1 disabled:opacity-60" />
+        <button @click="copyInvite" :disabled="!friendToken" class="btn whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed">
           <Copy :size="14" /> Copy
         </button>
       </div>

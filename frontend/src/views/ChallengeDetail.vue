@@ -1,7 +1,7 @@
 <template>
   <div class="page">
     <div class="flex items-center gap-2">
-      <button @click="$router.back()" class="btn-ghost p-1"><ArrowLeft :size="18" /></button>
+      <button @click="$router.back()" class="btn-ghost p-1" aria-label="Go back"><ArrowLeft :size="18" /></button>
       <h1 class="text-xl font-bold truncate">{{ challenge.title }}</h1>
     </div>
 
@@ -200,7 +200,10 @@ async function loadChallenge() {
 async function logChallengeHabit() {
   if (iLoggedToday.value) return
   try {
-    await api.post('/logs', { habitId: challenge.value.habitId })
+    const payload = { habitId: challenge.value.habitId }
+    const slot = challengeSlotTime()
+    if (slot) payload.scheduledTime = slot
+    await api.post('/logs', payload)
     iLoggedToday.value = true
     toast.success('Habit completed!')
     loadChallenge()
@@ -208,6 +211,14 @@ async function logChallengeHabit() {
     if (e.response?.status === 409) toast.info('Already completed today!')
     else toast.error('Failed')
   }
+}
+
+function challengeSlotTime() {
+  const scheds = challenge.value?.habit?.schedules || []
+  if (!Array.isArray(scheds) || !scheds.length) return null
+  const today = new Date().getDay()
+  const pick = scheds.find(s => Array.isArray(s.days) && s.days.includes(today)) || scheds[0]
+  return pick?.time || null
 }
 
 async function acceptChallenge() {
