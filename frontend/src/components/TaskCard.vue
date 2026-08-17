@@ -21,7 +21,7 @@
             <span v-for="(m, i) in editForm.reminderMinutes" :key="i"
               class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px]">
               {{ m === 0 ? 'At time' : m + 'm' }}
-              <button @click="editForm.reminderMinutes.splice(i, 1)" class="hover:text-red-400"><X :size="8" /></button>
+              <button @click="editForm.reminderMinutes.splice(i, 1)" aria-label="Remove reminder" class="hover:text-red-400"><X :size="8" /></button>
             </span>
           </div>
           <div class="flex flex-wrap gap-1">
@@ -52,7 +52,8 @@
         class="shrink-0 w-10 h-10 rounded-lg border-2 flex items-center justify-center transition-all duration-200"
         :class="task.completed
           ? 'bg-emerald-500 border-emerald-500 text-white scale-110 animate-check'
-          : 'border-gray-600 hover:border-emerald-400 hover:bg-emerald-500/10 text-transparent hover:text-emerald-400/40'">
+          : 'border-gray-600 hover:border-emerald-400 hover:bg-emerald-500/10 text-transparent hover:text-emerald-400/40'"
+        :aria-label="task.completed ? 'Mark as not done' : 'Mark as done'">
         <Check :size="16" :stroke-width="3" />
       </button>
 

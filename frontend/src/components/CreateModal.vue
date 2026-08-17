@@ -2,7 +2,7 @@
   <Teleport to="body">
     <div v-if="show" class="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm" @click.self="$emit('close')" @keydown.escape="$emit('close')" ref="modalEl" tabindex="-1">
       <div class="card w-full max-w-md mx-0 sm:mx-4 max-h-[90vh] overflow-y-auto rounded-b-2xl sm:rounded-2xl safe-bottom relative" style="padding-bottom: max(env(safe-area-inset-bottom, 0px), 24px)" @click.stop>
-        <button @click="$emit('close')" class="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-gray-700/50 hover:bg-gray-600/60 flex items-center justify-center text-gray-400 hover:text-white transition-all">
+        <button @click="$emit('close')" aria-label="Close" class="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-gray-700/50 hover:bg-gray-600/60 flex items-center justify-center text-gray-400 hover:text-white transition-all">
           <X :size="16" :stroke-width="2.5" />
         </button>
 

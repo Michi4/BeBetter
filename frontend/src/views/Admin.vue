@@ -86,7 +86,7 @@
                 {{ r.status }}
               </span>
             </template>
-            <button @click="deleteReport(r)" class="btn-ghost text-red-400/70 hover:text-red-400 text-xs shrink-0 px-2 min-h-[36px]">
+            <button @click="deleteReport(r)" class="btn-ghost text-red-400/70 hover:text-red-400 text-xs shrink-0 px-2 min-h-[36px]" aria-label="Delete report">
               <Trash2 :size="12" />
             </button>
           </div>
@@ -136,11 +136,11 @@
               </span>
             </button>
             <button v-if="!u.bannedUntil" @click="banUser(u)"
-              class="text-gray-600 hover:text-red-400 transition-colors p-1.5 rounded hover:bg-red-500/10">
+              class="text-gray-600 hover:text-red-400 transition-colors p-1.5 rounded hover:bg-red-500/10" aria-label="Ban user">
               <Ban :size="14" />
             </button>
             <button v-else @click="unbanUser(u)"
-              class="text-gray-600 hover:text-emerald-400 transition-colors p-1.5 rounded hover:bg-emerald-500/10">
+              class="text-gray-600 hover:text-emerald-400 transition-colors p-1.5 rounded hover:bg-emerald-500/10" aria-label="Unban user">
               <ShieldCheck :size="14" />
             </button>
           </div>

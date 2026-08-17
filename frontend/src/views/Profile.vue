@@ -53,12 +53,12 @@
           <h3 class="section-title">{{ isOwn ? 'Your Activity' : profile.username + "'s Activity" }}</h3>
           <div v-if="gridYearRange.lastYear > gridYearRange.firstYear" class="flex items-center gap-1">
             <button @click="gridYear--" :disabled="gridYear <= gridYearRange.firstYear"
-              class="touch-target p-2 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 disabled:opacity-30 transition-colors">
+              class="touch-target p-2 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 disabled:opacity-30 transition-colors" aria-label="Previous year">
               <ChevronLeft :size="16" />
             </button>
             <span class="text-xs font-medium text-gray-400 min-w-[36px] text-center">{{ gridYear }}</span>
             <button @click="gridYear++" :disabled="gridYear >= gridYearRange.lastYear"
-              class="touch-target p-2 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 disabled:opacity-30 transition-colors">
+              class="touch-target p-2 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 disabled:opacity-30 transition-colors" aria-label="Next year">
               <ChevronRight :size="16" />
             </button>
           </div>
@@ -153,7 +153,8 @@
                 <TimeInput v-if="notifPrefs.morningEnabled" v-model="notifPrefs.morningTime" />
                 <button @click="notifPrefs.morningEnabled = !notifPrefs.morningEnabled; saveNotifPrefs()"
                   class="relative w-12 h-6 rounded-full transition-colors duration-200 shrink-0"
-                  :class="notifPrefs.morningEnabled ? 'bg-emerald-600' : 'bg-gray-700'">
+                  :class="notifPrefs.morningEnabled ? 'bg-emerald-600' : 'bg-gray-700'"
+                  role="switch" :aria-checked="!!notifPrefs.morningEnabled" :aria-label="'Morning reminder'">
                   <span class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200"
                     :class="notifPrefs.morningEnabled ? 'translate-x-6' : ''"></span>
                 </button>
@@ -170,7 +171,8 @@
                 <TimeInput v-if="notifPrefs.eveningEnabled" v-model="notifPrefs.eveningTime" />
                 <button @click="notifPrefs.eveningEnabled = !notifPrefs.eveningEnabled; saveNotifPrefs()"
                   class="relative w-12 h-6 rounded-full transition-colors duration-200 shrink-0"
-                  :class="notifPrefs.eveningEnabled ? 'bg-emerald-600' : 'bg-gray-700'">
+                  :class="notifPrefs.eveningEnabled ? 'bg-emerald-600' : 'bg-gray-700'"
+                  role="switch" :aria-checked="!!notifPrefs.eveningEnabled" aria-label="Evening summary">
                   <span class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200"
                     :class="notifPrefs.eveningEnabled ? 'translate-x-6' : ''"></span>
                 </button>
@@ -184,8 +186,9 @@
                 <div class="text-[10px] text-gray-500">Remind about incomplete habits</div>
               </div>
               <button @click="notifPrefs.habitRemindersEnabled = !notifPrefs.habitRemindersEnabled; saveNotifPrefs()"
-                class="relative w-12 h-6 rounded-full transition-colors duration-200"
-                :class="notifPrefs.habitRemindersEnabled ? 'bg-emerald-600' : 'bg-gray-700'">
+                class="relative w-12 h-6 rounded-full transition-colors duration-200 shrink-0"
+                :class="notifPrefs.habitRemindersEnabled ? 'bg-emerald-600' : 'bg-gray-700'"
+                role="switch" :aria-checked="!!notifPrefs.habitRemindersEnabled" aria-label="Habit reminders">
                 <span class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200"
                   :class="notifPrefs.habitRemindersEnabled ? 'translate-x-6' : ''"></span>
               </button>
@@ -198,8 +201,9 @@
                 <div class="text-[10px] text-gray-500">Receive push on your device</div>
               </div>
               <button @click="togglePush" :disabled="pushLoading"
-                class="relative w-12 h-6 rounded-full transition-colors duration-200"
-                :class="pushEnabled ? 'bg-emerald-600' : 'bg-gray-700'">
+                class="relative w-12 h-6 rounded-full transition-colors duration-200 shrink-0"
+                :class="pushEnabled ? 'bg-emerald-600' : 'bg-gray-700'"
+                role="switch" :aria-checked="pushEnabled" aria-label="Push notifications">
                 <Loader2 v-if="pushLoading" :size="12" class="absolute left-5 top-2 animate-spin text-white" />
                 <span v-else class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200"
                   :class="pushEnabled ? 'translate-x-6' : ''"></span>
@@ -213,8 +217,9 @@
                 <div class="text-[10px] text-gray-500">Product updates from the BeBetter team</div>
               </div>
               <button @click="notifPrefs.announcementsEnabled = !notifPrefs.announcementsEnabled; saveNotifPrefs()"
-                class="relative w-12 h-6 rounded-full transition-colors duration-200"
-                :class="notifPrefs.announcementsEnabled ? 'bg-emerald-600' : 'bg-gray-700'">
+                class="relative w-12 h-6 rounded-full transition-colors duration-200 shrink-0"
+                :class="notifPrefs.announcementsEnabled ? 'bg-emerald-600' : 'bg-gray-700'"
+                role="switch" :aria-checked="!!notifPrefs.announcementsEnabled" aria-label="Announcements">
                 <span class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200"
                   :class="notifPrefs.announcementsEnabled ? 'translate-x-6' : ''"></span>
               </button>

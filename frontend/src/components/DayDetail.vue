@@ -4,7 +4,7 @@
       <div class="card w-full max-w-md mx-4 max-h-[85vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-4">
           <h3 class="font-semibold">{{ formatDate(day?.date) }}</h3>
-          <button @click="$emit('close')" class="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:text-gray-200 transition-colors"><X :size="16" /></button>
+          <button @click="$emit('close')" aria-label="Close" class="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:text-gray-200 transition-colors"><X :size="16" /></button>
         </div>
 
         <div v-if="day?.scheduled > 0" class="mb-4">
