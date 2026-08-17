@@ -153,19 +153,25 @@ async function switchTab(value) {
   await loadLeaderboard()
 }
 
+let lbToken = 0
+
 async function loadLeaderboard() {
+  const token = ++lbToken
   loading.value = true
   entries.value = []
   challenges.value = []
   try {
     if (activeTab.value === 'friends') {
       const res = await api.get('/challenges/leaderboard/friends')
+      if (token !== lbToken) return
       entries.value = res.data.leaderboard || []
     } else if (activeTab.value === 'global') {
       const res = await api.get('/leaderboard/global')
+      if (token !== lbToken) return
       entries.value = res.data.leaderboard || []
     } else {
       const res = await api.get('/challenges')
+      if (token !== lbToken) return
       const seen = new Set()
       challenges.value = (res.data.challenges || []).filter(c => {
         if (seen.has(c.id)) return false
@@ -174,6 +180,7 @@ async function loadLeaderboard() {
       })
     }
   } catch {
+    if (token !== lbToken) return
     entries.value = []
     challenges.value = []
   }

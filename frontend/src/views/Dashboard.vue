@@ -63,12 +63,12 @@
         <h2 class="section-title">Year in Review</h2>
         <div v-if="yearRange.lastYear > yearRange.firstYear" class="flex items-center gap-1">
           <button @click="selectedYear--" :disabled="selectedYear <= yearRange.firstYear"
-            class="touch-target p-2 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+            class="touch-target p-2 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors" aria-label="Previous year">
             <ChevronLeft :size="16" />
           </button>
           <span class="text-xs font-medium text-gray-400 min-w-[36px] text-center">{{ selectedYear }}</span>
           <button @click="selectedYear++" :disabled="selectedYear >= yearRange.lastYear"
-            class="touch-target p-2 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+            class="touch-target p-2 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors" aria-label="Next year">
             <ChevronRight :size="16" />
           </button>
         </div>
@@ -338,7 +338,10 @@ async function loadYearRange() {
   }
 }
 
+let gridToken = 0
+
 async function loadGrid() {
+  const token = ++gridToken
   try {
     const year = selectedYear.value
     const from = `${year}-01-01`
@@ -360,8 +363,10 @@ async function loadGrid() {
       }
       cur.setDate(cur.getDate() + 1)
     }
+    if (token !== gridToken) return
     gridDays.value = days
   } catch {
+    if (token !== gridToken) return
     toast.error('Failed to load grid')
   }
 }
@@ -459,8 +464,8 @@ async function editTask(task) {
     const payload = {
       title: task.title,
       description: task.description || undefined,
-      dueDate: task.dueDate || undefined,
-      scheduledTime: task.scheduledTime || undefined,
+      dueDate: task.dueDate ?? null,
+      scheduledTime: task.scheduledTime ?? null,
     }
     if (task.reminderMinutes != null) payload.reminderMinutes = task.reminderMinutes
     await api.put(`/tasks/${task.id}`, payload)

@@ -34,16 +34,18 @@
         <TaskCard :task="task" @complete="completeTask" @delete="confirmDeleteTask" @edit="updateTaskFromCard" @convert="convertTask" />
       </div>
       <div v-if="completedTasks.length > 0" class="rounded-xl border border-gray-800 bg-gray-900/50 overflow-hidden">
-        <button @click="showCompletedTasks = !showCompletedTasks" class="min-h-[44px] w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-400 hover:bg-gray-800/50 transition-colors">
-          <div class="flex items-center gap-2">
+        <div class="min-h-[44px] w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-400 hover:bg-gray-800/50 transition-colors">
+          <button @click="showCompletedTasks = !showCompletedTasks" :aria-expanded="showCompletedTasks" class="flex items-center gap-2">
             <span>Completed Tasks</span>
             <span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400">{{ completedTasks.length }}</span>
-          </div>
+          </button>
           <div class="flex items-center gap-2">
-            <button @click.stop="confirmDeleteAllTasks" class="text-[10px] px-2 py-1 rounded text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-colors">Clear all</button>
-            <ChevronDown :size="16" class="transition-transform duration-200" :class="showCompletedTasks ? 'rotate-180' : ''" />
+            <button @click="confirmDeleteAllTasks" class="text-[10px] px-2 py-1 rounded text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-colors">Clear all</button>
+            <button @click="showCompletedTasks = !showCompletedTasks" :aria-expanded="showCompletedTasks" aria-label="Toggle completed tasks" class="p-1 rounded hover:bg-gray-800 transition-colors">
+              <ChevronDown :size="16" class="transition-transform duration-200" :class="showCompletedTasks ? 'rotate-180' : ''" />
+            </button>
           </div>
-        </button>
+        </div>
         <div v-if="showCompletedTasks" class="border-t border-gray-800">
           <div v-for="task in visibleCompletedTasks" :key="task.id" class="completed-row flex items-center gap-3 px-4 py-3">
             <div class="w-8 h-8 rounded-full flex items-center justify-center bg-emerald-500/20 text-emerald-400 shrink-0">
@@ -85,16 +87,18 @@
       </div>
 
       <div v-if="completedHabits.length > 0" class="rounded-xl border border-gray-800 bg-gray-900/50 overflow-hidden">
-        <button @click="showCompletedHabits = !showCompletedHabits" class="min-h-[44px] w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-400 hover:bg-gray-800/50 transition-colors">
-          <div class="flex items-center gap-2">
+        <div class="min-h-[44px] w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-400 hover:bg-gray-800/50 transition-colors">
+          <button @click="showCompletedHabits = !showCompletedHabits" :aria-expanded="showCompletedHabits" class="flex items-center gap-2">
             <span>Completed Habits</span>
             <span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400">{{ completedHabits.length }}</span>
-          </div>
+          </button>
           <div class="flex items-center gap-2">
-            <button @click.stop="confirmDeleteAllHabits" class="text-[10px] px-2 py-1 rounded text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-colors">Clear all</button>
-            <ChevronDown :size="16" class="transition-transform duration-200" :class="showCompletedHabits ? 'rotate-180' : ''" />
+            <button @click="confirmDeleteAllHabits" class="text-[10px] px-2 py-1 rounded text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-colors">Clear all</button>
+            <button @click="showCompletedHabits = !showCompletedHabits" :aria-expanded="showCompletedHabits" aria-label="Toggle completed habits" class="p-1 rounded hover:bg-gray-800 transition-colors">
+              <ChevronDown :size="16" class="transition-transform duration-200" :class="showCompletedHabits ? 'rotate-180' : ''" />
+            </button>
           </div>
-        </button>
+        </div>
         <div v-if="showCompletedHabits" class="border-t border-gray-800">
           <div v-for="habit in visibleCompletedHabits" :key="habit.id" class="completed-row flex items-center gap-3 px-4 py-3">
             <div class="w-8 h-8 rounded-full flex items-center justify-center bg-emerald-500/20 text-emerald-400 shrink-0">
@@ -135,7 +139,7 @@
           </button>
         </div>
         <div class="flex items-center gap-2">
-          <input v-model="selectedDate" type="date" class="min-h-[44px] flex-1 min-w-0 rounded-lg border border-gray-700 bg-gray-800/50 px-3 py-2 text-sm text-gray-200 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+          <input v-model="selectedDate" type="date" aria-label="Habit date" class="min-h-[44px] flex-1 min-w-0 rounded-lg border border-gray-700 bg-gray-800/50 px-3 py-2 text-sm text-gray-200 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
           <button @click="selectedDate = todayStr()" class="min-h-[44px] rounded-lg bg-gray-800 px-4 py-2 text-xs font-medium text-gray-300 hover:bg-gray-700 transition-colors shrink-0">Today</button>
         </div>
         <div v-if="scheduledForDay.length" class="flex items-center gap-2">
@@ -405,7 +409,7 @@ function formatDate(dateStr) {
 
 async function updateTaskFromCard(task) {
   try {
-    await api.put(`/tasks/${task.id}`, { title: task.title, description: task.description || undefined, dueDate: task.dueDate || undefined, scheduledTime: task.scheduledTime || undefined, reminderMinutes: task.reminderMinutes })
+    await api.put(`/tasks/${task.id}`, { title: task.title, description: task.description || undefined, dueDate: task.dueDate ?? null, scheduledTime: task.scheduledTime ?? null, reminderMinutes: task.reminderMinutes })
     incompleteTasks.value = incompleteTasks.value.map(t => t.id === task.id ? { ...t, title: task.title, description: task.description, dueDate: task.dueDate, scheduledTime: task.scheduledTime, reminderMinutes: task.reminderMinutes } : t)
     toast.success('Task updated')
   } catch {
@@ -699,8 +703,12 @@ async function undoHabit(habit, scheduledTime) {
 
 async function undoCompletedHabit(habit) {
   try {
-    await api.delete('/logs/habit/' + habit.id, { params: { date: todayStr() } })
     await api.put('/habits/' + habit.id, { active: true })
+    try {
+      await api.delete('/logs/habit/' + habit.id, { params: { date: todayStr() } })
+    } catch (e) {
+      if (e.response?.status !== 404) throw e
+    }
     completedHabits.value = completedHabits.value.filter(h => h.id !== habit.id)
     loadAll()
     loadHistory()

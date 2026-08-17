@@ -57,6 +57,23 @@ Status tracker for the full audit + feedback pass (Michi & Jonas).
 - [x] FeaturePillar — hardcoded text-white/text-gray-300 invisible in light theme; now theme tokens (unused component, latent fix)
 - [x] ChallengeInvite — back button aria-label
 
+## Round 3 sweep (core app audit)
+
+- [x] Task edit cleared fields — `dueDate: x || undefined` never cleared (backend skips undefined, old value stayed); now `?? null` (Dashboard + Habits) — backend PUT already mapped ''/null to a real NULL
+- [x] Habit reactivation — undoCompletedHabit deleted today's log FIRST; finished habits have no log today → 404 blocked reactivation forever; now reactivate first, swallow 404 on log delete
+- [x] Preset import — read nonexistent `h.recurrence` (backend returns `schedules`); now maps schedules → recurrence shape; times now imported too
+- [x] Preset schedules — RecurrenceBuilder times were silently dropped: frontend never sent them top-level, backend POST/PUT ignored them, and /use + /fork only created daily habits from frequencyType/daysPerWeek. Added `schedules Json?` column to Preset (db push auto-applies in container), end-to-end pass-through (POST/PUT/use/fork), frontend sends `schedules`
+- [x] Friend request state — Profile "Add Friend" reverted after reload/duplicate request (backend /friends/profile never returned requestSent); now computed server-side (pending request from viewer → target)
+- [x] Invalid HTML — "Clear all" button nested inside the collapsible header button (Completed Tasks/Habits); headers split into valid sibling buttons (toggle + clear all + chevron)
+- [x] Challenge log with timed habit — logged without scheduledTime → duplicate null-slot log; now passes today's slot (backend /challenges/:id now includes habit.schedules)
+- [x] Stale-response races — Leaderboard tab switches and Dashboard year navigation could resolve out of order; token guards added
+- [x] BeBetterCam — OverconstrainedError retried forever (infinite facing-mode ping-pong); single retry then user error + manual retry resets
+- [x] TimeInput 12h — minute select showed "00" for stored times off the 5-min grid (e.g. :37); literal option added
+- [x] ContributionGrid keyboard a11y — interactive cells focusable (tabindex/role/aria-label/Enter/Space select)
+- [x] A11y labels — icon-only buttons named across TaskCard, CreateModal, DayDetail, HabitDetail, ChallengeDetail, BeBetterCam (close/flash/shutter/switch), Admin (delete/ban/unban), year nav (Dashboard/Profile); Profile notification toggles are now role=switch + aria-checked + shrink-0
+- [x] Friends invite — "Generating link..." placeholder was copyable; copy/input disabled until the token arrives
+- [x] Final build/lint verification — deployed index-iznPhAzZ.js, prod 200 + health OK
+
 ## Infra notes (dev stack)
 
 - dev-web runs as root (uid-1000 variant hit unreproducible EACCES on this host's storage; root stable 41h+). Host-side `npm run build` may hit root-owned dist → `docker compose -f docker-compose.dev.yml stop dev-web`, chown dist, build, start.
