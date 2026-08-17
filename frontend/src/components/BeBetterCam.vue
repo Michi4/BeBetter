@@ -3,7 +3,7 @@
     <div v-if="show" class="fixed inset-0 z-[70] bg-black flex flex-col" @keydown.escape="close" tabindex="-1" ref="camEl">
       <div class="flex items-center justify-between p-4 safe-top">
         <h3 class="text-white font-medium">BeBetter Cam</h3>
-        <button @click="close" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white/70 hover:text-white transition-colors"><X :size="20" /></button>
+        <button @click="close" aria-label="Close" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white/70 hover:text-white transition-colors"><X :size="20" /></button>
       </div>
 
       <div class="flex-1 flex items-center justify-center relative overflow-hidden">
@@ -50,17 +50,20 @@
             <!-- Flash toggle -->
             <button v-if="torchSupported" @click="toggleTorch"
               class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center transition-colors"
-              :class="torchOn ? 'text-amber-400' : 'text-white/50'">
+              :class="torchOn ? 'text-amber-400' : 'text-white/50'"
+              :aria-label="torchOn ? 'Turn flash off' : 'Turn flash on'" :aria-pressed="torchOn">
               <Zap :size="20" :fill="torchOn ? 'currentColor' : 'none'" />
             </button>
             <!-- Shutter -->
             <button @click="capture" :disabled="!!cameraError"
-              class="w-16 h-16 rounded-full bg-white/20 border-4 border-white flex items-center justify-center transition-all duration-150 hover:bg-white/30 active:scale-95 disabled:opacity-30">
+              class="w-16 h-16 rounded-full bg-white/20 border-4 border-white flex items-center justify-center transition-all duration-150 hover:bg-white/30 active:scale-95 disabled:opacity-30"
+              aria-label="Take photo">
               <div class="w-12 h-12 rounded-full bg-white"></div>
             </button>
             <!-- Camera switch -->
             <button v-if="hasMultipleCameras" @click="switchCamera"
-              class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors">
+              class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors"
+              aria-label="Switch camera">
               <SwitchCamera :size="20" />
             </button>
             <div v-else class="w-12 h-12"></div>
@@ -102,6 +105,7 @@ const videoActive = ref(true)
 
 let stream = null
 let countdownTimer = null
+let overconstrainedRetried = false
 
 async function enumerateCameras() {
   try {
@@ -139,8 +143,13 @@ async function startCamera() {
     } else if (err.name === 'NotFoundError' || err.name === 'NotReadableError') {
       cameraError.value = 'No camera found on this device.'
     } else if (err.name === 'OverconstrainedError') {
-      facingMode.value = facingMode.value === 'environment' ? 'user' : 'environment'
-      return startCamera()
+      if (overconstrainedRetried) {
+        cameraError.value = 'Camera does not support the requested settings.'
+      } else {
+        overconstrainedRetried = true
+        facingMode.value = facingMode.value === 'environment' ? 'user' : 'environment'
+        return startCamera()
+      }
     } else {
       cameraError.value = 'Camera unavailable: ' + err.message
     }
@@ -148,6 +157,7 @@ async function startCamera() {
 }
 
 function retryCamera() {
+  overconstrainedRetried = false
   stopCamera()
   startCamera()
 }

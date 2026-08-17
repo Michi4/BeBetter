@@ -31,10 +31,15 @@
                     class="grid-cell rounded-[2px] transition-transform duration-100 ease-out hover:scale-125 hover:z-10 relative cursor-pointer"
                     :class="day ? getCellClass(day) : 'bg-transparent'"
                     :style="{ width: cell + 'px', height: cell + 'px' }"
+                    :tabindex="day && canSelect(day) ? 0 : -1"
+                    :role="day && canSelect(day) ? 'gridcell' : 'presentation'"
+                    :aria-label="day ? cellAria(day) : null"
                     @mouseenter="day ? onCellEnter(day, $event) : null"
                     @mousemove="onCellMove($event)"
                     @mouseleave="onCellLeave"
-                    @click="day && (day.scheduled > 0 || day.completed > 0 || day.tasks > 0) && $emit('select', day)">
+                    @click="day && canSelect(day) && $emit('select', day)"
+                    @keydown.enter.prevent="day && canSelect(day) && $emit('select', day)"
+                    @keydown.space.prevent="day && canSelect(day) && $emit('select', day)">
                   </div>
                 </div>
               </div>
@@ -319,6 +324,18 @@ function getCellClass(day) {
   if (day.ratio <= 0.66) return 'bg-emerald-700 hover:brightness-110 cursor-pointer' + todayRing
   if (day.ratio < 1.0) return 'bg-emerald-500 hover:brightness-110 cursor-pointer' + todayRing
   return 'bg-emerald-400 shadow-[0_0_4px_rgba(74,222,128,0.16)] hover:brightness-110 cursor-pointer' + todayRing
+}
+
+function canSelect(day) {
+  return !!day && (day.scheduled > 0 || day.completed > 0 || day.tasks > 0)
+}
+
+function cellAria(day) {
+  const parts = [formatTipDate(day.date)]
+  if (day.scheduled > 0 || day.habits > 0) parts.push(`${day.habits}/${day.scheduled} habits done`)
+  if (day.tasks > 0) parts.push(`${day.tasks} tasks`)
+  if (day.scheduled === 0 && day.habits === 0 && day.tasks === 0 && day.completed === 0) parts.push('No activity')
+  return parts.join(', ')
 }
 
 function formatTipDate(dateStr) {

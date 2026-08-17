@@ -17,6 +17,7 @@
         <span class="text-gray-500 text-xs">:</span>
         <select :value="minute" @change="setPart('minute', $event.target.value)"
           class="input !w-auto px-1.5 py-1.5 text-xs text-center bg-gray-800 border-gray-700 text-gray-100 rounded-lg appearance-none cursor-pointer">
+          <option v-if="!minutes.includes(minute)" :value="minute">{{ String(minute).padStart(2, '0') }}</option>
           <option v-for="m in minutes" :key="m" :value="m">{{ String(m).padStart(2, '0') }}</option>
         </select>
         <select :value="ampm" @change="setPart('ampm', $event.target.value)"
