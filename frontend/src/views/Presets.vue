@@ -160,7 +160,14 @@ function importFromHabit(id) {
   if (!h) return
   createForm.title = h.title
   createForm.description = h.description || ''
-  if (h.recurrence) createForm.recurrence = { ...h.recurrence }
+  if (Array.isArray(h.schedules) && h.schedules.length > 0) {
+    createForm.recurrence = h.schedules.map(s => ({
+      time: s.time || null,
+      days: Array.isArray(s.days) ? [...s.days] : [],
+    }))
+  } else {
+    createForm.recurrence = [{ time: null, days: [0, 1, 2, 3, 4, 5, 6] }]
+  }
   if (h.verificationType) createForm.verificationType = h.verificationType
 }
 
@@ -184,6 +191,7 @@ async function createPreset() {
       description: createForm.description,
       category: createForm.category,
       verificationType: createForm.verificationType,
+      schedules: createForm.recurrence,
       config: {
         title: createForm.title,
         description: createForm.description,
