@@ -63,51 +63,94 @@ router.get('/overview', authMiddleware, async (req, res) => {
     const totalLogs = await prisma.habitLog.count({ where: { userId } });
 
     const allHabits = await prisma.habit.findMany({
-      where: { userId },
-      select: { id: true, bestStreak: true },
+      where: { userId, active: true },
+      select: { id: true, bestStreak: true, daysPerWeek: true, frequencyType: true },
     });
 
     const bestStreak = allHabits.reduce((max, h) => Math.max(max, h.bestStreak || 0), 0);
 
+    // Active streak = the longest *per-habit* consecutive run of scheduled days,
+    // counting back from that habit's most recent completion. Previously this
+    // tallied consecutive days across ALL habits, so alternating two habits on
+    // consecutive days produced a fake streak no single habit actually had.
     let activeStreak = 0;
-    {
+    if (allHabits.length) {
       const allLogs = await prisma.habitLog.findMany({
+        where: { userId },
+        orderBy: { completedAt: 'asc' },
+        select: { habitId: true, completedAt: true },
+      });
+      const logsByHabit = new Map();
+      for (const l of allLogs) {
+        if (!logsByHabit.has(l.habitId)) logsByHabit.set(l.habitId, []);
+        logsByHabit.get(l.habitId).push(l.completedAt);
+      }
+      for (const h of allHabits) {
+        const dates = logsByHabit.get(h.id);
+        if (!dates || !dates.length) continue;
+        const logSet = new Set();
+        for (const dt of dates) {
+          const c = new Date(dt);
+          c.setHours(0, 0, 0, 0);
+          logSet.add(c.getTime());
+        }
+        const sched = parseSchedules(h);
+        const isDaily = h.frequencyType === 'daily' || h.frequencyType === 'always';
+        const lastLog = new Date(Math.max(...logSet));
+        let cur = 0;
+        // A streak is only "current" if not broken for 2+ days
+        const gapDays = Math.round((today - lastLog) / (1000 * 60 * 60 * 24));
+        if (gapDays <= 1) {
+          for (let i = 0; i < 365 * 3; i++) {
+            const check = new Date(lastLog);
+            check.setDate(check.getDate() - i);
+            const dow = check.getDay();
+            if (!(isDaily || sched.includes(dow))) continue;
+            if (logSet.has(check.getTime())) cur++;
+            else break;
+          }
+        }
+        if (cur > activeStreak) activeStreak = cur;
+      }
+    }
+
+    // Consistency = share of days since the first log with at least one
+    // completion, minus vacation days. Previously it compared total logs across
+    // all habits against per-day capacity × habits, so a user with several
+    // habits doing all of them daily still scored far below 100%.
+    let consistency = 0;
+    if (totalLogs > 0) {
+      const firstLog = await prisma.habitLog.findFirst({
         where: { userId },
         orderBy: { completedAt: 'asc' },
         select: { completedAt: true },
       });
-      let currentStreak = 0;
-      let lastDate = null;
-      for (const l of allLogs) {
-        const d = new Date(l.completedAt);
-        d.setHours(0, 0, 0, 0);
-        if (lastDate) {
-          const diff = (d - lastDate) / (1000 * 60 * 60 * 24);
-          if (diff === 1) currentStreak++;
-          else if (diff > 1) currentStreak = 1;
-        } else {
-          currentStreak = 1;
-        }
-        if (currentStreak > activeStreak) activeStreak = currentStreak;
-        lastDate = d;
-      }
-      // A "current" streak is only current if it hasn't been broken for 2+ days
-      if (lastDate && lastDate < today) {
-        const gapDays = Math.round((today - lastDate) / (1000 * 60 * 60 * 24));
-        if (gapDays > 1) activeStreak = 0;
-      }
-    }
-
-    let consistency = 0;
-    if (totalLogs > 0 && activeHabits > 0) {
-      const firstLog = await prisma.habitLog.findFirst({
-        where: { userId },
-        orderBy: { completedAt: 'asc' },
-      });
       if (firstLog) {
-        const daysSinceFirst = Math.max(1, Math.ceil((today - firstLog.completedAt) / (1000 * 60 * 60 * 24)) + 1);
-        const totalPossible = daysSinceFirst * activeHabits;
-        consistency = Math.min(100, Math.round((totalLogs / totalPossible) * 100));
+        const logDays = await prisma.habitLog.findMany({
+          where: { userId },
+          select: { completedAt: true },
+        });
+        const uniqueDays = new Set(logDays.map((l) => dayKey(l.completedAt)));
+        const firstDay = new Date(firstLog.completedAt);
+        firstDay.setHours(0, 0, 0, 0);
+        const daysSpan = Math.max(1, Math.round((today - firstDay) / (1000 * 60 * 60 * 24)) + 1);
+
+        const vacations = await prisma.vacation.findMany({
+          where: {
+            userId,
+            startDate: { lte: today },
+            OR: [{ endDate: null }, { endDate: { gte: firstDay } }],
+          },
+        });
+        let vacationDays = 0;
+        for (const v of vacations) {
+          const vStart = new Date(Math.max(v.startDate, firstDay));
+          const vEnd = new Date(v.endDate ? Math.min(v.endDate, today) : today);
+          vacationDays += Math.floor((vEnd - vStart) / (1000 * 60 * 60 * 24)) + 1;
+        }
+
+        const effectiveSpan = Math.max(1, daysSpan - vacationDays);
+        consistency = Math.min(100, Math.round((uniqueDays.size / effectiveSpan) * 100));
       }
     }
 
