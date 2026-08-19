@@ -493,8 +493,24 @@ async function loadAll() {
       api.get('/habits'),
     ])
     const allTasks = tasksRes.data.tasks || []
-    incompleteTasks.value = allTasks.filter(t => !t.isCompletedToday)
-    completedTasks.value = allTasks.filter(t => t.isCompletedToday)
+    const todayTaskLogs = (await api.get('/tasks/completed').catch(() => ({ data: { logs: [] } }))).data.logs || []
+    const completedMap = new Map()
+    for (const t of allTasks.filter(t => t.isCompletedToday)) {
+      completedMap.set(t.id, { ...t, completedAt: new Date().toISOString() })
+    }
+    for (const l of todayTaskLogs) {
+      const id = l.taskId || l.task?.id
+      if (!id) continue
+      completedMap.set(id, {
+        id,
+        title: l.task?.title || 'Task',
+        emoji: l.task?.emoji || '📝',
+        isCompletedToday: true,
+        completedAt: l.completedAt,
+      })
+    }
+    completedTasks.value = [...completedMap.values()].sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
+    incompleteTasks.value = allTasks.filter(t => !t.isCompletedToday && !completedMap.has(t.id))
 
     const allHabits = habitsRes.data.habits || []
     const todayLogsRes = await api.get('/logs/today').catch(() => ({ data: { logs: [] } }))

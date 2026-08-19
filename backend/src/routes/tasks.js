@@ -29,11 +29,6 @@ router.get('/', authMiddleware, async (req, res) => {
       where: { userId: req.userId, completedAt: d },
       select: { taskId: true },
     });
-    const completedIds = new Set(todayLogs.map((l) => l.taskId));
-
-    const dayStart = new Date(d);
-    const dayEnd = new Date(d);
-    dayEnd.setHours(23, 59, 59, 999);
 
     const result = tasks.map((t) => {
       let dueToday = true;
@@ -45,10 +40,8 @@ router.get('/', authMiddleware, async (req, res) => {
         } catch { schedDays = null; }
       }
 
-      if (schedDays) {
-        if (Array.isArray(schedDays) && !schedDays.includes(dayOfWeek)) {
-          dueToday = false;
-        }
+      if (Array.isArray(schedDays) && !schedDays.includes(dayOfWeek)) {
+        dueToday = false;
       }
 
       if (t.dueDate) {
@@ -62,9 +55,7 @@ router.get('/', authMiddleware, async (req, res) => {
 
       if (!dueToday) return { ...t, scheduledDays: schedDays, isCompletedToday: false, isDueToday: false };
 
-      const isCompletedToday = t.scheduledTime
-        ? todayLogs.some(l => l.taskId === t.id)
-        : completedIds.has(t.id);
+      const isCompletedToday = todayLogs.some(l => l.taskId === t.id);
 
       return { ...t, scheduledDays: schedDays, isCompletedToday, isDueToday: true };
     });
@@ -131,6 +122,19 @@ router.post('/:id/complete', authMiddleware, async (req, res) => {
         completedAt: today,
       },
     });
+
+    // One-time tasks (no recurring day selection) are done once: completing
+    // them deactivates them so they never reappear the next day as "due".
+    let recurring = !!task.isEveryday;
+    if (task.scheduledDays) {
+      try {
+        const sd = typeof task.scheduledDays === 'string' ? JSON.parse(task.scheduledDays) : task.scheduledDays;
+        if (Array.isArray(sd) && sd.length) recurring = true;
+      } catch {}
+    }
+    if (!recurring) {
+      await prisma.task.update({ where: { id }, data: { isActive: false } });
+    }
 
     res.json({ log });
   } catch (e) {
@@ -217,6 +221,9 @@ router.delete('/:id/uncomplete', authMiddleware, async (req, res) => {
     if (!log) return res.status(404).json({ error: 'No completion found' });
 
     await prisma.taskLog.delete({ where: { id: log.id } });
+
+    // Undoing today's completion of a one-time task brings it back to life.
+    await prisma.task.update({ where: { id }, data: { isActive: true } });
 
     res.json({ ok: true });
   } catch (e) {
