@@ -74,6 +74,20 @@ Status tracker for the full audit + feedback pass (Michi & Jonas).
 - [x] Friends invite — "Generating link..." placeholder was copyable; copy/input disabled until the token arrives
 - [x] Final build/lint verification — deployed index-iznPhAzZ.js, prod 200 + health OK
 
+## Round 4 sweep (make it perfect — tasks/recurrence, notifications, stats)
+
+- [x] One-time tasks never ended — completing a task only logged it; the task stayed active and reappeared "due" every single day (user: "recurring tasks that shouldn't recur", "task checking doesn't work"). `POST /tasks/:id/complete` now deactivates tasks without recurring day selection (scheduledDays/isEveryday); `DELETE /tasks/:id/uncomplete` reactivates them
+- [x] Habits.vue Completed Tasks section — rebuilt from GET /tasks only; deactivated one-time tasks vanished on reload. Now merges today's `/tasks/completed` logs (dedup by id, sorted by completedAt) so today's completions survive reloads
+- [x] GET /tasks cleanup — `isCompletedToday` computed via a redundant ternary over the same log array; single path now
+- [x] Reminder dedup ignored the reminder offset — a "15 min before" reminder for a slot suppressed the slot's "Now" reminder (both store the same slot time; arbitrary-row findFirst); dedup now scans all of today's rows and compares time + offset
+- [x] Minute-drift skipped reminders — scheduler ticked every 60s with strict HH:MM equality, so slots/digest times were frequently skipped entirely or the digest double-fired on aligned ticks; now ticks every 30s and fires within a 90s window
+- [x] Morning/evening digests had no dedup (double push) and counted wrong — evening compared all today's logs (any habit) against ALL active habits (incl. not-scheduled-today, on-break, or done-anyway habits); now counts only habits due today (frequency/daysPerWeek/schedules) minus active breaks, unique habit completions, and dedups via one notification row per day
+- [x] Scheduled reminders ignored habit breaks — on-break habits kept getting reminders; breaks filter added (ongoing or endDate >= today)
+- [x] One-time task reminders said "this once" but reminded every day — tasks without recurring days and without dueDate now only remind on the day they were created
+- [x] Stats overview streak was fake — it counted consecutive days with ANY habit completion across all habits (alternating two habits = padded streak). Now the max per-habit current streak (schedule-aware day counting, 2-day broken-gap rule)
+- [x] Stats overview consistency was misleading — totalLogs/(days × activeHabits) tanked multi-habit users (all-habits-daily scored ~33%). Now unique days with ≥1 completion ÷ days since first log, vacation days subtracted (matches /stats/consistency semantics)
+- [x] Round-4 verification — dev API tests: one-time complete/uncomplete lifecycle, recurring remains active on its days, weekend task not-due flags, per-habit streak 3→2 on gap, consistency 100, offset-0 fires despite offset-15, no duplicates across repeated scheduler runs, digests deduped
+
 ## Infra notes (dev stack)
 
 - dev-web runs as root (uid-1000 variant hit unreproducible EACCES on this host's storage; root stable 41h+). Host-side `npm run build` may hit root-owned dist → `docker compose -f docker-compose.dev.yml stop dev-web`, chown dist, build, start.
