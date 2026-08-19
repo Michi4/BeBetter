@@ -207,11 +207,6 @@ async function sendPushNotification(userId, title, body, url, db = prisma) {
   }
 }
 
-function getTodayHHMM() {
-  const now = new Date();
-  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-}
-
 function getTodayDateStr() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -236,25 +231,86 @@ function parseSchedules(val) {
   return Array.isArray(arr) ? arr : [];
 }
 
-async function alreadyNotified(userId, type, entityId, time, todayDate, isTask, db = prisma) {
-  const field = isTask ? 'taskId' : 'habitId';
+function parseJsonArray(val) {
+  if (val == null) return [];
+  const arr = typeof val === 'string' ? JSON.parse(val) : val;
+  return Array.isArray(arr) ? arr : [];
+}
+
+function isHabitDueToday(habit, dayOfWeek) {
+  if (habit.frequencyType === 'daily' || habit.frequencyType === 'always') return true;
+  const dwp = parseJsonArray(habit.daysPerWeek);
+  if (dwp.includes(dayOfWeek)) return true;
+  const sched = parseSchedules(habit.schedules);
+  return sched.some(s => Array.isArray(s.days) && s.days.includes(dayOfWeek));
+}
+
+// A habit is "on break" when it has a break without an end date yet (ongoing)
+// or whose end date is today or later (break still in effect).
+function activeBreakFilter(today) {
+  return {
+    none: {
+      OR: [{ endDate: null }, { endDate: { gte: today } }],
+    },
+  };
+}
+
+function minutesSinceHMSlot(hhmm) {
+  if (!hhmm || !hhmm.includes(':')) return -1;
+  const now = new Date();
+  const [h, m] = hhmm.split(':').map(Number);
+  if (h == null || m == null || Number.isNaN(h) || Number.isNaN(m)) return -1;
+  const target = new Date(now);
+  target.setHours(h, m, 0, 0);
+  return (now - target) / 1000;
+}
+
+// Reminders are minute-precision; the scheduler ticks every 30s and drifts, so a
+// strict minute equality check frequently skipped the slot. Fire when the slot
+// is now or was within the last 90 seconds — dedup prevents double sends.
+function inReminderWindow(secondsAgo) {
+  return secondsAgo >= 0 && secondsAgo < 90;
+}
+
+async function digestNotified(userId, type, todayDate, db = prisma) {
   const existing = await db.notification.findFirst({
+    where: {
+      userId,
+      type,
+      createdAt: { gte: new Date(todayDate + 'T00:00:00'), lt: new Date(todayDate + 'T23:59:59') },
+    },
+  });
+  return !!existing;
+}
+
+async function alreadyNotified(userId, type, entityId, time, reminderOffset, todayDate, isTask, db = prisma) {
+  const field = isTask ? 'taskId' : 'habitId';
+  const existing = await db.notification.findMany({
     where: {
       userId,
       type: 'scheduled_reminder',
       data: { path: [field], equals: entityId },
       createdAt: { gte: new Date(todayDate + 'T00:00:00'), lt: new Date(todayDate + 'T23:59:59') },
     },
+    select: { data: true },
   });
-  return existing && existing.data?.time === time;
+  // Dedup per (entity, slot time, offset). Checking only a single arbitrary row
+  // made a "15 min before" reminder for a slot suppress its "Now" reminder (both
+  // offsets store the same slot time) or let duplicates through.
+  return existing.some((n) => {
+    const d = n.data || {};
+    if (d.time !== time) return false;
+    if (d.reminderOffset !== undefined && d.reminderOffset !== reminderOffset) return false;
+    return true;
+  });
 }
 
-async function sendReminder(userId, message, url, data, db = prisma) {
+async function sendReminder(userId, message, url, data, db = prisma, type = 'scheduled_reminder') {
   const todayDate = getTodayDateStr();
   await db.notification.create({
     data: {
       userId,
-      type: 'scheduled_reminder',
+      type,
       message,
       data,
     },
@@ -263,13 +319,13 @@ async function sendReminder(userId, message, url, data, db = prisma) {
 }
 
 async function checkScheduledReminders(db = prisma) {
-  const currentTime = getTodayHHMM();
   const todayDate = getTodayDateStr();
   const dayOfWeek = new Date().getDay();
 
   const prefs = await db.notificationPreference.findMany({
     where: { habitRemindersEnabled: true },
   });
+
 
   for (const pref of prefs) {
     const user = await db.user.findUnique({ where: { id: pref.userId }, select: { id: true, bannedUntil: true } });
@@ -290,6 +346,7 @@ async function checkScheduledReminders(db = prisma) {
         active: true,
         schedules: { not: null },
         reminderMinutes: { not: null },
+        breaks: activeBreakFilter(new Date()),
       },
     });
 
@@ -304,9 +361,9 @@ async function checkScheduledReminders(db = prisma) {
 
         for (const offset of reminders) {
           const effectiveTime = offset > 0 ? subtractMinutes(slot.time, offset) : slot.time;
-          if (!effectiveTime || effectiveTime !== currentTime) continue;
+          if (!effectiveTime || !inReminderWindow(minutesSinceHMSlot(effectiveTime))) continue;
 
-          if (await alreadyNotified(pref.userId, 'scheduled_reminder', habit.id, slot.time, todayDate, false, db)) continue;
+          if (await alreadyNotified(pref.userId, 'scheduled_reminder', habit.id, slot.time, offset, todayDate, false, db)) continue;
 
           const label = offset === 0 ? 'Now' : `in ${offset} min`;
           const msg = offset === 0
@@ -342,13 +399,19 @@ async function checkScheduledReminders(db = prisma) {
         const t = new Date(task.dueDate);
         const dueStr = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
         if (dueStr !== todayDate) continue;
+      } else if (!Array.isArray(taskDays) || !taskDays.length) {
+        // One-time task (no recurring weekday selection, no due date): remind
+        // only on the day it was created — "this once, not every week".
+        const c = new Date(task.createdAt);
+        const createdStr = `${c.getFullYear()}-${String(c.getMonth() + 1).padStart(2, '0')}-${String(c.getDate()).padStart(2, '0')}`;
+        if (createdStr !== todayDate) continue;
       }
 
       for (const offset of reminders) {
         const effectiveTime = offset > 0 ? subtractMinutes(task.scheduledTime, offset) : task.scheduledTime;
-        if (!effectiveTime || effectiveTime !== currentTime) continue;
+        if (!effectiveTime || !inReminderWindow(minutesSinceHMSlot(effectiveTime))) continue;
 
-        if (await alreadyNotified(pref.userId, 'scheduled_reminder', task.id, task.scheduledTime, todayDate, true, db)) continue;
+        if (await alreadyNotified(pref.userId, 'scheduled_reminder', task.id, task.scheduledTime, offset, todayDate, true, db)) continue;
 
         const label = offset === 0 ? 'Now' : `in ${offset} min`;
         const msg = offset === 0
@@ -362,14 +425,14 @@ async function checkScheduledReminders(db = prisma) {
 }
 
 async function morningReminder(db = prisma) {
-  const now = new Date();
-  const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
+  const todayDate = getTodayDateStr();
   const prefs = await db.notificationPreference.findMany({
-    where: { morningEnabled: true, morningTime: timeStr },
+    where: { morningEnabled: true },
   });
 
   for (const pref of prefs) {
+    if (!inReminderWindow(minutesSinceHMSlot(pref.morningTime))) continue;
+    if (await digestNotified(pref.userId, 'morning_reminder', todayDate, db)) continue;
     const user = await db.user.findUnique({ where: { id: pref.userId }, select: { id: true, bannedUntil: true } });
     if (!user || user.bannedUntil) continue;
 
@@ -386,29 +449,27 @@ async function morningReminder(db = prisma) {
       where: {
         userId: pref.userId,
         active: true,
-        OR: [
-          { frequencyType: 'daily' },
-          { frequencyType: 'always' },
-          { daysPerWeek: { contains: String(dayOfWeek) } },
-        ],
+        breaks: activeBreakFilter(today),
       },
     });
 
-    if (habits.length > 0) {
-      await sendPushNotification(pref.userId, '\u{1F305} Good morning!', `You have ${habits.length} habit${habits.length > 1 ? 's' : ''} scheduled for today.`, '/habits', db);
+    const dueToday = habits.filter((h) => isHabitDueToday(h, dayOfWeek));
+
+    if (dueToday.length > 0) {
+      await sendReminder(pref.userId, `\u{1F305} Good morning! You have ${dueToday.length} habit${dueToday.length > 1 ? 's' : ''} scheduled for today.`, '/habits', { date: todayDate }, db, 'morning_reminder');
     }
   }
 }
 
 async function eveningReminder(db = prisma) {
-  const now = new Date();
-  const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
+  const todayDate = getTodayDateStr();
   const prefs = await db.notificationPreference.findMany({
-    where: { eveningEnabled: true, eveningTime: timeStr },
+    where: { eveningEnabled: true },
   });
 
   for (const pref of prefs) {
+    if (!inReminderWindow(minutesSinceHMSlot(pref.eveningTime))) continue;
+    if (await digestNotified(pref.userId, 'evening_reminder', todayDate, db)) continue;
     const user = await db.user.findUnique({ where: { id: pref.userId }, select: { id: true, bannedUntil: true } });
     if (!user || user.bannedUntil) continue;
 
@@ -420,16 +481,26 @@ async function eveningReminder(db = prisma) {
     });
     if (isOnVacation) continue;
 
-    const todayLogs = await db.habitLog.findMany({
-      where: { userId: pref.userId, completedAt: today },
-    });
-
     const habits = await db.habit.findMany({
-      where: { userId: pref.userId, active: true },
+      where: {
+        userId: pref.userId,
+        active: true,
+        breaks: activeBreakFilter(today),
+      },
     });
 
-    if (todayLogs.length < habits.length) {
-      await sendPushNotification(pref.userId, '\u{1F319} Day\'s not over yet!', `You've completed ${todayLogs.length}/${habits.length} habits today. Keep going!`, '/habits', db);
+    const dueToday = habits.filter((h) => isHabitDueToday(h, dayOfWeek));
+    if (dueToday.length === 0) continue;
+
+    const dueIds = dueToday.map((h) => h.id);
+    const todayLogs = await db.habitLog.findMany({
+      where: { userId: pref.userId, habitId: { in: dueIds }, completedAt: today },
+      select: { habitId: true },
+    });
+    const completedCount = new Set(todayLogs.map((l) => l.habitId)).size;
+
+    if (completedCount < dueToday.length) {
+      await sendReminder(pref.userId, `\u{1F319} Day's not over yet! You've completed ${completedCount}/${dueToday.length} habits today. Keep going!`, '/habits', { date: todayDate }, db, 'evening_reminder');
     }
   }
 }
@@ -451,9 +522,18 @@ function startScheduler() {
     } catch (e) {
       console.error('Scheduler error:', e);
     }
-  }, 60 * 1000);
+  }, 30 * 1000);
 
   console.log('Scheduler started');
 }
 
-module.exports = { startScheduler, sendPushNotification };
+module.exports = {
+  startScheduler,
+  sendPushNotification,
+  alreadyNotified,
+  digestNotified,
+  inReminderWindow,
+  minutesSinceHMSlot,
+  isHabitDueToday,
+  checkScheduledReminders,
+};
