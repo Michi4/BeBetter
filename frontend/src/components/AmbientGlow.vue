@@ -172,7 +172,7 @@ function draw() {
 }
 
 function start() {
-  if (running) return
+  if (running || smallScreen) return
   running = true
   draw()
 }
@@ -186,6 +186,16 @@ function setup() {
   if (!canvas) return
   smallScreen = window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 768
   dpr = Math.min(window.devicePixelRatio || 1, smallScreen ? 1.2 : 1.5)
+  // Mobile: disable heavy constellation (static gradient only)
+  if (smallScreen) {
+    const c = canvasRef.value
+    if (c) c.style.display = 'none'
+    stop()
+    return
+  } else {
+    const c = canvasRef.value
+    if (c) c.style.display = ''
+  }
   const nw = Math.max(1, Math.round(window.innerWidth * dpr))
   const nh = Math.max(1, Math.round(window.innerHeight * dpr))
   if (smallScreen !== prevSmall) particles = []

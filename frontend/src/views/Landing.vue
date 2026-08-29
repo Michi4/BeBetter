@@ -249,14 +249,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount, defineAsyncComponent } from 'vue'
 import LandingNavbar from '../components/LandingNavbar.vue'
 import LandingFooter from '../components/LandingFooter.vue'
 import ScrollReveal from '../components/ScrollReveal.vue'
 import StatCounter from '../components/StatCounter.vue'
-import ContributionGrid from '../components/ContributionGrid.vue'
-import MarqueeBand from '../components/MarqueeBand.vue'
-import AmbientGlow from '../components/AmbientGlow.vue'
+const ContributionGrid = defineAsyncComponent(() => import('../components/ContributionGrid.vue'))
+const MarqueeBand = defineAsyncComponent(() => import('../components/MarqueeBand.vue'))
+const AmbientGlow = defineAsyncComponent(() => import('../components/AmbientGlow.vue'))
 import {
   Target, ListTodo, Users, CheckCircle2, BarChart2, ArrowRight, Bell,
   Check, Zap, Camera, Swords, Smartphone, Timer
@@ -265,9 +265,10 @@ import {
 const loaded = ref(false)
 const stats = ref({ habits: 0, completionsValue: 0, completionsSuffix: '', streakRetention: 0, newHabits: 0 })
 
-// Demo contribution grid — mirrors the real app grid (weeks, month labels, intensity)
+// Demo contribution grid — generated idle to not block first paint
 const demoYear = new Date().getFullYear()
-const demoGrid = (() => {
+const demoGrid = ref([])
+function buildDemoGrid() {
   const grid = []
   const now = new Date()
   for (let d = new Date(Date.UTC(demoYear, 0, 1)); d <= now; d.setUTCDate(d.getUTCDate() + 1)) {
@@ -287,8 +288,8 @@ const demoGrid = (() => {
       items: [],
     })
   }
-  return grid
-})()
+  demoGrid.value = grid
+}
 
 const hero = ref(null)
 let heroRaf = null
@@ -361,6 +362,9 @@ function formatCompletions(n) {
 }
 
 onMounted(() => {
+  // Defer demo grid off main thread
+  if ('requestIdleCallback' in window) requestIdleCallback(buildDemoGrid, { timeout: 1200 })
+  else setTimeout(buildDemoGrid, 80)
   tiltEnabled =
     !window.matchMedia('(prefers-reduced-motion: reduce)').matches &&
     window.matchMedia('(hover: hover) and (pointer: fine)').matches
