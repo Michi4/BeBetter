@@ -111,7 +111,7 @@ async function resetDemoAccount(db = prisma) {
           schedules: JSON.stringify([{ time: h.time, days: h.days || [0, 1, 2, 3, 4, 5, 6] }]),
           reminderMinutes: JSON.stringify([0, 15]),
           config: {},
-          daysPerWeek: JSON.stringify(h.days || [1, 2, 3, 4, 5, 6, 7]),
+          daysPerWeek: JSON.stringify(h.days || [0, 1, 2, 3, 4, 5, 6]),
         },
       });
       created.push(habit);
@@ -248,9 +248,11 @@ function isHabitDueToday(habit, dayOfWeek) {
 // A habit is "on break" when it has a break without an end date yet (ongoing)
 // or whose end date is today or later (break still in effect).
 function activeBreakFilter(today) {
+  const d = new Date(today);
+  d.setHours(0, 0, 0, 0);
   return {
     none: {
-      OR: [{ endDate: null }, { endDate: { gte: today } }],
+      OR: [{ endDate: null }, { endDate: { gte: d } }],
     },
   };
 }
@@ -273,11 +275,14 @@ function inReminderWindow(secondsAgo) {
 }
 
 async function digestNotified(userId, type, todayDate, db = prisma) {
+  const start = new Date(todayDate + 'T00:00:00');
+  const end = new Date(start);
+  end.setDate(end.getDate() + 1);
   const existing = await db.notification.findFirst({
     where: {
       userId,
       type,
-      createdAt: { gte: new Date(todayDate + 'T00:00:00'), lt: new Date(todayDate + 'T23:59:59') },
+      createdAt: { gte: start, lt: end },
     },
   });
   return !!existing;
@@ -285,12 +290,15 @@ async function digestNotified(userId, type, todayDate, db = prisma) {
 
 async function alreadyNotified(userId, type, entityId, time, reminderOffset, todayDate, isTask, db = prisma) {
   const field = isTask ? 'taskId' : 'habitId';
+  const start = new Date(todayDate + 'T00:00:00');
+  const end = new Date(start);
+  end.setDate(end.getDate() + 1);
   const existing = await db.notification.findMany({
     where: {
       userId,
       type: 'scheduled_reminder',
       data: { path: [field], equals: entityId },
-      createdAt: { gte: new Date(todayDate + 'T00:00:00'), lt: new Date(todayDate + 'T23:59:59') },
+      createdAt: { gte: start, lt: end },
     },
     select: { data: true },
   });
@@ -329,7 +337,7 @@ async function checkScheduledReminders(db = prisma) {
 
   for (const pref of prefs) {
     const user = await db.user.findUnique({ where: { id: pref.userId }, select: { id: true, bannedUntil: true } });
-    if (!user || user.bannedUntil) continue;
+    if (!user || (user.bannedUntil && user.bannedUntil > new Date())) continue;
 
     const isOnVacation = await db.vacation.findFirst({
       where: {
@@ -434,7 +442,7 @@ async function morningReminder(db = prisma) {
     if (!inReminderWindow(minutesSinceHMSlot(pref.morningTime))) continue;
     if (await digestNotified(pref.userId, 'morning_reminder', todayDate, db)) continue;
     const user = await db.user.findUnique({ where: { id: pref.userId }, select: { id: true, bannedUntil: true } });
-    if (!user || user.bannedUntil) continue;
+    if (!user || (user.bannedUntil && user.bannedUntil > new Date())) continue;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -471,10 +479,11 @@ async function eveningReminder(db = prisma) {
     if (!inReminderWindow(minutesSinceHMSlot(pref.eveningTime))) continue;
     if (await digestNotified(pref.userId, 'evening_reminder', todayDate, db)) continue;
     const user = await db.user.findUnique({ where: { id: pref.userId }, select: { id: true, bannedUntil: true } });
-    if (!user || user.bannedUntil) continue;
+    if (!user || (user.bannedUntil && user.bannedUntil > new Date())) continue;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const dayOfWeek = today.getDay();
 
     const isOnVacation = await db.vacation.findFirst({
       where: { userId: pref.userId, startDate: { lte: today }, OR: [{ endDate: null }, { endDate: { gte: today } }] },
@@ -493,8 +502,10 @@ async function eveningReminder(db = prisma) {
     if (dueToday.length === 0) continue;
 
     const dueIds = dueToday.map((h) => h.id);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
     const todayLogs = await db.habitLog.findMany({
-      where: { userId: pref.userId, habitId: { in: dueIds }, completedAt: today },
+      where: { userId: pref.userId, habitId: { in: dueIds }, completedAt: { gte: today, lt: tomorrow } },
       select: { habitId: true },
     });
     const completedCount = new Set(todayLogs.map((l) => l.habitId)).size;

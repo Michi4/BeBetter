@@ -54,7 +54,8 @@ router.get('/', authMiddleware, async (req, res) => {
     ]);
 
     const enriched = habits.map((h) => {
-      const activeBreak = h.breaks.find((b) => !b.endDate);
+      const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+      const activeBreak = h.breaks.find((b) => !b.endDate || new Date(b.endDate) >= todayStart);
       const isActive = !activeBreak && h.active;
       const sched = normalizeDaysPerWeek(h.daysPerWeek);
       const schedules = normalizeSchedules(h.schedules);
@@ -115,7 +116,7 @@ router.get('/scheduled', authMiddleware, async (req, res) => {
     });
 
     const buildScheduledEntries = (h, challengeId, challengeOpponent) => {
-      const activeBreak = h.breaks.find((b) => !b.endDate);
+      const activeBreak = h.breaks.find((b) => !b.endDate || new Date(b.endDate) >= dayStart);
       const hasBreak = !!activeBreak;
       const schedules = normalizeSchedules(h.schedules);
 
@@ -195,7 +196,7 @@ router.post('/', authMiddleware, demoFieldGuard(['makePublic', 'buddyIds', 'chal
 
     let finalFreqType = frequencyType || 'daily';
     let finalDaysPerWeek;
-    const schedArray = schedule || (frequencyType === 'daily' ? [1, 2, 3, 4, 5, 6, 7] : daysPerWeek || [1, 2, 3, 4, 5, 6, 7]);
+    const schedArray = schedule || (frequencyType === 'daily' ? [0, 1, 2, 3, 4, 5, 6] : daysPerWeek || [0, 1, 2, 3, 4, 5, 6]);
 
     if (Array.isArray(schedules) && schedules.length > 0) {
       finalFreqType = 'daily';
