@@ -510,7 +510,7 @@ async function loadAll() {
       })
     }
     completedTasks.value = [...completedMap.values()].sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
-    incompleteTasks.value = allTasks.filter(t => !t.isCompletedToday && !completedMap.has(t.id))
+    incompleteTasks.value = allTasks.filter(t => !t.isCompletedToday && !completedMap.has(t.id) && t.isDueToday !== false)
 
     const allHabits = habitsRes.data.habits || []
     const todayLogsRes = await api.get('/logs/today').catch(() => ({ data: { logs: [] } }))

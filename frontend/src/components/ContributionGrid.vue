@@ -14,7 +14,7 @@
           </div>
 
           <!-- Grid body: day labels + weeks -->
-          <div class="flex gap-[3px]">
+          <div class="flex gap-[3px]" role="grid" aria-label="Contribution grid">
             <!-- Day labels column -->
             <div class="flex flex-col gap-[3px] text-[10px] text-[var(--bb-faint)] shrink-0" :style="{ width: dayLabelW + 'px' }">
               <div v-for="d in dayLabels" :key="d.label"
