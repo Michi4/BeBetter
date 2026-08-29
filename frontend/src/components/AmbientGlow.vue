@@ -22,6 +22,7 @@ let dpr = 1
 let oldW = 0
 let oldH = 0
 let scrollY = 0
+let frameSkip = 0
 
 const isLight = () => document.documentElement.classList.contains('light')
 const TAU = Math.PI * 2
@@ -29,7 +30,7 @@ const TAU = Math.PI * 2
 function rand(a, b) { return a + Math.random() * (b - a) }
 
 function build() {
-  const count = Math.min(smallScreen ? 70 : 110, Math.max(smallScreen ? 35 : 50, Math.round(w * h / (smallScreen ? 26000 : 20000))))
+  const count = Math.min(smallScreen ? 40 : 60, Math.max(smallScreen ? 18 : 28, Math.round(w * h / (smallScreen ? 50000 : 40000))))
   particles = []
   for (let i = 0; i < count; i++) {
     particles.push({
@@ -91,6 +92,7 @@ function ensureAuraGradients(ctx, light) {
 }
 
 function draw() {
+  if (++frameSkip % 2 !== 0) { raf = requestAnimationFrame(draw); return }
   const ctx = canvasRef.value.getContext('2d')
   const light = isLight()
   ctx.clearRect(0, 0, w, h)
@@ -112,8 +114,8 @@ function draw() {
   }
 
   const parallax = scrollY * 0.04 * dpr
-  const linkDist = (smallScreen ? 0 : 92) * dpr
-  const linkAlpha = light ? 0.07 : 0.05
+  const linkDist = (smallScreen ? 0 : 60) * dpr
+  const linkAlpha = light ? 0.05 : 0.03
 
   // Constellation lines — connect particles that drift close together.
   if (linkDist > 0) {
@@ -126,7 +128,7 @@ function draw() {
       const distSq = dx * dx + dy * dy
       if (distSq < linkDist * linkDist) {
         ctx.strokeStyle = `rgba(110, 231, 183, ${linkAlpha * (1 - distSq / (linkDist * linkDist))})`
-        ctx.lineWidth = dpr * 0.6
+        ctx.lineWidth = dpr * 0.35
         ctx.beginPath()
         ctx.moveTo(p.x, p.y - parallax)
         ctx.lineTo(q.x, q.y - parallax)
@@ -183,7 +185,7 @@ function setup() {
   const canvas = canvasRef.value
   if (!canvas) return
   smallScreen = window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 768
-  dpr = Math.min(window.devicePixelRatio || 1, 1.5)
+  dpr = Math.min(window.devicePixelRatio || 1, smallScreen ? 1.2 : 1.5)
   const nw = Math.max(1, Math.round(window.innerWidth * dpr))
   const nh = Math.max(1, Math.round(window.innerHeight * dpr))
   if (smallScreen !== prevSmall) particles = []

@@ -20,9 +20,17 @@ function normalizeJson(val) {
 
 // Public, unauthenticated — powers the landing page.
 // All numbers are real aggregates from the database.
+// In-memory cache: landing is hit on every unauthenticated page view.
+let landingCache = null;
+let landingCacheAt = 0;
+const LANDING_TTL = 60 * 1000;
 
 router.get('/landing', async (req, res) => {
   try {
+    if (landingCache && Date.now() - landingCacheAt < LANDING_TTL) {
+      res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=30');
+      return res.json(landingCache);
+    }
     const now = new Date();
     const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
@@ -77,11 +85,15 @@ router.get('/landing', async (req, res) => {
       avgSetup: recentHabits,
     };
 
-    res.json({
+    const payload = {
       stats,
       featured: featuredHabits,
       activeFeatured: active,
-    });
+    };
+    landingCache = payload;
+    landingCacheAt = Date.now();
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=30');
+    res.json(payload);
   } catch (e) {
     console.error('landing stats error:', e.message);
     res.status(500).json({ error: 'Server error' });
