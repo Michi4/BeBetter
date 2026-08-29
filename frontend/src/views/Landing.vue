@@ -44,8 +44,8 @@
         </div>
       </section>
 
-      <!-- Year grid artifact -->
-      <section id="showcase" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 sm:pb-28">
+      <!-- Year grid artifact — deferred -->
+      <section v-if="showBelowFold" id="showcase" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 sm:pb-28">
         <ScrollReveal variant="fade-up">
           <div class="rounded-2xl border border-[var(--bb-line)] bg-[var(--bb-bg-soft)] p-5 sm:p-8">
             <div class="flex items-center justify-between flex-wrap gap-2 mb-6">
@@ -57,7 +57,7 @@
       </section>
 
       <!-- ============ TICKER ============ -->
-      <MarqueeBand :items="tickerItems" />
+      <MarqueeBand v-if="showBelowFold" :items="tickerItems" />
 
       <!-- ============ STATS BAND ============ -->
       <section class="border-b border-[var(--bb-line)] bg-[var(--bb-bg)] py-12 sm:py-16">
@@ -264,6 +264,7 @@ import {
 
 const loaded = ref(false)
 const stats = ref({ habits: 0, completionsValue: 0, completionsSuffix: '', streakRetention: 0, newHabits: 0 })
+const showBelowFold = ref(false)
 
 // Demo contribution grid — generated idle to not block first paint
 const demoYear = new Date().getFullYear()
@@ -362,9 +363,9 @@ function formatCompletions(n) {
 }
 
 onMounted(() => {
-  // Defer demo grid off main thread
-  if ('requestIdleCallback' in window) requestIdleCallback(buildDemoGrid, { timeout: 1200 })
-  else setTimeout(buildDemoGrid, 80)
+  // Defer heavy below-fold work off main thread
+  const idle = (cb) => 'requestIdleCallback' in window ? requestIdleCallback(cb, { timeout: 1500 }) : setTimeout(cb, 120)
+  idle(() => { buildDemoGrid(); showBelowFold.value = true })
   tiltEnabled =
     !window.matchMedia('(prefers-reduced-motion: reduce)').matches &&
     window.matchMedia('(hover: hover) and (pointer: fine)').matches

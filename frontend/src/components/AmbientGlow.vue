@@ -114,7 +114,7 @@ function draw() {
   }
 
   const parallax = scrollY * 0.04 * dpr
-  const linkDist = (smallScreen ? 0 : 60) * dpr
+  const linkDist = 0 // disabled for perf (was 60) — lines were O(n²)
   const linkAlpha = light ? 0.05 : 0.03
 
   // Constellation lines — connect particles that drift close together.

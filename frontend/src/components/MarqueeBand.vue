@@ -18,9 +18,8 @@ defineProps({
   items: { type: Array, required: true },
 })
 
-// Four identical groups + translateX(-50%) = seamless loop that stays wide
-// enough on large screens even with a short item list.
-const groupCount = 4
+// Two groups + translateX(-50%) = seamless loop (4 was overkill, 2 is enough for 5 items)
+const groupCount = 2
 </script>
 
 <style scoped>
@@ -35,6 +34,8 @@ const groupCount = 4
   display: inline-flex;
   width: max-content;
   animation: marquee 36s linear infinite;
+  will-change: transform;
+  transform: translateZ(0);
 }
 .marquee-group {
   display: inline-flex;
