@@ -88,6 +88,17 @@ Status tracker for the full audit + feedback pass (Michi & Jonas).
 - [x] Stats overview consistency was misleading — totalLogs/(days × activeHabits) tanked multi-habit users (all-habits-daily scored ~33%). Now unique days with ≥1 completion ÷ days since first log, vacation days subtracted (matches /stats/consistency semantics)
 - [x] Round-4 verification — dev API tests: one-time complete/uncomplete lifecycle, recurring remains active on its days, weekend task not-due flags, per-habit streak 3→2 on gap, consistency 100, offset-0 fires despite offset-15, no duplicates across repeated scheduler runs, digests deduped
 
+## Round 4.1 polish (crash & parity)
+
+- [x] Scheduler crash — eveningReminder referenced undefined `dayOfWeek` (ReferenceError every 30s tick); added `today.getDay()` + fixed `completedAt: today` exact-midnight miss → range `gte/lt`
+- [x] Scheduler banned check — `bannedUntil` truthy permanently blocked expired bans; now `bannedUntil > now` in all three tick loops
+- [x] Breaks ended today at 00:00 considered expired at 00:01; `activeBreakFilter` now normalizes to start-of-day
+- [x] Digest/already windows missed last second of day (`23:59:59`); now `gte start lt nextDay`
+- [x] Demo daysPerWeek `[1..7]` includes invalid 7, Sunday never due; now `[0..6]`
+- [x] Habits default `[1..7]` incl. 7; now `[0..6]` + timed-break `find(!endDate)` now `>= dayStart`
+- [x] Auth demo guard hang — missing `.catch(next)` swallowed DB errors; fixed + `scheduledTime: null` bypass via `field in req.body`
+- [x] Frontend parity — Habits incompleteTasks now filters `isDueToday !== false` (was showing tomorrow's tasks), HabitCard aria-label/pressed, ContributionGrid role=grid, TimeInput aria-labels
+
 ## Infra notes (dev stack)
 
 - dev-web runs as root (uid-1000 variant hit unreproducible EACCES on this host's storage; root stable 41h+). Host-side `npm run build` may hit root-owned dist → `docker compose -f docker-compose.dev.yml stop dev-web`, chown dist, build, start.
