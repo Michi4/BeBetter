@@ -28,7 +28,7 @@
               <div v-for="(week, wi) in weeks" :key="wi" class="flex flex-col gap-[3px]">
                 <div v-for="(day, di) in week" :key="di">
                   <div
-                    class="grid-cell rounded-[2px] transition-transform duration-100 ease-out hover:scale-125 hover:z-10 relative cursor-pointer"
+                    class="grid-cell rounded-[2px] transition-[filter,transform] duration-100 ease-out hover:brightness-110 hover:z-10 relative cursor-pointer will-change-[filter] [transform:translateZ(0)]"
                     :class="day ? getCellClass(day) : 'bg-transparent'"
                     :style="{ width: cell + 'px', height: cell + 'px' }"
                     :tabindex="day && canSelect(day) ? 0 : -1"
