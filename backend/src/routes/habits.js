@@ -519,6 +519,14 @@ router.get('/:id', authMiddleware, async (req, res) => {
     });
     if (!habit) return res.status(404).json({ error: 'Not found' });
 
+    // Only the owner and challenge opponents can view a habit's details.
+    if (habit.userId !== req.userId) {
+      const isOpponent = await prisma.challenge.findFirst({
+        where: { habitId: id, opponentId: req.userId, status: 'active' },
+      });
+      if (!isOpponent) return res.status(404).json({ error: 'Not found' });
+    }
+
     const buddyProgress = await Promise.all(
       (habit.buddies || []).map(async (b) => {
         const friendId = b.friend.id;

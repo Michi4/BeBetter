@@ -43,7 +43,7 @@ router.get('/', authMiddleware, async (req, res) => {
       }),
       prisma.habit.findMany({
         where: { userId: req.userId, active: true },
-        select: { id: true, daysPerWeek: true, frequencyType: true, createdAt: true, breaks: { select: { startDate: true, endDate: true } } },
+        select: { id: true, daysPerWeek: true, frequencyType: true, schedules: true, createdAt: true, breaks: { select: { startDate: true, endDate: true } } },
       }),
     ]);
 
@@ -67,6 +67,17 @@ router.get('/', authMiddleware, async (req, res) => {
     const parsedHabits = activeHabits.map(h => ({
       ...h,
       sched: JSON.parse(typeof h.daysPerWeek === 'string' ? h.daysPerWeek : JSON.stringify(h.daysPerWeek || '[]')),
+      slotDays: (() => {
+        const s = h.schedules ? (typeof h.schedules === 'string' ? JSON.parse(h.schedules) : h.schedules) : null;
+        if (!Array.isArray(s)) return null;
+        // Map day-of-week -> number of timed slots that day
+        const map = {};
+        for (const slot of s) {
+          if (!slot.time || !Array.isArray(slot.days)) continue;
+          for (const d of slot.days) map[d] = (map[d] || 0) + 1;
+        }
+        return map;
+      })(),
     }));
 
     const cur = startOfDay(start);
@@ -80,7 +91,9 @@ router.get('/', authMiddleware, async (req, res) => {
           if (h.createdAt && cur < startOfDay(h.createdAt)) continue;
           if (h.frequencyType === 'daily' || h.frequencyType === 'always' || (Array.isArray(h.sched) && h.sched.includes(dow))) {
             if (!grid[ds]) grid[ds] = { scheduled: 0, completed: 0, habits: 0, tasks: 0, items: [] };
-            grid[ds].scheduled++;
+            // Count per-slotted-schedule (not per-habit), so a habit with 2
+            // timed slots on the same day shows scheduled=2, not 1.
+            grid[ds].scheduled += h.slotDays?.[dow] ?? 1;
           }
         }
       }
