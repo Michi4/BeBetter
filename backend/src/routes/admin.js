@@ -89,6 +89,9 @@ router.post('/users/:id/role', async (req, res) => {
     const { id } = req.params;
     const { role } = req.body;
     if (!['admin', 'moderator', 'user'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
+    if (id === req.userId && role !== 'admin') {
+      return res.status(400).json({ error: 'You cannot demote your own account' });
+    }
 
     const user = await prisma.user.update({ where: { id }, data: { role } });
     res.json({ user: { id: user.id, role: user.role } });
@@ -241,7 +244,7 @@ router.post('/announcements', async (req, res) => {
 
     // Includes users with no preference record (defaults apply) unless they have opted out
     const users = await prisma.user.findMany({
-      where: { bannedUntil: null },
+      where: { isDemo: false, isTest: false, bannedUntil: null },
       select: { id: true },
     });
 

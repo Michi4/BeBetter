@@ -19,12 +19,18 @@ router.post('/start', async (req, res) => {
     if (active) return res.status(409).json({ error: 'Vacation already active' });
 
     const { reason, endDate, startDate } = req.body;
+    const start = startDate ? new Date(startDate) : new Date();
+    if (Number.isNaN(start.getTime())) return res.status(400).json({ error: 'Invalid start date' });
+    const end = endDate ? new Date(endDate) : null;
+    if (end && Number.isNaN(end.getTime())) return res.status(400).json({ error: 'Invalid end date' });
+    if (end && end < start) return res.status(400).json({ error: 'End date must be after start date' });
+
     const vacation = await prisma.vacation.create({
       data: {
         userId: req.userId,
         reason: reason || null,
-        startDate: startDate ? new Date(startDate) : new Date(),
-        endDate: endDate ? new Date(endDate) : null,
+        startDate: start,
+        endDate: end,
       },
     });
 
