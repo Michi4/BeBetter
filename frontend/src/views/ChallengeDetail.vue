@@ -34,7 +34,7 @@
       <!-- Challenge Habit -->
       <div v-if="challenge.status === 'active' && challenge.habit" class="card">
         <div class="flex items-center gap-3">
-          <button v-bind="logTap" @click.stop.prevent class="w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-150"
+          <button v-bind="logTap" @click.stop.prevent :aria-label="iLoggedToday ? 'Challenge habit completed' : 'Complete challenge habit'" class="w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-150"
             :class="iLoggedToday ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-800 text-gray-400 hover:bg-emerald-500/10 hover:text-emerald-400'">
             <Camera v-if="challenge.habit.verificationType === 'photo' || challenge.habit.verificationType === 'be_better_cam'" :size="18" />
             <CheckCircle2 v-else :size="18" />

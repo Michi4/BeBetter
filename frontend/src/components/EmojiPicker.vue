@@ -19,7 +19,7 @@
           <div ref="gridEl" class="grid grid-cols-8 gap-1 max-h-56 overflow-y-auto pr-1" role="grid">
             <button v-for="e in filtered" :key="e.emoji" type="button"
               class="h-9 rounded-lg text-lg flex items-center justify-center hover:bg-emerald-500/10 transition-colors"
-              :title="e.label" @click="pick(e.emoji)">
+              :aria-label="e.label" :title="e.label" @click="pick(e.emoji)">
               {{ e.emoji }}
             </button>
             <p v-if="!filtered.length" class="col-span-8 text-center text-xs text-gray-500 py-4">No emoji found</p>
@@ -28,7 +28,7 @@
             <Clock3 :size="12" class="text-gray-500 mr-1 shrink-0" />
             <button v-for="e in recent" :key="e" type="button"
               class="h-8 w-8 rounded-lg text-base flex items-center justify-center hover:bg-emerald-500/10 transition-colors"
-              :title="e" @click="pick(e)">
+              :aria-label="e" :title="e" @click="pick(e)">
               {{ e }}
             </button>
             <button type="button" @click="clearRecent" class="ml-auto text-[10px] text-gray-500 hover:text-gray-300 px-1" title="Clear recent">

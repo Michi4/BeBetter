@@ -18,12 +18,12 @@
 
         <form @submit.prevent="handleRegister" class="card p-6 sm:p-7 space-y-4 rounded-2xl">
           <div v-if="error" class="text-red-400 text-sm bg-red-500/10 px-3 py-2 rounded-lg">{{ error }}</div>
-          <input v-model="form.username" type="text" placeholder="Username" class="input" required
+          <input v-model="form.username" type="text" placeholder="Username" aria-label="Username" class="input" required
             minlength="3" maxlength="20" pattern="[a-zA-Z0-9_]+"
             title="3-20 characters, letters, numbers and underscores only" />
-          <input v-model="form.email" type="email" autocomplete="email" placeholder="Email" class="input" required />
+          <input v-model="form.email" type="email" autocomplete="email" aria-label="Email" placeholder="Email" class="input" required />
           <div class="relative">
-            <input v-model="form.password" :type="showPw ? 'text' : 'password'" autocomplete="new-password" placeholder="Password (min 6 chars)" class="input pr-10" required minlength="6" />
+            <input v-model="form.password" :type="showPw ? 'text' : 'password'" autocomplete="new-password" aria-label="Password" placeholder="Password (min 6 chars)" class="input pr-10" required minlength="6" />
             <button type="button" @click="showPw = !showPw" :aria-label="showPw ? 'Hide password' : 'Show password'" :aria-pressed="showPw" class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--bb-muted)] hover:text-[var(--bb-ink)] transition-colors">
               <Eye v-if="!showPw" :size="16" />
               <EyeOff v-else :size="16" />

@@ -15,6 +15,7 @@
         @input="debouncedLoad"
         type="text"
         placeholder="Search presets..."
+        aria-label="Search presets"
         class="input flex-1"
       />
       <select v-model="selectedCategory" @change="loadPresets" class="input w-auto min-w-[110px]">

@@ -1,6 +1,6 @@
 <template>
   <Teleport to="body">
-    <div v-if="show" class="fixed inset-0 z-[70] bg-black flex flex-col" @keydown.escape="close" tabindex="-1" ref="camEl">
+    <div v-if="show" class="fixed inset-0 z-[70] bg-black flex flex-col" @keydown.escape="close" tabindex="-1" ref="camEl" role="dialog" aria-modal="true" aria-label="Take a photo">
       <div class="flex items-center justify-between p-4 safe-top">
         <h3 class="text-white font-medium">BeBetter Cam</h3>
         <button @click="close" aria-label="Close" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white/70 hover:text-white transition-colors"><X :size="20" /></button>

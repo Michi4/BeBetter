@@ -19,9 +19,9 @@
 
         <form @submit.prevent="handleLogin" class="card p-6 sm:p-7 space-y-4 rounded-2xl">
           <div v-if="error" class="text-red-400 text-sm bg-red-500/10 px-3 py-2 rounded-lg">{{ error }}</div>
-          <input v-model="email" type="text" autocomplete="username" placeholder="Email or username" class="input" required />
+          <input v-model="email" type="text" autocomplete="username" aria-label="Email or username" placeholder="Email or username" class="input" required />
           <div class="relative">
-            <input v-model="password" :type="showPw ? 'text' : 'password'" autocomplete="current-password" placeholder="Password" class="input pr-10" required />
+            <input v-model="password" :type="showPw ? 'text' : 'password'" autocomplete="current-password" aria-label="Password" placeholder="Password" class="input pr-10" required />
             <button type="button" @click="showPw = !showPw" :aria-label="showPw ? 'Hide password' : 'Show password'" :aria-pressed="showPw" class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--bb-muted)] hover:text-[var(--bb-ink)] transition-colors">
               <Eye v-if="!showPw" :size="16" />
               <EyeOff v-else :size="16" />
