@@ -187,6 +187,23 @@ router.post('/', authMiddleware, demoFieldGuard(['makePublic', 'buddyIds', 'chal
     const { title, description, emoji, frequencyType, daysPerWeek, schedule, schedules, reminderMinutes, verificationType, wagerDays, wagerAmount, makePublic, config, buddyIds, challengeFriendIds, endDate } = req.body;
     if (!title) return res.status(400).json({ error: 'Title required' });
 
+    if (Array.isArray(schedules)) {
+      const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+      for (const s of schedules) {
+        if (!s || typeof s !== 'object') continue;
+        if (Array.isArray(s.days)) {
+          for (const d of s.days) {
+            if (!Number.isInteger(d) || d < 0 || d > 6) {
+              return res.status(400).json({ error: 'Schedule days must be 0-6 (Sunday-Saturday)' });
+            }
+          }
+        }
+        if (s.time && typeof s.time === 'string' && !TIME_RE.test(s.time)) {
+          return res.status(400).json({ error: 'Schedule time must be in HH:MM format' });
+        }
+      }
+    }
+
     const hasScheduledTimes = Array.isArray(schedules) && schedules.some((s) => s && s.time);
     const needsPhotoProof = verificationType === 'be_better_cam' || verificationType === 'photo';
     if ((hasScheduledTimes || needsPhotoProof) && (await isDemoUser(req.userId))) {

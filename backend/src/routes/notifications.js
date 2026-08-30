@@ -70,6 +70,14 @@ router.put('/preferences', authMiddleware, demoGuard, async (req, res) => {
   try {
     const { morningEnabled, morningTime, habitRemindersEnabled, eveningEnabled, eveningTime, announcementsEnabled } = req.body;
 
+    const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+    if (morningTime !== undefined && morningTime !== null && !TIME_RE.test(String(morningTime))) {
+      return res.status(400).json({ error: 'Morning time must be in HH:MM format' });
+    }
+    if (eveningTime !== undefined && eveningTime !== null && !TIME_RE.test(String(eveningTime))) {
+      return res.status(400).json({ error: 'Evening time must be in HH:MM format' });
+    }
+
     const prefs = await prisma.notificationPreference.upsert({
       where: { userId: req.userId },
       update: {
