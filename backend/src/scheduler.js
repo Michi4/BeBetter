@@ -79,6 +79,9 @@ async function resetDemoAccount(db = prisma) {
     await db.friendship.deleteMany({ where: { OR: [{ user1Id: userId }, { user2Id: userId }] } });
     await db.challenge.deleteMany({ where: { OR: [{ creatorId: userId }, { opponentId: userId }] } });
     await db.preset.deleteMany({ where: { authorId: userId } });
+    await db.presetLike.deleteMany({ where: { userId } });
+    await db.presetUsage.deleteMany({ where: { userId } });
+    await db.report.deleteMany({ where: { reporterId: userId } });
     await db.friendLink.deleteMany({ where: { senderId: userId } });
     await db.pushSubscription.deleteMany({ where: { userId } });
 
