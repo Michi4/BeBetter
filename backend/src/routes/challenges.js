@@ -54,8 +54,14 @@ router.get('/leaderboard/friends', authMiddleware, async (req, res) => {
     });
     const winMap = new Map(winCounts.map(w => [w.winnerId, w._count.id]));
 
+    const users = await prisma.user.findMany({
+      where: { id: { in: allIds } },
+      select: { id: true, username: true, avatar: true },
+    });
+    const userMap = new Map(users.map(u => [u.id, u]));
+
     for (const uid of allIds) {
-      const user = await prisma.user.findUnique({ where: { id: uid }, select: { id: true, username: true, avatar: true } });
+      const user = userMap.get(uid);
       if (!user) continue;
       const totalLogs = countMap.get(uid) || 0;
       const wins = winMap.get(uid) || 0;
