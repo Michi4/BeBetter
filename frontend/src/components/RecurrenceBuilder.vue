@@ -34,6 +34,8 @@
         <!-- Day picker -->
         <div class="flex gap-1.5">
           <button v-for="(day, di) in weekDays" :key="di" type="button" @click="toggleDay(idx, di)" :disabled="disabled"
+            :aria-pressed="entry.days.includes(di)"
+            :aria-label="day"
             class="flex-1 h-8 rounded-lg text-[11px] font-medium transition-colors duration-150"
             :class="entry.days.includes(di) ? 'bg-emerald-600 text-white' : 'bg-gray-700/50 text-gray-400 hover:bg-gray-700'">
             {{ day }}

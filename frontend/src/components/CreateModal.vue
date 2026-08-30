@@ -288,7 +288,7 @@ const customTaskReminderInput = ref('')
 
 const taskForm = reactive({
   title: '', description: '', dueDate: '',
-  setScheduledTime: false, scheduledTime: '', scheduledDays: [1, 2, 3, 4, 5], reminderMinutes: [],
+  setScheduledTime: false, scheduledTime: '', reminderMinutes: [],
 })
 const habitForm = reactive({
   title: '', description: '', emoji: '🎯',
@@ -339,7 +339,6 @@ watch(() => props.show, (val) => {
     taskForm.dueDate = ''
     taskForm.setScheduledTime = false
     taskForm.scheduledTime = ''
-    taskForm.scheduledDays = [1, 2, 3, 4, 5]
     taskForm.reminderMinutes = []
     habitForm.title = ''
     habitForm.description = ''
@@ -488,7 +487,6 @@ function createTask() {
   if (demoBlocked() && taskForm.setScheduledTime) { taskForm.setScheduledTime = false; return }
   const data = { ...taskForm, setScheduledTime: undefined }
   delete data.setScheduledTime
-  delete data.scheduledDays
   if (!taskForm.setScheduledTime) {
     delete data.scheduledTime
     delete data.reminderMinutes

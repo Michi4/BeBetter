@@ -667,14 +667,14 @@ async function loadProfileGrid() {
     if (gridYear.value > gridYearRange.value.lastYear) gridYear.value = gridYearRange.value.lastYear
 
     const gridRaw = gridRes.data.grid || {}
-    const vacationDays = gridRes.data.vacationDays || []
+    const vacationSet = new Set(gridRes.data.vacationDays || [])
     const days = []
     const cur = new Date(`${gridYear.value}-01-01T12:00:00Z`)
     const end = new Date(`${gridYear.value}-12-31T12:00:00Z`)
     while (cur <= end) {
       const ds = cur.toISOString().slice(0, 10)
       const data = gridRaw[ds]
-      const isVacation = vacationDays.includes(ds)
+      const isVacation = vacationSet.has(ds)
       if (data) {
         days.push({
           date: ds,
