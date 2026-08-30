@@ -413,13 +413,13 @@ router.post('/link/accept', authMiddleware, async (req, res) => {
     if (link.senderId === req.userId) return res.status(400).json({ error: 'Cannot accept your own link' });
 
     const [smaller, larger] = [link.senderId, req.userId].sort();
-    const existingFriendship = await prisma.friendship.findFirst({
-      where: { user1Id: smaller, user2Id: larger },
-    });
-
-    if (!existingFriendship) {
-      await prisma.friendship.create({ data: { user1Id: smaller, user2Id: larger } });
-    }
+    // Upsert instead of check-then-create: two concurrent accepts must not
+    // 500 on the (user1Id, user2Id) unique constraint.
+    await prisma.friendship.upsert({
+      where: { user1Id_user2Id: { user1Id: smaller, user2Id: larger } },
+      update: {},
+      create: { user1Id: smaller, user2Id: larger },
+    }).catch(() => {});
 
     await prisma.friendLink.update({ where: { id: link.id }, data: { used: true, usedById: req.userId } });
 
