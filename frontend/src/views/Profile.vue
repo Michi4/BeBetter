@@ -363,8 +363,7 @@ import { useToast } from 'vue-toastification'
 import { openDemoPrompt } from '../utils/demoPrompt'
 import {
   UserPlus, Swords, Trash2, Camera, X, AlertTriangle, Loader2, Clock, Check,
-  User, Bell, Palmtree, Play, KeyRound, Save, RefreshCw, ChevronLeft, ChevronRight,
-  LogOut
+  User, Bell, Palmtree, Play, KeyRound, Save, ChevronLeft, ChevronRight,
 } from 'lucide-vue-next'
 import ContributionGrid from '../components/ContributionGrid.vue'
 import TimeInput from '../components/TimeInput.vue'
@@ -376,10 +375,6 @@ const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
 
-function handleLogout() {
-  auth.logout()
-  router.push('/login')
-}
 const toast = useToast()
 
 const profile = ref(null)
@@ -536,7 +531,6 @@ async function togglePush() {
     pushEnabled.value = true
     toast.success('Push notifications enabled')
   } catch (err) {
-    console.error(err)
     toast.error('Push setup failed: ' + (err.response?.data?.error || err.message))
     pushEnabled.value = false
   }

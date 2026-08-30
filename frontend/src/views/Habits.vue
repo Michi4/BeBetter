@@ -564,9 +564,10 @@ async function loadAll() {
 }
 
 async function completeTask(task) {
+  if (completingTaskId.value) return
+  completingTaskId.value = task.id
   try {
     await api.post(`/tasks/${task.id}/complete`)
-    completingTaskId.value = task.id
     toast.success(`"${task.title}" done!`)
     setTimeout(() => {
       completingTaskId.value = null
@@ -575,6 +576,7 @@ async function completeTask(task) {
       loadHistory()
     }, 600)
   } catch {
+    completingTaskId.value = null
     toast.error('Failed')
   }
 }
