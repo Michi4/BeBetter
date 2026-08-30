@@ -75,6 +75,7 @@ router.get('/', authMiddleware, async (req, res) => {
     const challenges = await prisma.challenge.findMany({
       where: {
         OR: [{ creatorId: req.userId }, { opponentId: req.userId }],
+        NOT: { creatorId: req.userId, opponentId: req.userId, status: 'pending' },
       },
       include: {
         habit: { select: { id: true, title: true, emoji: true, description: true, frequencyType: true, verificationType: true } },
