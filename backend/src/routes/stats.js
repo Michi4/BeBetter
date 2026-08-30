@@ -142,12 +142,19 @@ router.get('/overview', authMiddleware, async (req, res) => {
             OR: [{ endDate: null }, { endDate: { gte: firstDay } }],
           },
         });
-        let vacationDays = 0;
+        const vacationDaySet = new Set();
         for (const v of vacations) {
           const vStart = new Date(Math.max(v.startDate, firstDay));
+          vStart.setHours(0, 0, 0, 0);
           const vEnd = new Date(v.endDate ? Math.min(v.endDate, today) : today);
-          vacationDays += Math.floor((vEnd - vStart) / (1000 * 60 * 60 * 24)) + 1;
+          vEnd.setHours(0, 0, 0, 0);
+          const current = new Date(vStart);
+          while (current <= vEnd) {
+            vacationDaySet.add(dayKey(current));
+            current.setDate(current.getDate() + 1);
+          }
         }
+        const vacationDays = vacationDaySet.size;
 
         const effectiveSpan = Math.max(1, daysSpan - vacationDays);
         consistency = Math.min(100, Math.round((uniqueDays.size / effectiveSpan) * 100));
@@ -249,7 +256,7 @@ router.get('/consistency', authMiddleware, async (req, res) => {
 
     const where = {
       userId: req.userId,
-      completedAt: { gte: startDate, lte: endDate },
+      completedAt: { gte: startDate, lt: endDate },
     };
     if (habitId) where.habitId = habitId;
 
@@ -267,12 +274,19 @@ router.get('/consistency', authMiddleware, async (req, res) => {
       },
     });
 
-    let vacationDaysCount = 0;
+    const vacationDaySet = new Set();
     for (const v of vacationDays) {
-      const vStart = v.startDate > startDate ? v.startDate : startDate;
-      const vEnd = v.endDate ? (v.endDate < endDate ? v.endDate : endDate) : endDate;
-      vacationDaysCount += Math.ceil((vEnd - vStart) / (1000 * 60 * 60 * 24)) + 1;
+      const vStart = new Date(v.startDate > startDate ? v.startDate : startDate);
+      vStart.setHours(0, 0, 0, 0);
+      const vEnd = new Date(v.endDate ? (v.endDate < endDate ? v.endDate : endDate) : endDate);
+      vEnd.setHours(0, 0, 0, 0);
+      const current = new Date(vStart);
+      while (current <= vEnd) {
+        vacationDaySet.add(dayKey(current));
+        current.setDate(current.getDate() + 1);
+      }
     }
+    const vacationDaysCount = vacationDaySet.size;
 
     const effectiveDays = Math.max(1, numDays - vacationDaysCount);
     const consistency = Math.min(100, Math.round((uniqueDays.size / effectiveDays) * 100));

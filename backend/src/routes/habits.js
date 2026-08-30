@@ -54,8 +54,7 @@ router.get('/', authMiddleware, async (req, res) => {
     ]);
 
     const enriched = habits.map((h) => {
-      const todayStart = new Date(); todayStart.setHours(0,0,0,0);
-      const activeBreak = h.breaks.find((b) => !b.endDate || new Date(b.endDate) >= todayStart);
+      const activeBreak = h.breaks.find((b) => !b.endDate || new Date(b.endDate) > new Date());
       const isActive = !activeBreak && h.active;
       const sched = normalizeDaysPerWeek(h.daysPerWeek);
       const schedules = normalizeSchedules(h.schedules);
@@ -116,7 +115,7 @@ router.get('/scheduled', authMiddleware, async (req, res) => {
     });
 
     const buildScheduledEntries = (h, challengeId, challengeOpponent) => {
-      const activeBreak = h.breaks.find((b) => !b.endDate || new Date(b.endDate) >= dayStart);
+      const activeBreak = h.breaks.find((b) => !b.endDate || new Date(b.endDate) > new Date());
       const hasBreak = !!activeBreak;
       const schedules = normalizeSchedules(h.schedules);
 

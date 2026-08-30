@@ -43,7 +43,7 @@ router.get('/', authMiddleware, async (req, res) => {
       }),
       prisma.habit.findMany({
         where: { userId: req.userId, active: true },
-        select: { id: true, daysPerWeek: true, frequencyType: true, createdAt: true, breaks: { where: { endDate: null }, select: { startDate: true } } },
+        select: { id: true, daysPerWeek: true, frequencyType: true, createdAt: true, breaks: { select: { startDate: true, endDate: true } } },
       }),
     ]);
 
@@ -76,7 +76,7 @@ router.get('/', authMiddleware, async (req, res) => {
       if (!vacationSet.has(ds)) {
         const dow = cur.getDay();
         for (const h of parsedHabits) {
-          if (h.breaks.length > 0) continue;
+          if (h.breaks.some((b) => !b.endDate || new Date(b.endDate) >= cur)) continue;
           if (h.createdAt && cur < startOfDay(h.createdAt)) continue;
           if (h.frequencyType === 'daily' || h.frequencyType === 'always' || (Array.isArray(h.sched) && h.sched.includes(dow))) {
             if (!grid[ds]) grid[ds] = { scheduled: 0, completed: 0, habits: 0, tasks: 0, items: [] };
@@ -147,12 +147,12 @@ router.get('/day', authMiddleware, async (req, res) => {
 
     const habitsWithScheduled = await prisma.habit.findMany({
       where: { userId: req.userId, active: true },
-      select: { id: true, title: true, emoji: true, daysPerWeek: true, frequencyType: true, createdAt: true, breaks: { where: { endDate: null }, select: { startDate: true } } },
+      select: { id: true, title: true, emoji: true, daysPerWeek: true, frequencyType: true, createdAt: true, breaks: { select: { startDate: true, endDate: true } } },
     });
     const scheduledHabitIds = new Set();
     const dow = d.getDay();
     for (const h of habitsWithScheduled) {
-      if (h.breaks.length > 0) continue;
+      if (h.breaks.some((b) => !b.endDate || new Date(b.endDate) >= d)) continue;
       if (h.createdAt && d < startOfDay(h.createdAt)) continue;
       const sched = JSON.parse(typeof h.daysPerWeek === 'string' ? h.daysPerWeek : JSON.stringify(h.daysPerWeek || '[]'));
       if (h.frequencyType === 'daily' || h.frequencyType === 'always' || (Array.isArray(sched) && sched.includes(dow))) {

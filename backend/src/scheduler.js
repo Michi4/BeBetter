@@ -245,14 +245,13 @@ function isHabitDueToday(habit, dayOfWeek) {
   return sched.some(s => Array.isArray(s.days) && s.days.includes(dayOfWeek));
 }
 
-// A habit is "on break" when it has a break without an end date yet (ongoing)
-// or whose end date is today or later (break still in effect).
-function activeBreakFilter(today) {
-  const d = new Date(today);
-  d.setHours(0, 0, 0, 0);
+// A habit is "on break" while it has a break with no end date yet, or whose
+// end date is still in the future (endDate set to "now" means the break ended).
+function activeBreakFilter() {
+  const now = new Date();
   return {
     none: {
-      OR: [{ endDate: null }, { endDate: { gte: d } }],
+      OR: [{ endDate: null }, { endDate: { gt: now } }],
     },
   };
 }
@@ -354,7 +353,7 @@ async function checkScheduledReminders(db = prisma) {
         active: true,
         schedules: { not: null },
         reminderMinutes: { not: null },
-        breaks: activeBreakFilter(new Date()),
+        breaks: activeBreakFilter(),
       },
     });
 
@@ -457,7 +456,7 @@ async function morningReminder(db = prisma) {
       where: {
         userId: pref.userId,
         active: true,
-        breaks: activeBreakFilter(today),
+        breaks: activeBreakFilter(),
       },
     });
 
@@ -494,7 +493,7 @@ async function eveningReminder(db = prisma) {
       where: {
         userId: pref.userId,
         active: true,
-        breaks: activeBreakFilter(today),
+        breaks: activeBreakFilter(),
       },
     });
 

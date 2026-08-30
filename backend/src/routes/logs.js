@@ -28,13 +28,11 @@ router.post('/', authMiddleware, async (req, res) => {
     }
     if (!isOwner && !isChallengeOpponent) return res.status(404).json({ error: 'Not found' });
 
-    if (isOwner) {
-      const activeBreak = habit.breaks.find((b) => !b.endDate);
-      if (activeBreak) return res.status(400).json({ error: 'Habit is on break' });
-    }
-
     const logDate = date ? new Date(date) : new Date();
     logDate.setHours(0, 0, 0, 0);
+
+    const activeBreak = habit.breaks.find((b) => !b.endDate || new Date(b.endDate) > new Date());
+    if (activeBreak) return res.status(400).json({ error: 'Habit is on break' });
 
     const vacation = await prisma.vacation.findFirst({
       where: {
