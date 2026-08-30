@@ -82,7 +82,7 @@
       <h3 class="section-title">Quick Create</h3>
       <div class="flex gap-2">
         <input v-model="quickTaskTitle" @keydown.enter="createQuickTask"
-          class="input flex-1" placeholder="Add a quick task..." />
+          class="input flex-1" placeholder="Add a quick task..." aria-label="Quick task title" />
         <button @click="createQuickTask" class="btn px-4" :disabled="!quickTaskTitle.trim()">
           Add
         </button>

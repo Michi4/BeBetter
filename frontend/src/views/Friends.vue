@@ -141,8 +141,14 @@ const filteredResults = computed(() => {
 })
 
 function copyInvite() {
-  navigator.clipboard.writeText(inviteLink.value)
-  toast.success('Link copied!')
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(inviteLink.value).then(
+      () => toast.success('Link copied!'),
+      () => toast.error('Failed to copy link')
+    )
+  } else {
+    toast.error('Clipboard not available')
+  }
 }
 
 let searchTimeout = null

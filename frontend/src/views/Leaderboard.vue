@@ -183,8 +183,9 @@ async function loadLeaderboard() {
     if (token !== lbToken) return
     entries.value = []
     challenges.value = []
+  } finally {
+    if (token === lbToken) loading.value = false
   }
-  loading.value = false
 }
 
 onMounted(async () => {

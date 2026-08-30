@@ -605,7 +605,17 @@ async function sendRequest() {
 
 async function handleAvatarUpload(e) {
   const file = e.target.files?.[0]
+  e.target.value = ''
   if (!file) return
+  if (!file.type.startsWith('image/')) {
+    toast.error('Please choose an image file')
+    return
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    toast.error('Image must be under 5MB')
+    return
+  }
+  uploadingAvatar.value = true
   const formData = new FormData()
   formData.append('photo', file)
   try {
@@ -616,6 +626,8 @@ async function handleAvatarUpload(e) {
     toast.success('Avatar updated')
   } catch {
     toast.error('Failed to upload avatar')
+  } finally {
+    uploadingAvatar.value = false
   }
 }
 
