@@ -96,15 +96,22 @@ router.get('/', authMiddleware, async (req, res) => {
 
 router.get('/years', authMiddleware, async (req, res) => {
   try {
-    const firstLog = await prisma.habitLog.findFirst({
-      where: { userId: req.userId },
-      orderBy: { completedAt: 'asc' },
-    });
+    const [firstLog, firstTaskLog] = await Promise.all([
+      prisma.habitLog.findFirst({
+        where: { userId: req.userId },
+        orderBy: { completedAt: 'asc' },
+      }),
+      prisma.taskLog.findFirst({
+        where: { userId: req.userId },
+        orderBy: { completedAt: 'asc' },
+      }),
+    ]);
 
     const currentYear = new Date().getFullYear();
+    const firstDates = [firstLog?.completedAt, firstTaskLog?.completedAt].filter(Boolean);
     const years = [];
-    if (firstLog) {
-      const firstYear = firstLog.completedAt.getFullYear();
+    if (firstDates.length) {
+      const firstYear = Math.min(...firstDates.map((d) => d.getFullYear()));
       for (let y = firstYear; y <= currentYear; y++) years.push(y);
     } else {
       years.push(currentYear);
