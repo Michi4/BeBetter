@@ -46,6 +46,7 @@ import { useRoute, useRouter } from 'vue-router'
 import api from '../api'
 import { useToast } from 'vue-toastification'
 import { ArrowLeft, Loader2, Check, AlertCircle } from 'lucide-vue-next'
+import { formatRecurrence as formatRecurrenceUtil } from '../utils/scheduleFormat'
 
 const route = useRoute()
 const router = useRouter()
@@ -87,12 +88,7 @@ function formatDate(d) {
 }
 
 function formatRecurrence(h) {
-  if (!h) return 'Daily'
-  if (h.frequencyType === 'daily' || h.frequencyType === 'always') return 'Daily'
-  const sched = JSON.parse(typeof h.daysPerWeek === 'string' ? h.daysPerWeek : JSON.stringify(h.daysPerWeek || '[]'))
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-  if (h.frequencyType === 'days_per_week') return `${sched.length}x per week`
-  return (Array.isArray(sched) ? sched : []).map(d => days[d]).filter(Boolean).join(', ') || 'Daily'
+  return formatRecurrenceUtil(h)
 }
 
 onMounted(loadInvite)

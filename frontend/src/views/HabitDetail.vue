@@ -284,6 +284,7 @@ import { ArrowLeft, Pencil, Save, Pause, Play, CheckCircle, Trash2, ChevronRight
 import HabitForm from '../components/HabitForm.vue'
 import { formatTime } from '../utils/timeFormat'
 import { openDemoPrompt } from '../utils/demoPrompt'
+import { formatRecurrence as formatRecurrenceUtil } from '../utils/scheduleFormat'
 
 const route = useRoute()
 const router = useRouter()
@@ -465,22 +466,7 @@ async function deleteHabit() {
 }
 
 function formatRecurrence(h) {
-  if (!h) return 'Daily'
-  if (h.schedules?.length) {
-    const s = h.schedules[0]
-    if (!s || !s.days) return 'Daily'
-    const days = s.days.sort()
-    const all = [0, 1, 2, 3, 4, 5, 6]
-    const weekdays = [1, 2, 3, 4, 5]
-    const weekends = [0, 6]
-    if (JSON.stringify(days) === JSON.stringify(all)) return 'Daily'
-    if (JSON.stringify(days) === JSON.stringify(weekdays)) return 'Weekdays'
-    if (JSON.stringify(days) === JSON.stringify(weekends)) return 'Weekends'
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-    return days.map(d => dayNames[d]).join(', ')
-  }
-  if (h.frequencyType === 'daily' || h.frequencyType === 'always') return 'Daily'
-  return h.frequencyType || 'Daily'
+  return formatRecurrenceUtil(h)
 }
 
 function formatScheduleDays(days) {

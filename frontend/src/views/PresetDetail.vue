@@ -156,6 +156,7 @@ import api from '../api'
 import { useToast } from 'vue-toastification'
 import { useAuthStore } from '../stores/auth'
 import { ArrowLeft, Heart, GitFork, Play, Square, Flag, Share2, Users, Pencil, Save, Trash2 } from 'lucide-vue-next'
+import { formatRecurrence as formatRecurrenceUtil } from '../utils/scheduleFormat'
 
 const route = useRoute()
 const router = useRouter()
@@ -302,15 +303,7 @@ function formatRecurrence(r) {
     if (allDays.size === 7) return 'Daily'
     return `Weekly (${[...allDays].sort().map(d => days[d]).filter(Boolean).join(', ')})`
   }
-  if (r.frequencyType === 'daily') return 'Daily'
-  if (r.frequencyType === 'weekdays') return 'Weekdays'
-  if (r.frequencyType === 'weekends') return 'Weekends'
-  if (r.frequencyType === 'weekly') {
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-    const sched = JSON.parse(typeof r.daysPerWeek === 'string' ? r.daysPerWeek : JSON.stringify(r.daysPerWeek || '[]'))
-    return `Weekly (${(Array.isArray(sched) ? sched : []).map(d => days[d]).filter(Boolean).join(', ')})`
-  }
-  return r.frequencyType || 'Daily'
+  return formatRecurrenceUtil(r)
 }
 
 onMounted(loadPreset)

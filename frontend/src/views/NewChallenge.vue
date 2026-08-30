@@ -16,7 +16,7 @@
             <span class="text-lg">{{ h.emoji || '🎯' }}</span>
             <div class="flex-1 min-w-0">
               <div class="text-sm font-medium truncate">{{ h.title }}</div>
-              <div class="text-xs text-gray-500">{{ h.frequencyType || 'daily' }}</div>
+              <div class="text-xs text-gray-500">{{ formatRecurrence(h) }}</div>
             </div>
             <Check v-if="form.habitId === h.id" :size="16" class="text-emerald-400 shrink-0" />
           </button>
@@ -74,6 +74,7 @@ import { useRoute, useRouter } from 'vue-router'
 import api from '../api'
 import { useToast } from 'vue-toastification'
 import { ArrowLeft, X, Trophy, Check } from 'lucide-vue-next'
+import { formatRecurrence } from '../utils/scheduleFormat'
 
 const route = useRoute()
 const router = useRouter()
