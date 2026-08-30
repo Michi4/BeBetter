@@ -179,7 +179,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import api from '../api'
 import { useToast } from 'vue-toastification'
 import { Plus, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Target, Loader2, FlaskConical, Palmtree } from 'lucide-vue-next'
@@ -224,6 +224,20 @@ function getCurrentTimeMinutes() {
   return now.getHours() * 60 + now.getMinutes()
 }
 
+// Reactive clock so Overdue/Now/Upcoming buckets roll over without a reload.
+const clockMinutes = ref(getCurrentTimeMinutes())
+let clockTimer = null
+function startClock() {
+  clockTimer = setInterval(() => {
+    clockMinutes.value = getCurrentTimeMinutes()
+  }, 30 * 1000)
+}
+function stopClock() {
+  if (clockTimer) clearInterval(clockTimer)
+  clockTimer = null
+}
+onBeforeUnmount(stopClock)
+
 function timeToMinutes(t) {
   if (!t) return -1
   const [h, m] = t.split(':').map(Number)
@@ -232,11 +246,11 @@ function timeToMinutes(t) {
 
 const unscheduledHabits = computed(() => todayHabits.value.filter(h => !h.scheduledTime))
 const overdueHabits = computed(() => {
-  const now = getCurrentTimeMinutes()
+  const now = clockMinutes.value
   return todayHabits.value.filter(h => h.scheduledTime && timeToMinutes(h.scheduledTime) < now - 30 && !h.completedToday && !h.hasBreak)
 })
 const nowHabits = computed(() => {
-  const now = getCurrentTimeMinutes()
+  const now = clockMinutes.value
   return todayHabits.value.filter(h => {
     if (!h.scheduledTime || h.hasBreak) return false
     const t = timeToMinutes(h.scheduledTime)
@@ -244,7 +258,7 @@ const nowHabits = computed(() => {
   })
 })
 const upcomingHabits = computed(() => {
-  const now = getCurrentTimeMinutes()
+  const now = clockMinutes.value
   return todayHabits.value.filter(h => h.scheduledTime && timeToMinutes(h.scheduledTime) > now + 30 && !h.completedToday && !h.hasBreak)
 })
 
@@ -562,6 +576,7 @@ async function endVacation() {
 
 onMounted(async () => {
   loading.value = true
+  startClock()
   await Promise.all([
     loadStats(),
     loadTasks(),
