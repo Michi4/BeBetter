@@ -147,7 +147,7 @@ function formatDays(days) {
 }
 
 function showContextMenu(e) {
-  menuPos.value = { top: e.clientY + 'px', left: Math.min(e.clientX, window.innerWidth - 200) + 'px' }
+  menuPos.value = { top: Math.min(e.clientY, window.innerHeight - 220) + 'px', left: Math.min(e.clientX, window.innerWidth - 200) + 'px' }
   showMenu.value = true
 }
 
@@ -155,7 +155,7 @@ function startLongPress(e) {
   longPressTimer = setTimeout(() => {
     longPressFired = true
     const touch = e.touches[0] || e.changedTouches[0]
-    menuPos.value = { top: touch.clientY + 'px', left: Math.min(touch.clientX, window.innerWidth - 200) + 'px' }
+    menuPos.value = { top: Math.min(touch.clientY, window.innerHeight - 220) + 'px', left: Math.min(touch.clientX, window.innerWidth - 200) + 'px' }
     showMenu.value = true
   }, 500)
 }
