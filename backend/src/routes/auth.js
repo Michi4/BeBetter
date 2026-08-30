@@ -296,28 +296,29 @@ router.delete('/account', authMiddleware, demoGuard, async (req, res) => {
 
     const userId = req.userId;
 
-    await prisma.habitLog.deleteMany({ where: { userId } });
-    await prisma.habitBreak.deleteMany({ where: { userId } });
-    await prisma.habitBuddy.deleteMany({ where: { friendId: userId } });
-    await prisma.vacation.deleteMany({ where: { userId } });
-    await prisma.wager.deleteMany({ where: { OR: [{ userId }, { counterpartyId: userId }] } });
-    await prisma.presetUsage.deleteMany({ where: { userId } });
-    await prisma.presetLike.deleteMany({ where: { userId } });
-    await prisma.activity.deleteMany({ where: { userId } });
-    await prisma.notification.deleteMany({ where: { userId } });
-    await prisma.report.deleteMany({ where: { reporterId: userId } });
-    await prisma.friendRequest.deleteMany({ where: { OR: [{ requesterId: userId }, { receiverId: userId }] } });
-    await prisma.friendship.deleteMany({ where: { OR: [{ user1Id: userId }, { user2Id: userId }] } });
-    await prisma.challenge.deleteMany({ where: { OR: [{ creatorId: userId }, { opponentId: userId }] } });
-    await prisma.taskLog.deleteMany({ where: { userId } });
-    await prisma.task.deleteMany({ where: { userId } });
-    await prisma.habit.deleteMany({ where: { userId } });
-    await prisma.preset.deleteMany({ where: { authorId: userId } });
-    await prisma.friendLink.deleteMany({ where: { senderId: userId } });
-    await prisma.pushSubscription.deleteMany({ where: { userId } });
-    await prisma.notificationPreference.deleteMany({ where: { userId } });
-    await prisma.passwordReset.deleteMany({ where: { userId } });
-    await prisma.user.delete({ where: { id: userId } });
+    await prisma.$transaction(async (tx) => {
+      await tx.habitLog.deleteMany({ where: { userId } });
+      await tx.habitBreak.deleteMany({ where: { userId } });
+      await tx.habitBuddy.deleteMany({ where: { friendId: userId } });
+      await tx.vacation.deleteMany({ where: { userId } });
+      await tx.wager.deleteMany({ where: { OR: [{ userId }, { counterpartyId: userId }] } });
+      await tx.presetUsage.deleteMany({ where: { userId } });
+      await tx.presetLike.deleteMany({ where: { userId } });
+      await tx.activity.deleteMany({ where: { userId } });
+      await tx.notification.deleteMany({ where: { userId } });
+      await tx.report.deleteMany({ where: { reporterId: userId } });
+      await tx.friendRequest.deleteMany({ where: { OR: [{ requesterId: userId }, { receiverId: userId }] } });
+      await tx.friendship.deleteMany({ where: { OR: [{ user1Id: userId }, { user2Id: userId }] } });
+      await tx.challenge.deleteMany({ where: { OR: [{ creatorId: userId }, { opponentId: userId }] } });
+      await tx.taskLog.deleteMany({ where: { userId } });
+      await tx.task.deleteMany({ where: { userId } });
+      await tx.habit.deleteMany({ where: { userId } });
+      await tx.preset.deleteMany({ where: { authorId: userId } });
+      await tx.friendLink.deleteMany({ where: { senderId: userId } });
+      await tx.pushSubscription.deleteMany({ where: { userId } });
+      await tx.passwordReset.deleteMany({ where: { userId } });
+      await tx.user.delete({ where: { id: userId } });
+    });
 
     res.clearCookie('token');
     res.json({ ok: true });
