@@ -169,6 +169,18 @@ router.put('/:id', authMiddleware, demoFieldGuard(['scheduledTime', 'scheduledDa
 
     const { title, description, emoji, dueDate, isActive, isScheduled, isEveryday, scheduledTime, scheduledDays, reminderMinutes } = req.body;
 
+    const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+    if (scheduledTime !== undefined && scheduledTime !== null && typeof scheduledTime === 'string' && !TIME_RE.test(scheduledTime)) {
+      return res.status(400).json({ error: 'Scheduled time must be in HH:MM format' });
+    }
+    if (Array.isArray(scheduledDays)) {
+      for (const d of scheduledDays) {
+        if (!Number.isInteger(d) || d < 0 || d > 6) {
+          return res.status(400).json({ error: 'Scheduled days must be 0-6 (Sunday-Saturday)' });
+        }
+      }
+    }
+
     const updated = await prisma.task.update({
       where: { id },
       data: {

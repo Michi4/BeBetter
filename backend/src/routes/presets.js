@@ -141,19 +141,29 @@ router.post('/:id/like', async (req, res) => {
     const preset = await prisma.preset.findUnique({ where: { id: req.params.id } });
     if (!preset) return res.status(404).json({ error: 'Preset not found' });
 
-    const existing = await prisma.presetLike.findUnique({
-      where: { userId_presetId: { userId: req.userId, presetId: req.params.id } },
+    // Atomic toggle in a transaction — a double-click must not 500 on the
+    // unique constraint nor drift the counter.
+    const result = await prisma.$transaction(async (tx) => {
+      const existing = await tx.presetLike.findUnique({
+        where: { userId_presetId: { userId: req.userId, presetId: req.params.id } },
+      });
+      if (existing) {
+        await tx.presetLike.delete({ where: { id: existing.id } });
+        const updated = await tx.preset.update({
+          where: { id: req.params.id },
+          data: { likesCount: { decrement: 1 } },
+        });
+        return { liked: false, likesCount: updated.likesCount };
+      }
+      await tx.presetLike.create({ data: { userId: req.userId, presetId: req.params.id } });
+      const updated = await tx.preset.update({
+        where: { id: req.params.id },
+        data: { likesCount: { increment: 1 } },
+      });
+      return { liked: true, likesCount: updated.likesCount };
     });
 
-    if (existing) {
-      await prisma.presetLike.delete({ where: { id: existing.id } });
-      await prisma.preset.update({ where: { id: req.params.id }, data: { likesCount: { decrement: 1 } } });
-      res.json({ liked: false, likesCount: preset.likesCount - 1 });
-    } else {
-      await prisma.presetLike.create({ data: { userId: req.userId, presetId: req.params.id } });
-      await prisma.preset.update({ where: { id: req.params.id }, data: { likesCount: { increment: 1 } } });
-      res.json({ liked: true, likesCount: preset.likesCount + 1 });
-    }
+    res.json(result);
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Server error' });
