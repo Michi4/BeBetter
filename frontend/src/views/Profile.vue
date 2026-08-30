@@ -321,7 +321,7 @@
 
       <!-- Full Avatar Modal -->
       <Teleport to="body">
-        <div v-if="showFullAvatar" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" @click.self="showFullAvatar = false">
+        <div v-if="showFullAvatar" class="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 p-4" @click.self="showFullAvatar = false" role="dialog" aria-modal="true" aria-label="Profile photo">
           <div class="relative max-w-lg w-full">
             <button @click="showFullAvatar = false" class="absolute -top-10 right-0 text-gray-400 hover:text-gray-200">
               <X :size="24" />
@@ -333,13 +333,13 @@
 
       <!-- Delete Account Modal -->
       <Teleport to="body">
-        <div v-if="showDeleteConfirm" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm" @click.self="showDeleteConfirm = false">
+        <div v-if="showDeleteConfirm" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm" @click.self="showDeleteConfirm = false" role="dialog" aria-modal="true" aria-label="Delete account">
           <div class="card w-full max-w-sm mx-0 sm:mx-4 space-y-4 rounded-b-2xl sm:rounded-2xl safe-bottom" style="padding-bottom: max(env(safe-area-inset-bottom, 0px), 20px)">
             <h3 class="font-semibold text-red-400 flex items-center gap-2">
               <AlertTriangle :size="18" /> Delete Account
             </h3>
             <p class="text-sm text-gray-400">This is irreversible. Type <strong>DELETE_MY_ACCOUNT</strong> to confirm.</p>
-            <input v-model="deleteConfirm" class="input" placeholder="DELETE_MY_ACCOUNT" />
+            <input v-model="deleteConfirm" class="input" placeholder="DELETE_MY_ACCOUNT" aria-label="Type DELETE_MY_ACCOUNT to confirm" />
             <div class="flex gap-2">
               <button @click="deleteAccount" class="btn-danger flex-1" :disabled="deleteConfirm !== 'DELETE_MY_ACCOUNT'">
                 <Loader2 v-if="deleting" :size="14" class="animate-spin" />
