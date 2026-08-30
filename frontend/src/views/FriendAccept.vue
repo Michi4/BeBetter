@@ -70,8 +70,11 @@ const loading = ref(true)
 const error = ref('')
 const accepted = ref(false)
 const accepting = ref(false)
+let acceptedOnce = false
 
 async function acceptFriend() {
+  if (acceptedOnce) return
+  acceptedOnce = true
   accepting.value = true
   try {
     const token = route.params.token
