@@ -249,14 +249,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, defineAsyncComponent } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import LandingNavbar from '../components/LandingNavbar.vue'
 import LandingFooter from '../components/LandingFooter.vue'
 import ScrollReveal from '../components/ScrollReveal.vue'
 import StatCounter from '../components/StatCounter.vue'
-const ContributionGrid = defineAsyncComponent(() => import('../components/ContributionGrid.vue'))
-const MarqueeBand = defineAsyncComponent(() => import('../components/MarqueeBand.vue'))
-const AmbientGlow = defineAsyncComponent(() => import('../components/AmbientGlow.vue'))
+import ContributionGrid from '../components/ContributionGrid.vue'
+import MarqueeBand from '../components/MarqueeBand.vue'
+import AmbientGlow from '../components/AmbientGlow.vue'
 import {
   Target, ListTodo, Users, CheckCircle2, BarChart2, ArrowRight, Bell,
   Check, Zap, Camera, Swords, Smartphone, Timer
