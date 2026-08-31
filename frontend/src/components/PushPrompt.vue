@@ -106,7 +106,6 @@ async function enablePush() {
     show.value = false
     toast.success('Push notifications enabled')
   } catch (err) {
-    console.error(err)
     toast.error('Push setup failed: ' + (err.response?.data?.error || err.message))
   }
   loading.value = false
