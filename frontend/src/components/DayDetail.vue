@@ -38,9 +38,12 @@
           <div class="space-y-1.5">
             <div v-for="log in day.habits" :key="log.id" class="flex items-center gap-2 text-sm">
               <span class="text-emerald-400"><CheckCircle2 :size="14" /></span>
-              <span class="text-gray-300">{{ log.habit?.title || 'Habit' }}</span>
+              <span class="text-gray-300 truncate">{{ log.habit?.title || 'Habit' }}</span>
               <button v-if="log.proofUrl" @click="openLightbox(log.proofUrl)" class="ml-auto shrink-0">
                 <img :src="log.proofUrl" class="w-7 h-7 rounded object-cover ring-1 ring-emerald-500/30" alt="proof" />
+              </button>
+              <button @click="undoHabit(log)" class="shrink-0 p-1 rounded text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-colors" title="Undo completion" aria-label="Undo completion">
+                <Undo2 :size="13" />
               </button>
             </div>
           </div>
@@ -51,7 +54,10 @@
           <div class="space-y-1.5">
             <div v-for="t in day.tasks" :key="t.id" class="flex items-center gap-2 text-sm">
               <span class="text-emerald-400"><CheckCircle2 :size="14" /></span>
-              <span class="text-gray-300">{{ t.task?.title || t.title }}</span>
+              <span class="text-gray-300 truncate">{{ t.task?.title || t.title }}</span>
+              <button @click="undoTask(t)" class="shrink-0 p-1 rounded text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-colors" title="Undo completion" aria-label="Undo completion">
+                <Undo2 :size="13" />
+              </button>
             </div>
           </div>
         </div>
@@ -69,11 +75,14 @@
 </template>
 
 <script setup>
-import { X, CheckCircle2 } from 'lucide-vue-next'
+import { X, CheckCircle2, Undo2 } from 'lucide-vue-next'
 import { ref, watch, nextTick } from 'vue'
+import api from '../api'
+import { useToast } from 'vue-toastification'
 
 const props = defineProps({ show: Boolean, day: Object })
-defineEmits(['close'])
+const emit = defineEmits(['close', 'changed'])
+const toast = useToast()
 
 const modalEl = ref(null)
 const lightboxSrc = ref(null)
@@ -89,6 +98,27 @@ watch(lightboxSrc, (val) => {
 
 function openLightbox(src) {
   lightboxSrc.value = src
+}
+
+async function undoHabit(log) {
+  try {
+    await api.delete(`/logs/${log.id}`)
+    toast.success('Completion undone')
+    emit('changed')
+  } catch (e) {
+    toast.error(e.response?.data?.error || 'Failed to undo')
+  }
+}
+
+async function undoTask(t) {
+  try {
+    const taskId = t.task?.id || t.taskId
+    await api.delete(`/tasks/${taskId}/uncomplete`, { params: { date: props.day?.date } })
+    toast.success('Completion undone')
+    emit('changed')
+  } catch (e) {
+    toast.error(e.response?.data?.error || 'Failed to undo')
+  }
 }
 
 function formatDate(d) {

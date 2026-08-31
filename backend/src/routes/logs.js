@@ -107,20 +107,12 @@ router.post('/', authMiddleware, async (req, res) => {
 
     const totalLogs = await prisma.habitLog.count({ where: { userId: req.userId } });
 
-    let weekDaysInHabit = 0;
-    const habitCreated = new Date(habit.createdAt);
-    habitCreated.setHours(0, 0, 0, 0);
-    const msPerDay = 1000 * 60 * 60 * 24;
-    const daysSinceCreation = Math.floor((today - habitCreated) / msPerDay) + 1;
-    weekDaysInHabit = Math.min(daysSinceCreation, 7);
-
     res.json({
       log,
       todayCount,
       totalLogs,
       bestStreak,
       currentStreak,
-      weekDaysInHabit,
     });
   } catch (e) {
     console.error(e);

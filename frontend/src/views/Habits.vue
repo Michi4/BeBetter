@@ -256,6 +256,14 @@ import { openDemoPrompt } from '../utils/demoPrompt'
 const toast = useToast()
 const auth = useAuthStore()
 
+// Function declaration — hoisted, so it's safe to call from the refs below
+// (a const arrow here caused a TDZ ReferenceError: "can't access lexical
+// declaration 'q' before initialization", which crashed the whole view).
+function todayStr() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
 const selectedDate = ref(todayStr())
 const scheduledForDay = ref([])
 const historyTasks = ref([])
@@ -270,11 +278,6 @@ const completingHabitId = ref(null)
 const camHabit = ref(null)
 
 const clearAllModal = ref(null)
-
-const todayStr = () => {
-  const now = new Date()
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-}
 
 const shiftDay = (offset) => {
   const d = new Date(selectedDate.value + 'T12:00:00')

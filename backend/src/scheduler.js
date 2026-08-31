@@ -338,8 +338,8 @@ async function checkScheduledReminders(db = prisma) {
 
 
   for (const pref of prefs) {
-    const user = await db.user.findUnique({ where: { id: pref.userId }, select: { id: true, bannedUntil: true } });
-    if (!user || (user.bannedUntil && user.bannedUntil > new Date())) continue;
+    const user = await db.user.findUnique({ where: { id: pref.userId }, select: { id: true, bannedUntil: true, isDemo: true } });
+    if (!user || user.isDemo || (user.bannedUntil && user.bannedUntil > new Date())) continue;
 
     const isOnVacation = await db.vacation.findFirst({
       where: {
@@ -443,8 +443,8 @@ async function morningReminder(db = prisma) {
   for (const pref of prefs) {
     if (!inReminderWindow(minutesSinceHMSlot(pref.morningTime))) continue;
     if (await digestNotified(pref.userId, 'morning_reminder', todayDate, db)) continue;
-    const user = await db.user.findUnique({ where: { id: pref.userId }, select: { id: true, bannedUntil: true } });
-    if (!user || (user.bannedUntil && user.bannedUntil > new Date())) continue;
+    const user = await db.user.findUnique({ where: { id: pref.userId }, select: { id: true, bannedUntil: true, isDemo: true } });
+    if (!user || user.isDemo || (user.bannedUntil && user.bannedUntil > new Date())) continue;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -480,8 +480,8 @@ async function eveningReminder(db = prisma) {
   for (const pref of prefs) {
     if (!inReminderWindow(minutesSinceHMSlot(pref.eveningTime))) continue;
     if (await digestNotified(pref.userId, 'evening_reminder', todayDate, db)) continue;
-    const user = await db.user.findUnique({ where: { id: pref.userId }, select: { id: true, bannedUntil: true } });
-    if (!user || (user.bannedUntil && user.bannedUntil > new Date())) continue;
+    const user = await db.user.findUnique({ where: { id: pref.userId }, select: { id: true, bannedUntil: true, isDemo: true } });
+    if (!user || user.isDemo || (user.bannedUntil && user.bannedUntil > new Date())) continue;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);

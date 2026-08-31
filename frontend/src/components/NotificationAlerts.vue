@@ -1,6 +1,9 @@
 <template>
   <div v-if="alerts.length" class="fixed inset-x-0 top-[calc(3rem+env(safe-area-inset-top,0px)+8px)] z-[45] flex justify-center px-3 sm:px-4 pointer-events-none">
     <TransitionGroup name="alert" tag="div" class="w-full max-w-lg space-y-2 pointer-events-auto">
+      <div v-if="alerts.length > 1" class="flex justify-end pr-1 -mb-1">
+        <button @click="dismissAll" class="text-[10px] text-gray-500 hover:text-gray-300 transition-colors">Dismiss all</button>
+      </div>
       <div
         v-for="n in alerts"
         :key="n.id"
@@ -65,7 +68,18 @@ async function dismiss(id) {
   try {
     await api.post('/notifications/read', { ids: [id] })
     alerts.value = alerts.value.filter(n => n.id !== id)
-  } catch {}
+  } catch {
+    toastError('Failed to dismiss notification')
+  }
+}
+
+async function dismissAll() {
+  try {
+    await api.post('/notifications/read')
+    alerts.value = []
+  } catch {
+    toastError('Failed to dismiss notifications')
+  }
 }
 
 async function acceptChallenge(n) {

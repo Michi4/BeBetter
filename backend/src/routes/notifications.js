@@ -17,13 +17,16 @@ router.get('/vapid-public-key', async (req, res) => {
 
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    const notifications = await prisma.notification.findMany({
-      where: { userId: req.userId },
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-    });
-
-    const unread = notifications.filter((n) => !n.read).length;
+    const [notifications, unread] = await Promise.all([
+      prisma.notification.findMany({
+        where: { userId: req.userId },
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+      }),
+      prisma.notification.count({
+        where: { userId: req.userId, read: false },
+      }),
+    ]);
 
     res.json({ notifications, unread });
   } catch (e) {

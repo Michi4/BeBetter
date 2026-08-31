@@ -148,7 +148,7 @@
     </div>
 
     <!-- DayDetail Modal -->
-    <DayDetail :show="!!selectedDay" :day="selectedDay" @close="selectedDay = null" />
+    <DayDetail :show="!!selectedDay" :day="selectedDay" @close="selectedDay = null" @changed="handleDayChanged" />
     <BeBetterCam :show="!!camHabit" @close="camHabit = null" @capture="submitCamProof" />
 
     <!-- Delete confirm modal -->
@@ -561,6 +561,12 @@ async function selectDay(day) {
     }
     selectedDay.value = day
   }
+}
+
+async function handleDayChanged() {
+  loadStats()
+  loadGrid()
+  if (selectedDay.value) selectDay(selectedDay.value)
 }
 
 async function endVacation() {
