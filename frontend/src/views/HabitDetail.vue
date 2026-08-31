@@ -1,5 +1,9 @@
 <template>
   <div class="page">
+    <div v-if="loading" class="flex items-center justify-center py-20">
+      <Loader2 :size="24" class="animate-spin text-gray-500" />
+    </div>
+    <template v-else>
     <div class="flex items-center gap-2">
       <button @click="$router.back()" class="btn-ghost p-1" aria-label="Go back"><ArrowLeft :size="18" /></button>
       <h1 class="text-xl font-bold truncate">{{ habit.emoji || '' }} {{ habit.title }}</h1>
@@ -271,6 +275,7 @@
         </div>
       </div>
     </Teleport>
+    </template>
   </div>
 </template>
 
@@ -293,6 +298,7 @@ const auth = useAuthStore()
 
 const habit = ref({})
 const logs = ref([])
+const loading = ref(true)
 const editing = ref(false)
 const showBreakForm = ref(false)
 const showFinishForm = ref(false)
@@ -330,6 +336,7 @@ const editForm = ref({
 })
 
 async function loadHabit() {
+  loading.value = true
   try {
     const res = await api.get(`/habits/${route.params.id}`)
     const loadedHabit = res.data.habit || res.data
@@ -387,6 +394,8 @@ async function loadHabit() {
     loadChallenges()
   } catch {
     toast.error('Failed to load habit')
+  } finally {
+    loading.value = false
   }
 }
 

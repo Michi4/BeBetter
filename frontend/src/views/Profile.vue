@@ -1,7 +1,10 @@
 <template>
   <div class="page">
+    <div v-if="loading" class="flex items-center justify-center py-20">
+      <Loader2 :size="24" class="animate-spin text-gray-500" />
+    </div>
 
-    <template v-if="profile">
+    <template v-else-if="profile">
       <!-- Profile header (own or other) -->
       <div class="card text-center space-y-4">
         <div class="relative inline-block">
