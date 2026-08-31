@@ -9,6 +9,14 @@
       <Loader2 :size="24" class="animate-spin mx-auto text-gray-500" />
     </div>
 
+    <template v-else-if="notFound">
+      <div class="card text-center py-12">
+        <AlertCircle :size="40" class="mx-auto text-red-400 mb-4" />
+        <h2 class="text-xl font-bold mb-2">Challenge not found</h2>
+        <p class="text-sm text-gray-400 mb-4">This challenge may have been deleted or the link is invalid.</p>
+        <router-link to="/dashboard" class="btn">Go to Dashboard</router-link>
+      </div>
+    </template>
     <template v-else-if="challenge.id">
       <!-- Status badge -->
       <div class="flex items-center gap-2">
@@ -137,7 +145,7 @@ import { useRoute, useRouter } from 'vue-router'
 import api from '../api'
 import { useToast } from 'vue-toastification'
 import { useAuthStore } from '../stores/auth'
-import { ArrowLeft, Loader2, Check, X, Trophy, Handshake, CheckCircle2, Camera } from 'lucide-vue-next'
+import { ArrowLeft, Loader2, Check, X, Trophy, Handshake, CheckCircle2, Camera, AlertCircle } from 'lucide-vue-next'
 import { useTap } from '../utils/tapTrigger'
 
 const route = useRoute()
@@ -148,6 +156,7 @@ const auth = useAuthStore()
 const challenge = ref({})
 const gridDays = ref([])
 const loading = ref(true)
+const notFound = ref(false)
 const iLoggedToday = ref(false)
 const logTap = useTap(() => logChallengeHabit())
 
@@ -190,8 +199,7 @@ async function loadChallenge() {
       }
     }
   } catch {
-    toast.error('Challenge not found')
-    router.back()
+    notFound.value = true
   } finally {
     loading.value = false
   }

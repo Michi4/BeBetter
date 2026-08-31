@@ -1,5 +1,15 @@
 <template>
   <div class="page">
+    <div v-if="loading" class="flex items-center justify-center py-20">
+      <Loader2 :size="24" class="animate-spin text-gray-500" />
+    </div>
+    <div v-else-if="notFound" class="card text-center py-12">
+      <AlertCircle :size="40" class="mx-auto text-red-400 mb-4" />
+      <h2 class="text-xl font-bold mb-2">Preset not found</h2>
+      <p class="text-sm text-gray-400 mb-4">This preset may have been deleted or the link is invalid.</p>
+      <router-link to="/presets" class="btn">Browse Presets</router-link>
+    </div>
+    <template v-else>
     <div class="flex items-center gap-2">
       <button @click="$router.back()" class="btn-ghost p-1"><ArrowLeft :size="18" /></button>
       <h1 class="text-xl font-bold truncate">{{ preset.title }}</h1>
@@ -155,7 +165,7 @@ import { useRoute, useRouter } from 'vue-router'
 import api from '../api'
 import { useToast } from 'vue-toastification'
 import { useAuthStore } from '../stores/auth'
-import { ArrowLeft, Heart, GitFork, Play, Square, Flag, Share2, Users, Pencil, Save, Trash2 } from 'lucide-vue-next'
+import { ArrowLeft, Heart, GitFork, Play, Square, Flag, Share2, Users, Pencil, Save, Trash2, Loader2, AlertCircle } from 'lucide-vue-next'
 import { formatRecurrence as formatRecurrenceUtil } from '../utils/scheduleFormat'
 
 const route = useRoute()
@@ -171,6 +181,8 @@ const showReport = ref(false)
 const confirmDelete = ref(false)
 const reportReason = ref('')
 const reportDetails = ref('')
+const loading = ref(true)
+const notFound = ref(false)
 
 const categories = ['Fitness', 'Health', 'Learning', 'Productivity', 'Mindfulness', 'Social', 'Other']
 
@@ -179,6 +191,8 @@ const editForm = reactive({ title: '', description: '', category: 'Other' })
 const isAuthor = computed(() => auth.user && preset.value.authorId === auth.user.id)
 
 async function loadPreset() {
+  loading.value = true
+  notFound.value = false
   try {
     const res = await api.get(`/presets/${route.params.id}`)
     const p = res.data.preset || {}
@@ -189,7 +203,9 @@ async function loadPreset() {
     leaderboard.value = res.data.leaderboard || []
     isLiked.value = res.data.isLiked || false
   } catch {
-    toast.error('Preset not found')
+    notFound.value = true
+  } finally {
+    loading.value = false
   }
 }
 

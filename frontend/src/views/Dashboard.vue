@@ -147,6 +147,26 @@
         @finish="logHabit" @cam="openCam" />
     </div>
 
+    <!-- Empty state (brand-new user, no tasks or habits) -->
+    <div v-if="!loading && todayTasks.length === 0 && overdueHabits.length === 0 && nowHabits.length === 0 && upcomingHabits.length === 0 && unscheduledHabits.length === 0"
+      class="card text-center py-10 space-y-4">
+      <div class="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto">
+        <Target :size="28" class="text-emerald-400" />
+      </div>
+      <div>
+        <h3 class="text-lg font-bold">Welcome to BeBetter</h3>
+        <p class="text-sm text-gray-400 mt-1 max-w-xs mx-auto">Create your first habit or task to start tracking your streaks.</p>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-2 justify-center">
+        <button @click="createInitialMode = 'task'; showCreateModal = true" class="btn-secondary px-4 py-2 text-sm">
+          <Plus :size="14" /> New Task
+        </button>
+        <button @click="createInitialMode = 'habit'; showCreateModal = true" class="btn px-4 py-2 text-sm">
+          <Target :size="14" /> New Habit
+        </button>
+      </div>
+    </div>
+
     <!-- DayDetail Modal -->
     <DayDetail :show="!!selectedDay" :day="selectedDay" @close="selectedDay = null" @changed="handleDayChanged" />
     <BeBetterCam :show="!!camHabit" @close="camHabit = null" @capture="submitCamProof" />
