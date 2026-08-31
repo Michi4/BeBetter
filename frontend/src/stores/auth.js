@@ -81,10 +81,5 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function deleteAccount() {
-    await api.delete('/auth/account', { data: { confirm: 'DELETE_MY_ACCOUNT' } })
-    logout()
-  }
-
-  return { user, token, login, demoLogin, register, fetchUser, logout, deleteAccount, isDemo: computed(() => user.value?.isDemo === true) }
+  return { user, token, login, demoLogin, register, fetchUser, logout, isDemo: computed(() => user.value?.isDemo === true) }
 })
