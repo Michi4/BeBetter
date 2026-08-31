@@ -63,7 +63,7 @@
           <div class="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-sm font-bold mx-auto">
             {{ (challenge.creator?.username || 'U')[0].toUpperCase() }}
           </div>
-          <div class="text-sm font-medium">{{ challenge.creator?.username }}</div>
+          <div class="text-sm font-medium truncate max-w-full px-2">{{ challenge.creator?.username }}</div>
           <div class="text-2xl font-bold text-emerald-400">{{ challenge.creatorProgress || 0 }}</div>
           <div class="text-[10px] text-gray-500">completions</div>
         </div>
@@ -71,7 +71,7 @@
           <div class="w-10 h-10 rounded-full bg-amber-600 flex items-center justify-center text-sm font-bold mx-auto">
             {{ (challenge.opponent?.username || 'U')[0].toUpperCase() }}
           </div>
-          <div class="text-sm font-medium">{{ challenge.opponent?.username }}</div>
+          <div class="text-sm font-medium truncate max-w-full px-2">{{ challenge.opponent?.username }}</div>
           <div class="text-2xl font-bold text-amber-400">{{ challenge.opponentProgress || 0 }}</div>
           <div class="text-[10px] text-gray-500">completions</div>
         </div>

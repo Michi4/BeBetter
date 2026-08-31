@@ -23,7 +23,7 @@
             <input type="file" accept="image/*" class="hidden" @change="handleAvatarUpload" />
           </label>
         </div>
-        <div><h1 class="text-xl font-bold">{{ profile.username }}</h1></div>
+        <div><h1 class="text-xl font-bold truncate max-w-full break-all">{{ profile.username }}</h1></div>
         <p v-if="profile.bio" class="text-sm text-gray-400 max-w-sm mx-auto">{{ profile.bio }}</p>
         <p v-if="profile.createdAt" class="text-xs text-gray-500">
           Joined {{ new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) }}
