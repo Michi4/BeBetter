@@ -224,7 +224,7 @@
 
     <!-- Ban dialog -->
     <Teleport to="body">
-      <div v-if="showBanDialog" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60" @click.self="showBanDialog = false">
+      <div v-if="showBanDialog" class="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-black/60" @click.self="showBanDialog = false" role="dialog" aria-modal="true">
         <div class="card w-full max-w-sm mx-0 sm:mx-4 space-y-3 rounded-b-none sm:rounded-xl safe-bottom">
           <p class="section-title">Ban {{ banTarget?.username }}</p>
           <div>
@@ -249,7 +249,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import api from '../api'
 import { useToast } from 'vue-toastification'
 import { Inbox, Loader2, Ban, ShieldCheck, Trash2, EyeOff, CheckCircle, Bell, Megaphone } from 'lucide-vue-next'
@@ -486,6 +486,10 @@ async function sendAnnouncement() {
 }
 
 onMounted(async () => {
-  await Promise.all([loadStats(), loadReports(), searchUsers()])
+  await Promise.all([loadStats(), loadReports()])
+})
+
+watch(activeTab, (tab) => {
+  if (tab === 'Users') searchUsers()
 })
 </script>

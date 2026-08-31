@@ -21,7 +21,8 @@ api.interceptors.response.use(
       localStorage.removeItem('token')
       sessionStorage.removeItem('token')
       if (!window.location.pathname.startsWith('/login')) {
-        window.location.href = '/login'
+        const currentPath = window.location.pathname + window.location.search
+        window.location.href = '/login?redirect=' + encodeURIComponent(currentPath)
       }
     }
     return Promise.reject(err)

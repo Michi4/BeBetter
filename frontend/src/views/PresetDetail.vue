@@ -269,7 +269,7 @@ async function deletePreset() {
 function shareLink() {
   const url = `${window.location.origin}/presets/${route.params.id}`
   if (navigator.share) {
-    navigator.share({ title: preset.value.title, url })
+    navigator.share({ title: preset.value.title, url }).catch(() => {})
   } else {
     navigator.clipboard.writeText(url)
     toast.success('Link copied!')

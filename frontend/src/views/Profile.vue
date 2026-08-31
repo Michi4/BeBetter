@@ -368,9 +368,7 @@ import {
 import ContributionGrid from '../components/ContributionGrid.vue'
 import TimeInput from '../components/TimeInput.vue'
 import { setTimeFormat as setTimeFormatGlobal, getTimeFormat } from '../utils/timeFormat'
-import { useTheme } from '../composables/useTheme'
 
-const { isDark, toggleTheme } = useTheme()
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
@@ -387,6 +385,7 @@ const showDeleteConfirm = ref(false)
 const showFullAvatar = ref(false)
 const deleteConfirm = ref('')
 const deleting = ref(false)
+const uploadingAvatar = ref(false)
 const editForm = reactive({ bio: '', isPublic: false })
 
 const notifPrefs = ref(null)
@@ -655,12 +654,16 @@ function setTimeFormat(fmt) {
   toast.success(`Time format set to ${fmt === '12h' ? '12h (AM/PM)' : '24h'}`)
 }
 
+let gridToken = 0
+
 async function loadProfileGrid() {
+  const token = ++gridToken
   try {
     const [yearsRes, gridRes] = await Promise.all([
       api.get('/grid/years').catch(() => ({ data: { years: [new Date().getFullYear()] } })),
       api.get('/grid', { params: { from: `${gridYear.value}-01-01`, to: `${gridYear.value}-12-31` } }),
     ])
+    if (token !== gridToken) return
     const years = yearsRes.data.years || [new Date().getFullYear()]
     gridYearRange.value = { firstYear: Math.min(...years), lastYear: Math.max(...years) }
     if (gridYear.value < gridYearRange.value.firstYear) gridYear.value = gridYearRange.value.firstYear
@@ -691,8 +694,10 @@ async function loadProfileGrid() {
       }
       cur.setDate(cur.getDate() + 1)
     }
+    if (token !== gridToken) return
     profileGrid.value = days
   } catch {
+    if (token !== gridToken) return
     profileGrid.value = []
   }
 }
@@ -702,7 +707,7 @@ watch(gridYear, loadProfileGrid)
 async function loadAll() {
   await loadProfile()
   if (isOwn.value) loadSettings()
-  loadProfileGrid()
+  if (isOwn.value) loadProfileGrid()
 }
 
 watch(() => route.params.id, () => {

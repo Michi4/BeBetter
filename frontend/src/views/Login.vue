@@ -108,7 +108,6 @@ async function handleDemo() {
   demoLoading.value = true
   error.value = ''
   try {
-    auth.logout()
     await auth.demoLogin()
     toast.success('Welcome to the demo! Everything is safe to try.')
     router.push('/dashboard')

@@ -11,10 +11,6 @@ function setThemeClasses(light) {
   document.documentElement.classList.toggle('dark', !light)
 }
 
-function syncFromDom() {
-  isDark.value = !isLightDom()
-}
-
 function persistedTheme() {
   return localStorage.getItem('theme')
 }
@@ -45,28 +41,38 @@ function toggleTheme() {
 
 let mediaQuery = null
 let systemHandler = null
+let consumers = 0
+
+function attachSystemListener() {
+  if (mediaQuery) return
+  mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+  systemHandler = (e) => {
+    // Only follow the system when the user hasn't chosen explicitly.
+    if (!persistedTheme()) {
+      setThemeClasses(!e.matches)
+      isDark.value = e.matches
+    }
+  }
+  mediaQuery.addEventListener('change', systemHandler)
+}
+
+function detachSystemListener() {
+  if (mediaQuery && systemHandler) {
+    mediaQuery.removeEventListener('change', systemHandler)
+    mediaQuery = null
+    systemHandler = null
+  }
+}
 
 function useTheme() {
   onMounted(() => {
     initTheme()
-    if (!mediaQuery) {
-      mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-      systemHandler = (e) => {
-        // Only follow the system when the user hasn't chosen explicitly.
-        if (!persistedTheme()) {
-          setThemeClasses(!e.matches)
-          isDark.value = e.matches
-        }
-      }
-      mediaQuery.addEventListener('change', systemHandler)
-    }
+    consumers++
+    attachSystemListener()
   })
   onUnmounted(() => {
-    if (mediaQuery && systemHandler) {
-      mediaQuery.removeEventListener('change', systemHandler)
-      mediaQuery = null
-      systemHandler = null
-    }
+    consumers = Math.max(0, consumers - 1)
+    if (consumers === 0) detachSystemListener()
   })
 
   return {

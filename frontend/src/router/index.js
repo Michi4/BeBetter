@@ -9,9 +9,9 @@ const routes = [
   { path: '/register', name: 'register', component: () => import('../views/Register.vue'), meta: { guest: true } },
   { path: '/forgot-password', name: 'forgot-password', component: () => import('../views/ForgotPassword.vue'), meta: { guest: true } },
   { path: '/reset-password', name: 'reset-password', component: () => import('../views/ResetPassword.vue'), meta: { guest: true } },
-  { path: '/privacy', name: 'privacy', component: () => import('../views/Privacy.vue'), meta: { guest: true } },
-  { path: '/terms', name: 'terms', component: () => import('../views/Terms.vue'), meta: { guest: true } },
-  { path: '/imprint', name: 'imprint', component: () => import('../views/Imprint.vue'), meta: { guest: true } },
+  { path: '/privacy', name: 'privacy', component: () => import('../views/Privacy.vue') },
+  { path: '/terms', name: 'terms', component: () => import('../views/Terms.vue') },
+  { path: '/imprint', name: 'imprint', component: () => import('../views/Imprint.vue') },
   { path: '/dashboard', name: 'dashboard', component: () => import('../views/Dashboard.vue'), meta: { auth: true } },
   { path: '/habits', name: 'habits', component: () => import('../views/Habits.vue'), meta: { auth: true } },
   { path: '/habits/:id', name: 'habit-detail', component: () => import('../views/HabitDetail.vue'), meta: { auth: true } },
@@ -34,7 +34,11 @@ const router = createRouter({ history: createWebHistory(), routes })
 router.beforeEach(async (to, from, next) => {
   const auth = useAuthStore()
   if (auth.token && !auth.user) {
-    try { await auth.fetchUser() } catch { auth.logout() }
+    try { await auth.fetchUser() } catch (err) {
+      // Only an explicit 401 invalidates the session; a transient network
+      // error (offline) must not wipe a stored login.
+      if (err?.response?.status === 401) auth.logout()
+    }
   }
   if (to.path === '/' && auth.user) return next('/dashboard')
   if (to.meta.auth && !auth.user) return next({ path: '/login', query: { redirect: to.fullPath } })

@@ -179,7 +179,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import api from '../api'
 import { useToast } from 'vue-toastification'
 import { Plus, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Target, Loader2, FlaskConical, Palmtree } from 'lucide-vue-next'
@@ -252,7 +252,7 @@ const overdueHabits = computed(() => {
 const nowHabits = computed(() => {
   const now = clockMinutes.value
   return todayHabits.value.filter(h => {
-    if (!h.scheduledTime || h.hasBreak) return false
+    if (!h.scheduledTime || h.hasBreak || h.completedToday) return false
     const t = timeToMinutes(h.scheduledTime)
     return t >= now - 30 && t <= now + 30
   })
@@ -401,6 +401,8 @@ async function handleCreated(type, data) {
       const res = await api.post('/tasks', payload)
       todayTasks.value.unshift(res.data.task || res.data)
       toast.success('Task created')
+      loadStats()
+      loadGrid()
     } catch {
       toast.error('Failed to create task')
     }

@@ -94,7 +94,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
 import { LogOut, LayoutDashboard, ListTodo, Users, Trophy, BookOpen, Shield, Sun, Moon, WifiOff } from 'lucide-vue-next'

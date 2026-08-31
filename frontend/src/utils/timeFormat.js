@@ -39,7 +39,8 @@ export function formatTime(timeStr, format = null) {
   if (use12h) {
     const ampm = h >= 12 ? 'pm' : 'am'
     const hour = h % 12 || 12
-    return m === 0 ? `${hour}${ampm}` : `${hour}:${String(m).padStart(2, '0')}${ampm}`
+    // Always show minutes for consistency with 24h mode (e.g. "2:00pm")
+    return `${hour}:${String(m).padStart(2, '0')}${ampm}`
   }
 
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`

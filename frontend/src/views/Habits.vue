@@ -213,7 +213,7 @@
     </div>
 
     <!-- Clear-all confirmation -->
-    <div v-if="clearAllModal" class="fixed inset-0 z-[65] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm" @click.self="clearAllModal = null">
+    <div v-if="clearAllModal" class="fixed inset-0 z-[65] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm" @click.self="clearAllModal = null" role="dialog" aria-modal="true">
       <div class="card w-full max-w-sm mx-0 sm:mx-4 space-y-4 rounded-b-2xl sm:rounded-2xl safe-bottom" style="padding-bottom: max(env(safe-area-inset-bottom, 0px), 20px)" @click.stop>
         <div class="w-11 h-11 rounded-full bg-red-500/15 text-red-400 flex items-center justify-center">
           <AlertTriangle :size="22" />
@@ -239,7 +239,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import api from '../api'
 import { useToast } from 'vue-toastification'
 import { Plus, ChevronDown, ChevronLeft, ChevronRight, CheckCircle2, Circle, Check, Trash2, Target, Loader2, Undo2, AlertTriangle, Clock, CalendarX } from 'lucide-vue-next'
@@ -259,6 +259,7 @@ const auth = useAuthStore()
 const selectedDate = ref(todayStr())
 const scheduledForDay = ref([])
 const historyTasks = ref([])
+let historyToken = 0
 const showCreateModal = ref(false)
 const fabMode = ref('task')
 const quickTaskTitle = ref('')
@@ -330,11 +331,13 @@ function nextDay() {
 }
 
 async function loadHistory() {
+  const token = ++historyToken
   try {
     const [dayRes, tasksRes] = await Promise.all([
       api.get('/logs/with-scheduled', { params: { date: selectedDate.value } }).catch(() => ({ data: { scheduled: [] } })),
       api.get('/tasks/completed', { params: { date: selectedDate.value } }).catch(() => ({ data: { logs: [] } })),
     ])
+    if (token !== historyToken) return
 
     const scheduledHabits = dayRes.data.scheduled || []
     const loggedIds = new Set()
@@ -343,6 +346,7 @@ async function loadHistory() {
 
     try {
       const logsForDay = await api.get('/grid/day', { params: { date: selectedDate.value } })
+      if (token !== historyToken) return
       const completedHabits = logsForDay.data.habits || []
       completedHabits.forEach(h => {
         loggedIds.add(h.habitId || h.id)
@@ -358,7 +362,11 @@ async function loadHistory() {
     } catch {}
 
     scheduledForDay.value = scheduledHabits.map(h => {
-      const completed = loggedIds.has(h.id) || (h.scheduledTime && loggedSlots.has(`${h.id}-${h.scheduledTime}`))
+      // Timed slots are completed per-slot only — the habit-level check would
+      // mark every slot of a multi-slot habit "Done" when just one is logged.
+      const completed = h.scheduledTime
+        ? loggedSlots.has(`${h.id}-${h.scheduledTime}`)
+        : loggedIds.has(h.id)
       const logId = h.scheduledTime ? logIds.get(`${h.id}-${h.scheduledTime}`) : logIds.get(String(h.id))
       return { ...h, completed, logId: completed ? logId : null }
     })
@@ -369,6 +377,7 @@ async function loadHistory() {
       taskId: l.task?.id || l.taskId,
     }))
   } catch {
+    if (token !== historyToken) return
     scheduledForDay.value = []
     historyTasks.value = []
   }
