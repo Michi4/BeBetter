@@ -215,7 +215,9 @@ async function loadAll() {
       try {
         const linkRes = await api.post('/friends/link')
         friendToken.value = linkRes.data.token || ''
-      } catch {}
+      } catch {
+        toast.error('Failed to generate invite link')
+      }
     }
   } catch {
     toast.error('Failed to load friends')

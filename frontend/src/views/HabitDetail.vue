@@ -396,7 +396,9 @@ async function loadChallenges() {
     activeChallenges.value = (res.data.challenges || []).filter(
       c => c.habitId === route.params.id && (c.status === 'active' || c.status === 'pending')
     )
-  } catch {}
+  } catch {
+    // non-critical: challenge list is secondary to the habit view
+  }
 }
 
 async function saveEdit() {

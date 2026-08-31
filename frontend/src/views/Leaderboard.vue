@@ -183,6 +183,7 @@ async function loadLeaderboard() {
     if (token !== lbToken) return
     entries.value = []
     challenges.value = []
+    toast.error('Failed to load leaderboard')
   } finally {
     if (token === lbToken) loading.value = false
   }

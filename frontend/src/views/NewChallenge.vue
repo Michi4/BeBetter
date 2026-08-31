@@ -9,7 +9,10 @@
       <!-- Habit picker -->
       <div>
         <label class="text-xs font-medium text-gray-400 mb-1 block">Habit to challenge on</label>
-        <div v-if="habits.length" class="space-y-1">
+        <div v-if="habitsLoading" class="text-center py-6">
+          <Loader2 :size="20" class="animate-spin mx-auto text-gray-500" />
+        </div>
+        <div v-else-if="habits.length" class="space-y-1">
           <button v-for="h in habits" :key="h.id" @click="form.habitId = h.id"
             class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-left"
             :class="form.habitId === h.id ? 'bg-emerald-600/20 border border-emerald-500/40' : 'hover:bg-gray-800 border border-transparent'">
@@ -73,7 +76,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../api'
 import { useToast } from 'vue-toastification'
-import { ArrowLeft, X, Trophy, Check } from 'lucide-vue-next'
+import { ArrowLeft, X, Trophy, Check, Loader2 } from 'lucide-vue-next'
 import { formatRecurrence } from '../utils/scheduleFormat'
 
 const route = useRoute()
@@ -81,6 +84,7 @@ const router = useRouter()
 const toast = useToast()
 
 const habits = ref([])
+const habitsLoading = ref(true)
 const searchQuery = ref('')
 const searchResults = ref([])
 const todayStr = (() => {
@@ -139,7 +143,11 @@ onMounted(async () => {
   try {
     const res = await api.get('/habits')
     habits.value = (res.data.habits || []).filter(h => h.active !== false)
-  } catch {}
+  } catch {
+    toast.error('Failed to load habits')
+  } finally {
+    habitsLoading.value = false
+  }
 
   const userId = route.query.user
   if (userId) {

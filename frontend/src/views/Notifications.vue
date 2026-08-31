@@ -9,7 +9,11 @@
       </button>
     </div>
 
-    <div v-if="notifications.length === 0" class="text-center py-16">
+    <div v-if="loading" class="text-center py-16">
+      <Loader2 :size="28" class="animate-spin mx-auto text-gray-500" />
+    </div>
+
+    <div v-else-if="notifications.length === 0" class="text-center py-16">
       <Bell :size="32" class="mx-auto text-gray-500 mb-3" />
       <p class="text-sm text-gray-500">No notifications yet</p>
     </div>
@@ -69,7 +73,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api'
 import { useToast } from 'vue-toastification'
-import { Bell, Trophy, Users, Eye, Shield, Megaphone, Check, X } from 'lucide-vue-next'
+import { Bell, Trophy, Users, Eye, Shield, Megaphone, Check, X, Loader2 } from 'lucide-vue-next'
 import DemoLock from '../components/DemoLock.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import { useAuthStore } from '../stores/auth'
@@ -80,15 +84,19 @@ const auth = useAuthStore()
 
 const notifications = ref([])
 const unread = ref(0)
+const loading = ref(true)
 const confirmDialog = ref(null)
 
 async function loadNotifications() {
+  loading.value = true
   try {
     const res = await api.get('/notifications')
     notifications.value = res.data.notifications || []
     unread.value = res.data.unread || 0
   } catch {
-    // silent
+    toast.error('Failed to load notifications')
+  } finally {
+    loading.value = false
   }
 }
 
@@ -98,7 +106,7 @@ async function markRead(id) {
     notifications.value = notifications.value.map(n => n.id === id ? { ...n, read: true } : n)
     unread.value = Math.max(0, unread.value - 1)
   } catch {
-    // silent
+    toast.error('Failed to update notification')
   }
 }
 
