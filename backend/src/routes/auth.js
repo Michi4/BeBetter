@@ -71,17 +71,31 @@ router.post('/register', async (req, res) => {
     });
 
     if (friendToken) {
-      const link = await prisma.friendLink.findUnique({ where: { token: friendToken } });
-      if (link && !link.used && link.senderId !== user.id) {
-        if (!link.expiresAt || link.expiresAt > new Date()) {
-          const [smaller, larger] = [link.senderId, user.id].sort();
-          await prisma.friendship.create({ data: { user1Id: smaller, user2Id: larger } }).catch(() => {});
-          await prisma.friendLink.update({ where: { id: link.id }, data: { used: true, usedById: user.id } });
-          await prisma.activity.create({
-            data: { userId: link.senderId, type: 'friend_joined', payload: { newUserId: user.id, username }, visibility: 'friends' },
-          }).catch(() => {});
+      // friendToken is the signed JWT produced by POST /friends/link, not the
+      // raw DB token column. Decode it to find the link id.
+      try {
+        const FRIEND_LINK_SECRET = process.env.JWT_SECRET || 'bebetter-friend-link-secret-key';
+        const parts = friendToken.split('.');
+        const sig = crypto.createHmac('sha256', FRIEND_LINK_SECRET).update(`${parts[0]}.${parts[1]}`).digest('base64url');
+        const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+        if (parts.length === 3 && sig === parts[2] && Date.now() / 1000 - payload.iat <= 7 * 24 * 60 * 60 && payload.linkId) {
+          const link = await prisma.friendLink.findUnique({ where: { id: payload.linkId } });
+          if (link && !link.used && link.senderId !== user.id) {
+            if (!link.expiresAt || link.expiresAt > new Date()) {
+              const [smaller, larger] = [link.senderId, user.id].sort();
+              await prisma.friendship.upsert({
+                where: { user1Id_user2Id: { user1Id: smaller, user2Id: larger } },
+                update: {},
+                create: { user1Id: smaller, user2Id: larger },
+              }).catch(() => {});
+              await prisma.friendLink.update({ where: { id: link.id }, data: { used: true, usedById: user.id } });
+              await prisma.activity.create({
+                data: { userId: link.senderId, type: 'friend_joined', payload: { newUserId: user.id, username }, visibility: 'friends' },
+              }).catch(() => {});
+            }
+          }
         }
-      }
+      } catch {}
     }
 
     const token = signToken(user.id);
