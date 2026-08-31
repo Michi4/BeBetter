@@ -4,6 +4,10 @@
     <template v-else>
     <h1 class="text-xl font-bold">Friends</h1>
 
+    <div v-if="loading" class="flex items-center justify-center py-16">
+      <Loader2 :size="24" class="animate-spin text-gray-500" />
+    </div>
+    <template v-else>
     <!-- Inline Notifications -->
     <NotificationAlerts />
 
@@ -101,6 +105,7 @@
       </div>
     </div>
     </template>
+    </template>
   </div>
 </template>
 
@@ -123,6 +128,7 @@ const pendingRequests = ref([])
 const friends = ref([])
 const friendToken = ref('')
 const friendIds = ref(new Set())
+const loading = ref(true)
 const pendingRequestIds = ref(new Set())
 
 const inviteLink = computed(() => {
@@ -201,6 +207,7 @@ async function declineRequest(requestId) {
 }
 
 async function loadAll() {
+  loading.value = true
   try {
     const [friendsRes, requestsRes] = await Promise.all([
       api.get('/friends'),
@@ -221,6 +228,8 @@ async function loadAll() {
     }
   } catch {
     toast.error('Failed to load friends')
+  } finally {
+    loading.value = false
   }
 }
 
