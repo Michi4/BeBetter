@@ -107,7 +107,7 @@
 
     <Teleport to="body">
       <!-- Report modal -->
-      <div v-if="showReport" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60" @click.self="showReport = false">
+      <div v-if="showReport" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60" @click.self="showReport = false" role="dialog" aria-modal="true">
         <div class="card w-full max-w-sm mx-0 sm:mx-4 space-y-3 rounded-b-none sm:rounded-xl safe-bottom">
           <p class="section-title">Report Preset</p>
           <div>
@@ -135,7 +135,7 @@
       </div>
 
       <!-- Delete confirm -->
-      <div v-if="confirmDelete" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60" @click.self="confirmDelete = false">
+      <div v-if="confirmDelete" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60" @click.self="confirmDelete = false" role="dialog" aria-modal="true">
         <div class="card w-full max-w-sm mx-0 sm:mx-4 space-y-3 rounded-b-none sm:rounded-xl safe-bottom">
           <p class="section-title">Delete Preset</p>
           <p class="text-sm text-gray-400">Are you sure? This cannot be undone.</p>
