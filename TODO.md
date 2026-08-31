@@ -99,6 +99,31 @@ Status tracker for the full audit + feedback pass (Michi & Jonas).
 - [x] Auth demo guard hang — missing `.catch(next)` swallowed DB errors; fixed + `scheduledTime: null` bypass via `field in req.body`
 - [x] Frontend parity — Habits incompleteTasks now filters `isDueToday !== false` (was showing tomorrow's tasks), HabitCard aria-label/pressed, ContributionGrid role=grid, TimeInput aria-labels
 
+## Round 5 sweep (full-codebase final audit)
+
+### Backend
+- [x] Grid scheduled counts per slot (multi-slot habit = 2 not 1) — no more 200% days; grid/day respects timed breaks; grid/years includes task logs (task-only users got wrong range)
+- [x] Habit detail authz — any authenticated user could fetch any habit by UUID (title/logs/buddies leaked); now owner or active challenge opponent only (pending challenge → 404 until accept)
+- [x] Atomic account deletion — ~20 sequential deletes wrapped in one transaction (crash mid-way left half-deleted account)
+- [x] Atomic preset like toggle — check-then-create race could 500 on unique constraint; transaction + live counter read
+- [x] Friendship upsert on link accept + register-with-invite auto-friendship (was dead code: looked up the hex token column but clients pass the signed JWT; now verifies JWT, resolves by linkId, upserts)
+- [x] Challenges GET filters self-placeholder pending invites (invite-link created creatorId=opponentId rows that cluttered the list); friends leaderboard N+1 → single query
+- [x] Streak dedupe same-day logs (multi-slot habits inflated streaks); validation for task PUT scheduledDays/scheduledTime, habit schedule days (0-6)/times (HH:MM), notification times, vacation date order
+- [x] Admin self-demote guard; announcements exclude demo/test users; demo reset cleans presetLike/Usage/report
+- [x] Timed-break semantics everywhere (`endDate > now`), including challenge-opponent log path (opponents may log while owner's habit on break)
+
+### Frontend
+- [x] Session safety — offline navigation no longer wipes stored login (only explicit 401); demo login no longer logs out the current user first; legal pages (privacy/terms/imprint) accessible while logged in (were guest-only → bounced to /dashboard)
+- [x] Profile avatar upload crashed (`uploadingAvatar` undeclared); grid stale-response guard + only loads for own profile
+- [x] useTheme media-query listener torn down by any consumer's unmount (system theme following died after visiting some pages) — ref-counted now
+- [x] Habits history: multi-slot habits showed every slot "Done" when one slot logged; loadHistory stale-response guard
+- [x] Dashboard: nowHabits included completed tasks; task creation didn't refresh stats/grid; delete-modal Escape handler
+- [x] NewChallenge date `:min` used UTC (off-by-one in -ve timezones); Admin searchUsers was fired on mount (empty query every load) — now lazy on tab switch
+- [x] api 401 redirect preserves `?redirect=`; PresetDetail navigator.share `.catch`; 12h time format always shows minutes
+- [x] Modal a11y — role/aria-modal + Escape across Dashboard/Habits/Admin/HabitDetail/PresetDetail; labels on Login/Register/Presets/EmojiPicker/ChallengeDetail; BeBetterCam/DayDetail dialog roles
+- [x] Dead code removed — YearGrid/FeaturePillar/HabitShowcaseCard components, unused imports, unused store method, redundant console.error, dead CreateModal scheduledDays
+- [x] TaskCard context menu vertical overflow clamp; Profile grid Set lookup; SW cache bumped bebetter-v5
+
 ## Infra notes (dev stack)
 
 - dev-web runs as root (uid-1000 variant hit unreproducible EACCES on this host's storage; root stable 41h+). Host-side `npm run build` may hit root-owned dist → `docker compose -f docker-compose.dev.yml stop dev-web`, chown dist, build, start.
