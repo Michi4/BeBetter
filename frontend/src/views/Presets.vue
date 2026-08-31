@@ -142,6 +142,7 @@ async function loadPresets() {
     presets.value = res.data.presets || res.data || []
   } catch {
     presets.value = []
+    toast.error('Failed to load presets')
   } finally {
     loading.value = false
   }
@@ -153,6 +154,7 @@ async function loadMyHabits() {
     myHabits.value = res.data.habits || []
   } catch {
     myHabits.value = []
+    toast.error('Failed to load your habits')
   }
 }
 

@@ -304,9 +304,9 @@
       </template>
 
       <!-- Activity (for other users) -->
-      <div v-if="!isOwn && activity.length" class="space-y-3">
+      <div v-if="!isOwn" class="space-y-3">
         <h3 class="section-title">Recent Activity</h3>
-        <div class="space-y-2">
+        <div v-if="activity.length" class="space-y-2">
           <div v-for="item in activity" :key="item.id" class="card flex items-center gap-3">
             <div class="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
               <Check :size="14" class="text-emerald-400" />
@@ -317,6 +317,7 @@
             </div>
           </div>
         </div>
+        <div v-else class="text-sm text-gray-500 py-2">No recent activity</div>
       </div>
 
       <!-- Full Avatar Modal -->
