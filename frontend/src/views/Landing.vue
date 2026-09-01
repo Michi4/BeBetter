@@ -88,6 +88,7 @@
               <p class="text-xs text-[var(--bb-muted)] font-medium uppercase tracking-wider">New habits &middot; 30 days</p>
             </div>
           </div>
+          <p v-if="statsFailed" class="text-center text-xs text-[var(--bb-faint)] mt-6">Stats temporarily unavailable — please refresh.</p>
         </div>
       </section>
 
@@ -263,6 +264,7 @@ import {
 } from 'lucide-vue-next'
 
 const loaded = ref(false)
+const statsFailed = ref(false)
 const stats = ref({ habits: 0, completionsValue: 0, completionsSuffix: '', streakRetention: 0, newHabits: 0 })
 const showBelowFold = ref(false)
 
@@ -390,6 +392,7 @@ onMounted(() => {
     })
     .catch(() => {
       loaded.value = true
+      statsFailed.value = true
     })
 })
 

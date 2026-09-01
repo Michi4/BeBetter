@@ -157,6 +157,7 @@
             <ChevronRight :size="14" class="text-gray-600 shrink-0" />
           </router-link>
         </div>
+        <p v-else-if="!showChallengeForm" class="text-sm text-gray-500">No challenges for this habit yet. Challenge a friend to keep each other going!</p>
 
         <!-- Share invite link -->
         <div v-if="showChallengeForm" class="space-y-3 pt-2 border-t border-gray-800">
