@@ -586,7 +586,14 @@ async function selectDay(day) {
 async function handleDayChanged() {
   loadStats()
   loadGrid()
-  if (selectedDay.value) selectDay(selectedDay.value)
+  if (selectedDay.value) {
+    const day = selectedDay.value
+    selectDay(selectedDay.value)
+    // If the re-fetch turned up empty, close the modal
+    if (!day.habits?.length && !day.tasks?.length && !day.scheduledHabits?.length && day.scheduled === 0) {
+      selectedDay.value = null
+    }
+  }
 }
 
 async function endVacation() {
