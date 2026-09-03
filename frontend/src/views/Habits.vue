@@ -343,7 +343,12 @@ async function loadHistory() {
     ])
     if (token !== historyToken) return
 
-    const scheduledHabits = dayRes.data.scheduled || []
+    // Habits scheduled that day + off-schedule habits that were still logged
+    // (only logged ones — otherwise every non-scheduled habit would show)
+    const scheduledHabits = [
+      ...(dayRes.data.scheduled || []),
+      ...(dayRes.data.unscheduled || []).filter(h => h.logged),
+    ]
     const loggedIds = new Set()
     const loggedSlots = new Map()
     const logIds = new Map()
