@@ -1,5 +1,5 @@
 <template>
-  <div class="page pb-32 md:pb-24">
+  <div class="page">
     <!-- Loading -->
     <div v-if="loading" class="flex items-center justify-center py-20">
       <Loader2 :size="24" class="animate-spin text-emerald-400" />
