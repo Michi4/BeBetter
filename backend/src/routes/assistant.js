@@ -102,6 +102,35 @@ router.post('/chat', async (req, res) => {
     let usedModel = '';
     let progressed = false;
 
+    // Accepted actions execute deterministically — never depend on the model
+    // regenerating the identical call.
+    const executed = new Set();
+    if (confirmed.size) {
+      for (const a of confirmedActions) {
+        const policy = TOOL_POLICY[a.tool];
+        if (!policy) continue;
+        if ((settings[policy.group] ?? 0) < policy.need) {
+          actions.push({ tool: a.tool, status: 'denied', summary: summarizeCall(a.tool, a.arguments) });
+          progressed = true;
+          continue;
+        }
+        try {
+          const result = await execTool(req.userId, a.tool, a.arguments || {});
+          actions.push({ tool: a.tool, status: result?.error ? 'error' : 'done', summary: summarizeCall(a.tool, a.arguments), result });
+        } catch {
+          actions.push({ tool: a.tool, status: 'error', summary: summarizeCall(a.tool, a.arguments) });
+        }
+        executed.add(`${a.tool}::${stableKey(a.arguments || {})}`);
+        progressed = true;
+      }
+      if (progressed) {
+        convo.push({
+          role: 'user',
+          content: 'The user confirmed. Executed: ' + actions.map((x) => `${x.summary} [${x.status}]`).join('; ') + '. Summarize briefly what was done.',
+        });
+      }
+    }
+
     for (let step = 0; step < 3; step++) {
       let out;
       try {
@@ -139,6 +168,10 @@ router.post('/chat', async (req, res) => {
           continue;
         }
         const key = `${tool}::${stableKey(args)}`;
+        if (executed.has(key)) {
+          convo.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify({ alreadyDone: true, note: 'Already executed after user confirmation.' }) });
+          continue;
+        }
         if (policy.write && settings.confirmBeforeExecute && !confirmed.has(key)) {
           needsConfirmation.push({ id: key, tool, arguments: args, summary: summarizeCall(tool, args) });
           convo.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify({ deferred: true, note: 'Waiting for user confirmation.' }) });
