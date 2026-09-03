@@ -576,20 +576,18 @@ async function loadAll() {
 }
 
 async function completeTask(task) {
-  if (completingTaskId.value) return
+  if (completingTaskId.value === task.id) return
   completingTaskId.value = task.id
   try {
     await api.post(`/tasks/${task.id}/complete`)
     toast.success(`"${task.title}" done!`)
-    setTimeout(() => {
-      completingTaskId.value = null
-      incompleteTasks.value = incompleteTasks.value.filter(t => t.id !== task.id)
-      completedTasks.value.unshift({ ...task, isCompletedToday: true, completedAt: new Date().toISOString() })
-      loadHistory()
-    }, 600)
+    incompleteTasks.value = incompleteTasks.value.filter(t => t.id !== task.id)
+    completedTasks.value.unshift({ ...task, isCompletedToday: true, completedAt: new Date().toISOString() })
+    loadHistory()
   } catch {
-    completingTaskId.value = null
     toast.error('Failed')
+  } finally {
+    completingTaskId.value = null
   }
 }
 
@@ -701,19 +699,21 @@ async function confirmDeleteAllTasks() {
 function openCamHabit(habit) { camHabit.value = habit }
 
 async function completeHabit(habit) {
+  if (completingHabitId.value) return
+  completingHabitId.value = habit.id
   try {
     const payload = { habitId: habit.id }
     if (habit.scheduledTime) payload.scheduledTime = habit.scheduledTime
     await api.post('/logs', payload)
-    completingHabitId.value = habit.id
     activeHabits.value = activeHabits.value.map(h =>
       h.id === habit.id && h.scheduledTime === habit.scheduledTime ? { ...h, completedToday: true } : h
     )
     toast.success(`"${habit.title}" completed!`)
-    setTimeout(() => { completingHabitId.value = null }, 600)
   } catch (e) {
     if (e.response?.status === 409) toast.info('Already completed today!')
     else toast.error('Failed')
+  } finally {
+    completingHabitId.value = null
   }
 }
 
