@@ -184,7 +184,7 @@
     </div>
 
     <!-- Mobile floating add button (above bottom nav) -->
-    <div class="fixed bottom-20 left-0 right-0 z-40 flex justify-center md:hidden pointer-events-none">
+    <div class="fixed bottom-[calc(4rem+env(safe-area-inset-bottom,0px)+1rem)] left-0 right-0 z-40 flex justify-center md:hidden pointer-events-none">
       <button @click="createInitialMode = 'task'; showCreateModal = true"
         class="pointer-events-auto touch-target shrink-0 flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-600 text-white shadow-md shadow-emerald-500/15 hover:bg-emerald-500 transition-colors active:scale-95">
         <Plus :size="24" />
