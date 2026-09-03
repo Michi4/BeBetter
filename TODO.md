@@ -99,6 +99,36 @@ Status tracker for the full audit + feedback pass (Michi & Jonas).
 - [x] Auth demo guard hang — missing `.catch(next)` swallowed DB errors; fixed + `scheduledTime: null` bypass via `field in req.body`
 - [x] Frontend parity — Habits incompleteTasks now filters `isDueToday !== false` (was showing tomorrow's tasks), HabitCard aria-label/pressed, ContributionGrid role=grid, TimeInput aria-labels
 
+## Round 6 (final polish & fix pass — "make it perfect")
+
+### Critical
+- [x] Habits TDZ crash — `const todayStr = () => {}` used before declaration in setup → `ReferenceError: can't access lexical declaration 'q'` at mount (blocked /habits for all users). Converted to hoisted `function todayStr()`.
+- [x] Notifications "dismissed came back" — demo account reset wiped notifications hourly, then scheduler re-fired reminders (demo now skipped in all 3 reminder jobs). Also: dismiss failures were silently swallowed (item stayed unread in DB, returned next poll → now toasts on error).
+- [x] Data restored — old `home` production DB (had all real users: michi, sophie, Jonas, alex, tapbug5111) was dumped and restored to Frankfurt (the current prod had a fresh/empty DB). Nightly backups now running (03:17, 14-day retention).
+
+### Features
+- [x] DayDetail undo buttons — clicking a past day on the grid shows undo for each habit/task completion (wiring to existing DELETE /logs/:id and DELETE /tasks/:id/uncomplete?date=). Modal closes when last item undone.
+- [x] "Dismiss all" button in the inline notification alerts.
+- [x] Dismiss-all endpoint verified: `POST /notifications/read` (no body) marks all read.
+
+### Light mode
+- [x] Global `html.light .text-white { color: #111827 !important; }` removed — was rendering 30+ `bg-emerald-600 text-white` buttons dark-on-dark (white text on colored buttons is correct in both themes).
+- [x] Added missing light-mode overrides: `text-amber-300`, `hover:text-amber-300`, `hover:text-emerald-100`, `hover:text-red-300`, `text-purple-400`, opacity variants.
+
+### Polish (empty/loading/error states)
+- [x] Loading spinners added to: Profile, HabitDetail, Friends, PresetDetail, Notifications, NewChallenge
+- [x] Not-found pages: ChallengeDetail, PresetDetail (instead of blank page/back-redirect)
+- [x] Empty states: Dashboard onboarding (new user), Profile other-user activity, HabitDetail challenges, Landing stats unavailable
+- [x] Error toasts replacing 15+ silent `catch {}` across: Notifications, NewChallenge, Leaderboard, Friends, HabitDetail, Presets, Profile grid, Friends invite-link
+- [x] Overflow truncation on long usernames: ChallengeDetail, Profile
+- [x] DayDetail modal closes when last item undone (instead of showing stale content)
+
+### Verification
+- [x] Full sandboxed test suite run against prod: **83/83 passed** (registration, auth, habits, tasks, logs, stats, grid, friends, challenges, presets, admin, notifications, uploads, passwords, edge cases)
+- [x] All 34 frontend chunks serve 200, vendor chunks match imports
+- [x] 0 TDZ matches in deployed Habits chunk
+- [x] Critical flows verified: habit→log→undo, task→complete→uncomplete, dismiss-all→unread=0, grid+stats, preset like, leaderboard, friend link, invitation, password reset, ban/unban, admin authz, private profile, forgot password, change password
+
 ## Round 5 sweep (full-codebase final audit)
 
 ### Backend
