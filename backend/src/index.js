@@ -19,6 +19,7 @@ const vacationRoutes = require('./routes/vacation');
 const taskRoutes = require('./routes/tasks');
 const notificationRoutes = require('./routes/notifications');
 const leaderboardRoutes = require('./routes/leaderboard');
+const assistantRoutes = require('./routes/assistant');
 const publicPresetRoutes = require('./routes/presets-public');
 const publicRoutes = require('./routes/public');
 
@@ -61,6 +62,7 @@ app.use('/api/vacation', vacationRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
+app.use('/api/assistant', assistantRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/admin', adminRoutes);
 

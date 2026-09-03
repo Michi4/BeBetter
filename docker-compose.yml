@@ -29,6 +29,8 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-bebetter}:${POSTGRES_PASSWORD:-secretpassword}@postgres:5432/${POSTGRES_DB:-bebetter_db}
       JWT_SECRET: ${JWT_SECRET:-bebetter-jwt-secret-change-me-in-prod}
+      B_AI_API_KEY: ${B_AI_API_KEY:-}
+      AI_MODELS: ${AI_MODELS:-}
       PORT: "3000"
       TZ: Europe/Vienna
     volumes:
@@ -78,6 +80,8 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-bebetter}:${POSTGRES_PASSWORD:-secretpassword}@postgres:5432/${POSTGRES_DB:-bebetter_db}
       JWT_SECRET: ${JWT_SECRET:-bebetter-jwt-secret-change-me-in-prod}
+      B_AI_API_KEY: ${B_AI_API_KEY:-}
+      AI_MODELS: ${AI_MODELS:-}
       PORT: "3000"
       TZ: Europe/Vienna
     volumes:

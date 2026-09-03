@@ -31,6 +31,10 @@
             <Sun v-if="isDark" :size="18" />
             <Moon v-else :size="18" />
           </button>
+          <router-link v-if="auth.user && !auth.isDemo" to="/assistant" aria-label="AI assistant"
+            class="p-2.5 rounded-lg text-gray-500 hover:text-emerald-300 hover:bg-gray-800 transition-colors touch-target inline-flex items-center justify-center shrink-0">
+            <Sparkles :size="18" />
+          </router-link>
           <template v-if="auth.user">
             <router-link :to="`/profile/${auth.user.username || auth.user.id}`" :aria-label="`View profile ${auth.user.username || ''}`"
               class="w-8 h-8 rounded-full bg-emerald-600/20 flex items-center justify-center text-xs font-bold text-emerald-400 ring-1 ring-emerald-500/30">
@@ -97,7 +101,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
-import { LogOut, LayoutDashboard, ListTodo, Users, Trophy, BookOpen, Shield, Sun, Moon, WifiOff } from 'lucide-vue-next'
+import { LogOut, LayoutDashboard, ListTodo, Users, Trophy, BookOpen, Shield, Sun, Moon, WifiOff, Sparkles } from 'lucide-vue-next'
 import Logo from './components/Logo.vue'
 import PushPrompt from './components/PushPrompt.vue'
 import SignUpPrompt from './components/SignUpPrompt.vue'

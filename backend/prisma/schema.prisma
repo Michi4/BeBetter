@@ -47,6 +47,7 @@ model User {
   friendLinksSent    FriendLink[] @relation("FriendLinkSender")
   passwordResets     PasswordReset[]
   habitBuddies       HabitBuddy[] @relation("HabitBuddyFriend")
+  assistantSettings  AssistantSettings?
 }
 
 model Habit {
@@ -346,4 +347,21 @@ model PasswordReset {
   expiresAt DateTime
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+// Per-user AI assistant access control. Levels for tasks/habits/logs:
+// 0 = off, 1 = read, 2 = read + create, 3 = full (incl. update/delete).
+// statsLevel: 0 = off, 1 = read.
+model AssistantSettings {
+  id                   String   @id @default(uuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  enabled              Boolean  @default(false)
+  confirmBeforeExecute Boolean  @default(true)
+  tasksLevel           Int      @default(2)
+  habitsLevel          Int      @default(2)
+  logsLevel            Int      @default(2)
+  statsLevel           Int      @default(1)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 }

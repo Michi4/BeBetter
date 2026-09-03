@@ -234,6 +234,63 @@
           </div>
         </div>
 
+        <!-- AI Assistant -->
+        <div class="card space-y-4">
+          <div class="flex items-center gap-2">
+            <Sparkles :size="16" class="text-emerald-400" />
+            <h3 class="section-title">AI Assistant</h3>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-gray-800 text-gray-400">beta</span>
+            <div class="flex-1"></div>
+            <router-link to="/assistant" class="text-xs text-emerald-400 hover:text-emerald-300">Open chat</router-link>
+          </div>
+          <div v-if="aiPrefs" class="space-y-3">
+            <div class="flex items-center justify-between min-h-[44px]">
+              <div>
+                <div class="text-sm text-gray-300">Enable assistant</div>
+                <div class="text-[10px] text-gray-500">Let the AI read and manage your stuff</div>
+              </div>
+              <button @click="aiPrefs.enabled = !aiPrefs.enabled; saveAiPrefs()"
+                class="relative w-12 h-6 rounded-full transition-colors duration-200 shrink-0"
+                :class="aiPrefs.enabled ? 'bg-emerald-600' : 'bg-gray-700'"
+                role="switch" :aria-checked="!!aiPrefs.enabled" aria-label="Enable AI assistant">
+                <span class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200"
+                  :class="aiPrefs.enabled ? 'translate-x-6' : ''"></span>
+              </button>
+            </div>
+            <div class="flex items-center justify-between min-h-[44px]">
+              <div>
+                <div class="text-sm text-gray-300">Ask before acting</div>
+                <div class="text-[10px] text-gray-500">The AI states what it will do — you accept first</div>
+              </div>
+              <button @click="aiPrefs.confirmBeforeExecute = !aiPrefs.confirmBeforeExecute; saveAiPrefs()"
+                class="relative w-12 h-6 rounded-full transition-colors duration-200 shrink-0"
+                :class="aiPrefs.confirmBeforeExecute ? 'bg-emerald-600' : 'bg-gray-700'"
+                role="switch" :aria-checked="!!aiPrefs.confirmBeforeExecute" aria-label="Ask before acting">
+                <span class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200"
+                  :class="aiPrefs.confirmBeforeExecute ? 'translate-x-6' : ''"></span>
+              </button>
+            </div>
+            <div v-for="g in aiGroups" :key="g.key" class="flex items-center justify-between min-h-[44px] gap-2">
+              <div class="min-w-0">
+                <div class="text-sm text-gray-300">{{ g.label }}</div>
+                <div class="text-[10px] text-gray-500">{{ aiLevelLabel(g.key) }}</div>
+              </div>
+              <div class="flex gap-1 shrink-0" role="group" :aria-label="g.label + ' access'">
+                <button v-for="opt in g.options" :key="opt.value" type="button" @click="aiPrefs[g.key] = opt.value; saveAiPrefs()"
+                  class="px-2 py-1 rounded-lg text-[11px] font-medium transition-colors min-h-[32px]"
+                  :class="aiPrefs[g.key] === opt.value ? 'bg-emerald-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'"
+                  :aria-pressed="aiPrefs[g.key] === opt.value">
+                  {{ opt.label }}
+                </button>
+              </div>
+            </div>
+            <p class="text-[10px] text-gray-600">Reads and creations are on by default. If the assistant hits something locked, it tells you where to unlock it.</p>
+          </div>
+          <div v-else class="text-center py-4">
+            <Loader2 :size="16" class="animate-spin mx-auto text-gray-500" />
+          </div>
+        </div>
+
         <!-- Vacation Management -->
         <div class="card space-y-4">
           <div class="flex items-center gap-2">
@@ -368,7 +425,7 @@ import { useToast } from 'vue-toastification'
 import { openDemoPrompt } from '../utils/demoPrompt'
 import {
   UserPlus, Swords, Trash2, Camera, X, AlertTriangle, Loader2, Clock, Check,
-  User, Bell, Palmtree, Play, KeyRound, Save, ChevronLeft, ChevronRight,
+  User, Bell, Palmtree, Play, KeyRound, Save, ChevronLeft, ChevronRight, Sparkles,
 } from 'lucide-vue-next'
 import ContributionGrid from '../components/ContributionGrid.vue'
 import DayDetail from '../components/DayDetail.vue'
@@ -395,6 +452,31 @@ const uploadingAvatar = ref(false)
 const editForm = reactive({ bio: '', isPublic: false })
 
 const notifPrefs = ref(null)
+const aiPrefs = ref(null)
+const aiGroups = [
+  { key: 'tasksLevel', label: 'Tasks', options: [{ value: 0, label: 'Off' }, { value: 1, label: 'Read' }, { value: 2, label: 'Create' }, { value: 3, label: 'Full' }] },
+  { key: 'habitsLevel', label: 'Habits', options: [{ value: 0, label: 'Off' }, { value: 1, label: 'Read' }, { value: 2, label: 'Create' }, { value: 3, label: 'Full' }] },
+  { key: 'logsLevel', label: 'Activity log', options: [{ value: 0, label: 'Off' }, { value: 1, label: 'Read' }, { value: 2, label: 'Full' }] },
+  { key: 'statsLevel', label: 'Insights', options: [{ value: 0, label: 'Off' }, { value: 1, label: 'Read' }] },
+]
+
+function aiLevelLabel(key) {
+  const g = aiGroups.find(x => x.key === key)
+  const opt = g?.options.find(o => o.value === aiPrefs.value?.[key])
+  const map = { Off: 'No access', Read: 'Can view', Create: 'View + create', Full: 'View, create, change, delete' }
+  return map[opt?.label] || ''
+}
+
+async function saveAiPrefs() {
+  if (!aiPrefs.value) return
+  const { id, userId, createdAt, updatedAt, ...payload } = aiPrefs.value
+  try {
+    const res = await api.put('/assistant/settings', payload)
+    aiPrefs.value = res.data.settings
+  } catch {
+    toast.error('Failed to save AI settings')
+  }
+}
 const vacation = reactive({ active: false, data: null })
 const vacationReason = ref('')
 const vacationEndDate = ref('')
@@ -435,19 +517,22 @@ async function loadProfile() {
 async function loadSettings() {
   if (!isOwn.value) return
   try {
-    const [prefsRes, vacRes] = await Promise.all([
+    const [prefsRes, vacRes, aiRes] = await Promise.all([
       api.get('/notifications/preferences').catch(() => ({ data: { preferences: null } })),
       api.get('/vacation/status').catch(() => ({ data: { active: false } })),
+      api.get('/assistant/settings').catch(() => ({ data: { settings: null } })),
     ])
     notifPrefs.value = prefsRes.data.preferences
     if (!notifPrefs.value) {
       notifPrefs.value = { morningEnabled: true, morningTime: '08:00', eveningEnabled: true, eveningTime: '21:00', habitRemindersEnabled: true, announcementsEnabled: true }
     }
+    aiPrefs.value = aiRes.data.settings || { enabled: false, confirmBeforeExecute: true, tasksLevel: 2, habitsLevel: 2, logsLevel: 2, statsLevel: 1 }
     vacation.active = vacRes.data.active
     vacation.data = vacRes.data.vacation
   } catch {
     // Provide defaults so the spinner goes away
     notifPrefs.value = { morningEnabled: true, morningTime: '08:00', eveningEnabled: true, eveningTime: '21:00', habitRemindersEnabled: true, announcementsEnabled: true }
+    aiPrefs.value = { enabled: false, confirmBeforeExecute: true, tasksLevel: 2, habitsLevel: 2, logsLevel: 2, statsLevel: 1 }
     toast.error('Failed to load settings')
   }
 

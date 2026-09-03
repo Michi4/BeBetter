@@ -32,6 +32,8 @@ services:
     environment:
       DATABASE_URL: postgresql://${DEV_POSTGRES_USER:-bebetter}:${DEV_POSTGRES_PASSWORD:-devpassword}@dev-postgres:5432/${DEV_POSTGRES_DB:-bebetter_dev_db}
       JWT_SECRET: ${DEV_JWT_SECRET:-bebetter-dev-jwt-secret-change-me}
+      B_AI_API_KEY: ${B_AI_API_KEY:-}
+      AI_MODELS: ${AI_MODELS:-}
       PORT: "3000"
       TZ: Europe/Vienna
     volumes:

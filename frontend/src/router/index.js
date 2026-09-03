@@ -19,6 +19,7 @@ const routes = [
   { path: '/presets/:id', name: 'preset-detail', component: () => import('../views/PresetDetail.vue'), meta: { auth: true } },
   { path: '/friends', name: 'friends', component: () => import('../views/Friends.vue'), meta: { auth: true } },
   { path: '/notifications', name: 'notifications', component: () => import('../views/Notifications.vue'), meta: { auth: true } },
+  { path: '/assistant', name: 'assistant', component: () => import('../views/Assistant.vue'), meta: { auth: true } },
   { path: '/profile/:id', name: 'profile', component: () => import('../views/Profile.vue') },
   { path: '/leaderboard', name: 'leaderboard', component: () => import('../views/Leaderboard.vue'), meta: { auth: true } },
   { path: '/challenges/new', name: 'new-challenge', component: () => import('../views/NewChallenge.vue'), meta: { auth: true } },
