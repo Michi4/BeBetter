@@ -156,6 +156,12 @@ const form = reactive({
   createPreset: false,
   presetCategory: 'Other',
   ...props.modelValue,
+  // Deep-clone nested arrays so editing the form never mutates the parent's
+  // reactive wagers/schedules (would cause a feedback loop in the emit watch)
+  wagers: Array.isArray(props.modelValue?.wagers) ? props.modelValue.wagers.map(w => ({ ...w })) : [],
+  schedules: Array.isArray(props.modelValue?.schedules) && props.modelValue.schedules.length
+    ? props.modelValue.schedules.map(s => ({ time: s?.time ?? null, days: [...(s?.days || [])] }))
+    : [{ time: null, days: [0, 1, 2, 3, 4, 5, 6] }],
 })
 
 if (!form.schedules || !form.schedules.length) {
@@ -170,9 +176,11 @@ watch(() => props.modelValue, (val) => {
   if (val.title !== undefined) form.title = val.title
   if (val.description !== undefined) form.description = val.description
   if (val.emoji !== undefined) form.emoji = val.emoji
-  if (val.schedules !== undefined) form.schedules = val.schedules
+  if (val.schedules !== undefined && Array.isArray(val.schedules)) {
+    form.schedules = val.schedules.map(s => ({ time: s?.time ?? null, days: [...(s?.days || [])] }))
+  }
   if (val.verificationType !== undefined) form.verificationType = val.verificationType
-  if (val.wagers !== undefined) form.wagers = val.wagers
+  if (val.wagers !== undefined && Array.isArray(val.wagers)) form.wagers = val.wagers.map(w => ({ ...w }))
   if (val.createPreset !== undefined) form.createPreset = val.createPreset
   if (val.presetCategory !== undefined) form.presetCategory = val.presetCategory
 }, { deep: true })
