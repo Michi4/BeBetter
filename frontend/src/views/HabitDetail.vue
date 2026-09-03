@@ -135,7 +135,7 @@
       <div class="card space-y-3">
         <div class="flex items-center justify-between">
           <p class="section-title">Challenge Friends</p>
-          <button @click="toggleChallengeForm" class="text-xs text-emerald-400 hover:text-emerald-300">
+          <button @click="toggleChallengeForm" class="text-xs text-emerald-400 hover:text-emerald-300 min-h-[44px] flex items-center">
             {{ showChallengeForm ? 'Cancel' : '+ Challenge' }}
           </button>
         </div>
@@ -198,7 +198,7 @@
       <div class="card space-y-3">
         <div class="flex items-center justify-between">
           <p class="section-title">Accountability Buddies</p>
-          <button @click="toggleBuddyForm" class="text-xs text-emerald-400 hover:text-emerald-300">
+          <button @click="toggleBuddyForm" class="text-xs text-emerald-400 hover:text-emerald-300 min-h-[44px] flex items-center">
             {{ showBuddyForm ? 'Cancel' : '+ Add' }}
           </button>
         </div>

@@ -24,7 +24,7 @@
           <input v-model="form.email" type="email" autocomplete="email" aria-label="Email" placeholder="Email" class="input" required />
           <div class="relative">
             <input v-model="form.password" :type="showPw ? 'text' : 'password'" autocomplete="new-password" aria-label="Password" placeholder="Password (min 6 chars)" class="input pr-10" required minlength="6" />
-            <button type="button" @click="showPw = !showPw" :aria-label="showPw ? 'Hide password' : 'Show password'" :aria-pressed="showPw" class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--bb-muted)] hover:text-[var(--bb-ink)] transition-colors">
+            <button type="button" @click="showPw = !showPw" :aria-label="showPw ? 'Hide password' : 'Show password'" :aria-pressed="showPw" class="absolute right-1 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-[var(--bb-muted)] hover:text-[var(--bb-ink)] transition-colors">
               <Eye v-if="!showPw" :size="16" />
               <EyeOff v-else :size="16" />
             </button>

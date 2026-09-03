@@ -16,22 +16,22 @@
         </div>
         <div class="flex-1 min-w-0">
           <p v-if="n.type === 'announcement'" class="text-sm font-semibold">{{ n.data?.title || 'Announcement' }}</p>
-          <p class="text-sm leading-snug" :class="n.type === 'announcement' ? 'text-gray-400' : ''">{{ n.message }}</p>
+          <p class="text-sm leading-snug break-words" :class="n.type === 'announcement' ? 'text-gray-400' : ''">{{ n.message }}</p>
           <div class="flex items-center gap-2 mt-2 flex-wrap">
             <template v-if="n.type === 'challenge_invite' && n.data?.challengeId">
-              <button @click="acceptChallenge(n)" class="btn text-xs px-3 py-1.5"><Check :size="13" /> Accept</button>
-              <button @click="declineChallenge(n)" class="btn-secondary text-xs px-3 py-1.5"><X :size="13" /> Decline</button>
-              <button @click="dismiss(n.id)" class="text-[10px] text-gray-500 hover:text-gray-300 transition-colors">Later</button>
+              <button @click="acceptChallenge(n)" class="btn text-xs px-3 py-1.5 min-h-[44px]"><Check :size="13" /> Accept</button>
+              <button @click="declineChallenge(n)" class="btn-secondary text-xs px-3 py-1.5 min-h-[44px]"><X :size="13" /> Decline</button>
+              <button @click="dismiss(n.id)" class="text-[10px] text-gray-500 hover:text-gray-300 transition-colors min-h-[44px] flex items-center">Later</button>
             </template>
             <template v-else-if="n.type === 'friend_request' && n.data?.requestId">
-              <button @click="acceptFriendRequest(n)" class="btn text-xs px-3 py-1.5"><Check :size="13" /> Accept</button>
-              <button @click="declineFriendRequest(n)" class="btn-secondary text-xs px-3 py-1.5"><X :size="13" /> Decline</button>
+              <button @click="acceptFriendRequest(n)" class="btn text-xs px-3 py-1.5 min-h-[44px]"><Check :size="13" /> Accept</button>
+              <button @click="declineFriendRequest(n)" class="btn-secondary text-xs px-3 py-1.5 min-h-[44px]"><X :size="13" /> Decline</button>
             </template>
             <template v-else-if="n.type === 'buddy_request'">
-              <button @click="dismiss(n.id)" class="btn text-xs px-3 py-1.5">Got it</button>
+              <button @click="dismiss(n.id)" class="btn text-xs px-3 py-1.5 min-h-[44px]">Got it</button>
             </template>
             <template v-else>
-              <button @click="dismiss(n.id)" class="text-[10px] text-gray-500 hover:text-gray-300 transition-colors">Dismiss</button>
+              <button @click="dismiss(n.id)" class="text-[10px] text-gray-500 hover:text-gray-300 transition-colors min-h-[44px] flex items-center">Dismiss</button>
             </template>
           </div>
         </div>

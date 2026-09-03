@@ -4,7 +4,7 @@
       <div class="card w-full max-w-md mx-4 max-h-[85vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-4">
           <h3 class="font-semibold">{{ formatDate(day?.date) }}</h3>
-          <button @click="$emit('close')" aria-label="Close" class="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:text-gray-200 transition-colors"><X :size="16" /></button>
+          <button @click="$emit('close')" aria-label="Close" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:text-gray-200 transition-colors"><X :size="16" /></button>
         </div>
 
         <div v-if="day?.scheduled > 0" class="mb-4">
@@ -42,7 +42,7 @@
               <button v-if="log.proofUrl" @click="openLightbox(log.proofUrl)" class="ml-auto shrink-0">
                 <img :src="log.proofUrl" class="w-7 h-7 rounded object-cover ring-1 ring-emerald-500/30" alt="proof" />
               </button>
-              <button @click="undoHabit(log)" class="shrink-0 p-1 rounded text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-colors" title="Undo completion" aria-label="Undo completion">
+              <button @click="undoHabit(log)" class="shrink-0 w-11 h-11 rounded-lg flex items-center justify-center text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-colors" title="Undo completion" aria-label="Undo completion">
                 <Undo2 :size="13" />
               </button>
             </div>
@@ -55,7 +55,7 @@
             <div v-for="t in day.tasks" :key="t.id" class="flex items-center gap-2 text-sm">
               <span class="text-emerald-400"><CheckCircle2 :size="14" /></span>
               <span class="text-gray-300 truncate">{{ t.task?.title || t.title }}</span>
-              <button @click="undoTask(t)" class="shrink-0 p-1 rounded text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-colors" title="Undo completion" aria-label="Undo completion">
+              <button @click="undoTask(t)" class="shrink-0 w-11 h-11 rounded-lg flex items-center justify-center text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-colors" title="Undo completion" aria-label="Undo completion">
                 <Undo2 :size="13" />
               </button>
             </div>

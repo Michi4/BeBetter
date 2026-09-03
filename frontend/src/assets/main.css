@@ -86,7 +86,14 @@
     @apply card hover:border-emerald-500/40 cursor-pointer active:scale-[0.99] hover:shadow-md hover:shadow-emerald-500/5 hover:-translate-y-0.5;
   }
   .page {
-    @apply max-w-3xl mx-auto px-4 pb-24 pt-4 space-y-5;
+    @apply max-w-3xl mx-auto px-4 pt-4 space-y-5;
+    /* Clear the fixed mobile bottom nav (h-16 + safe area) + floating FABs */
+    padding-bottom: calc(4rem + 4.5rem + env(safe-area-inset-bottom, 0px) + 1rem);
+  }
+  @media (min-width: 768px) {
+    .page {
+      padding-bottom: 4rem;
+    }
   }
   .section-title {
     @apply text-xs font-semibold uppercase tracking-wider;
@@ -285,11 +292,13 @@ html.light nav a.text-emerald-400, html.light nav button.text-emerald-400 { colo
 html.light .text-gray-300 { color: #4b5563 !important; }
 html.light .text-gray-400 { color: #6b7280 !important; }
 html.light .text-gray-500 { color: #6b7280 !important; }
-html.light .text-gray-600 { color: #9ca3af !important; }
+html.light .text-gray-600 { color: #6b7280 !important; }
 html.light .hover\:text-gray-200:hover { color: #374151 !important; }
 html.light .hover\:text-gray-300:hover { color: #4b5563 !important; }
 html.light .bg-gray-700 { background: #e5e7eb !important; }
+html.light .bg-gray-700\/40 { background: rgba(229,231,235,0.4) !important; }
 html.light .bg-gray-700\/50 { background: rgba(229,231,235,0.5) !important; }
+html.light .bg-gray-700\/60 { background: rgba(229,231,235,0.6) !important; }
 html.light .bg-gray-800 { background: #f3f4f6 !important; }
 html.light .bg-gray-800\/40 { background: rgba(243,244,246,0.4) !important; }
 html.light .bg-gray-800\/50 { background: rgba(243,244,246,0.5) !important; }

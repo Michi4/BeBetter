@@ -49,7 +49,7 @@
     <div v-else class="flex items-center gap-3 group" @contextmenu.prevent="showContextMenu" @touchstart="startLongPress" @touchend="cancelLongPress" @touchmove="cancelLongPress">
       <!-- Checkbox -->
       <button v-bind="completeTap" @click.stop.prevent
-        class="shrink-0 w-10 h-10 rounded-lg border-2 flex items-center justify-center transition-all duration-200"
+        class="shrink-0 w-11 h-11 rounded-lg border-2 flex items-center justify-center transition-all duration-200"
         :class="task.completed
           ? 'bg-emerald-500 border-emerald-500 text-white scale-110 animate-check'
           : 'border-gray-600 hover:border-emerald-400 hover:bg-emerald-500/10 text-transparent hover:text-emerald-400/40'"
@@ -79,15 +79,15 @@
           <div class="absolute bg-gray-800 border border-gray-700 rounded-xl shadow-xl overflow-hidden min-w-[180px] py-1"
             :style="menuPos">
             <button @click.stop="startEdit(); showMenu = false"
-              class="w-full px-4 py-3 text-left text-sm text-gray-300 hover:bg-gray-700 flex items-center gap-3 transition-colors">
+              class="w-full px-4 py-3.5 text-left text-sm text-gray-300 hover:bg-gray-700 flex items-center gap-3 transition-colors">
               <Pencil :size="14" /> Edit
             </button>
             <button @click.stop="$emit('convert', task); showMenu = false"
-              class="w-full px-4 py-3 text-left text-sm text-gray-300 hover:bg-gray-700 flex items-center gap-3 transition-colors">
+              class="w-full px-4 py-3.5 text-left text-sm text-gray-300 hover:bg-gray-700 flex items-center gap-3 transition-colors">
               <ArrowRightLeft :size="14" /> Convert to Habit
             </button>
             <button @click.stop="$emit('delete', task); showMenu = false"
-              class="w-full px-4 py-3 text-left text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-3 transition-colors">
+              class="w-full px-4 py-3.5 text-left text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-3 transition-colors">
               <Trash2 :size="14" /> Delete
             </button>
           </div>

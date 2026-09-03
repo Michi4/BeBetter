@@ -75,7 +75,7 @@
       <Loader2 :size="20" class="animate-spin text-gray-500 mx-auto" />
     </div>
 
-    <div v-else-if="presets.length" class="grid grid-cols-2 gap-3">
+    <div v-else-if="presets.length" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <router-link
         v-for="p in presets"
         :key="p.id"

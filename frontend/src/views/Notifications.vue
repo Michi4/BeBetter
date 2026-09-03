@@ -31,7 +31,7 @@
         </div>
         <div class="flex-1 min-w-0">
           <p v-if="n.type === 'announcement'" class="text-sm font-semibold">{{ n.data?.title || 'Announcement' }}</p>
-          <p class="text-sm" :class="n.type === 'announcement' ? 'text-gray-400 mt-0.5' : ''">{{ n.message }}</p>
+          <p class="text-sm break-words" :class="n.type === 'announcement' ? 'text-gray-400 mt-0.5' : ''">{{ n.message }}</p>
           <p class="text-[10px] text-gray-500 mt-1">{{ formatTime(n.createdAt) }}</p>
 
           <div v-if="n.type === 'challenge_invite' && n.data?.challengeId && !n.read" class="flex gap-2 mt-2">

@@ -18,7 +18,7 @@
           </div>
           <div ref="gridEl" class="grid grid-cols-8 gap-1 max-h-56 overflow-y-auto pr-1" role="grid">
             <button v-for="e in filtered" :key="e.emoji" type="button"
-              class="h-9 rounded-lg text-lg flex items-center justify-center hover:bg-emerald-500/10 transition-colors"
+              class="h-11 rounded-lg text-lg flex items-center justify-center hover:bg-emerald-500/10 transition-colors"
               :aria-label="e.label" :title="e.label" @click="pick(e.emoji)">
               {{ e.emoji }}
             </button>

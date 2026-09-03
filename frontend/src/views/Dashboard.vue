@@ -173,7 +173,7 @@
 
     <!-- Delete confirm modal -->
     <div v-if="confirmDelete" class="fixed inset-0 z-[65] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm" @click.self="confirmDelete = null" @keydown.escape="confirmDelete = null" role="dialog" aria-modal="true" aria-label="Delete task">
-      <div class="w-full sm:w-[400px] bg-gray-900/95 backdrop-blur-xl border border-gray-800 rounded-t-2xl sm:rounded-2xl p-5 m-0 sm:m-4 shadow-xl safe-bottom" style="padding-bottom: max(env(safe-area-inset-bottom, 0px), 20px)">
+      <div class="w-full sm:w-[400px] bg-gray-900/95 backdrop-blur-xl border border-gray-800 rounded-t-2xl sm:rounded-2xl p-5 m-0 sm:mx-4 sm:my-4 shadow-xl safe-bottom" style="padding-bottom: max(env(safe-area-inset-bottom, 0px), 20px)">
         <h3 class="text-base font-bold text-red-400">Delete task?</h3>
         <p class="text-sm text-gray-400 mt-1">This permanently removes "{{ confirmDelete.title }}" and its history. This cannot be undone.</p>
         <div class="flex gap-2 mt-4">

@@ -18,8 +18,8 @@
             {{ (profile.username || 'U')[0].toUpperCase() }}
           </div>
           <label v-if="isOwn"
-            class="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center cursor-pointer hover:bg-gray-700 transition-colors">
-            <Camera :size="14" class="text-gray-400" />
+            class="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center cursor-pointer hover:bg-gray-700 transition-colors">
+            <Camera :size="16" class="text-gray-400" />
             <input type="file" accept="image/*" class="hidden" @change="handleAvatarUpload" />
           </label>
         </div>
