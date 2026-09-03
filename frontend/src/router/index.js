@@ -48,6 +48,8 @@ router.beforeEach(async (to, from, next) => {
   if (to.path === '/login' && to.query.demo === '1') return next()
   if (to.meta.guest && auth.user) return next('/dashboard')
   if (to.path === '/admin' && auth.user && auth.user.role !== 'admin') return next('/dashboard')
+  // Demo users are blocked from social features even via direct URL
+  if (auth.user?.isDemo && (to.path === '/friends' || to.path === '/leaderboard')) return next('/dashboard')
   next()
 })
 

@@ -170,6 +170,7 @@
                 </div>
                 <span v-if="h.completed" class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-medium shrink-0">Done</span>
                 <span v-else-if="isFutureDay" class="text-[10px] px-2 py-0.5 rounded-full bg-gray-800 text-gray-500 font-medium shrink-0">upcoming</span>
+                <span v-else-if="selectedDate === todayStr()" class="text-[10px] px-2 py-0.5 rounded-full bg-gray-800 text-gray-500 font-medium shrink-0">not done</span>
                 <span v-else class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-medium shrink-0">missed</span>
                 <button v-if="h.completed && h.logId" v-bind="undoHistoryHabitTap(h)" @click.stop.prevent
                   class="delete-btn shrink-0 p-1.5 rounded text-gray-600 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all" title="Mark as not done">

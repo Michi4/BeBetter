@@ -67,7 +67,8 @@
           </div>
           <span v-else class="text-xs font-medium text-gray-400">{{ gridYear }}</span>
         </div>
-        <ContributionGrid :grid="profileGrid" :year="gridYear" />
+        <ContributionGrid :grid="profileGrid" :year="gridYear" @select="selectDay" />
+        <DayDetail :show="!!selectedDay" :day="selectedDay" @close="selectedDay = null" @changed="handleDayChanged" />
       </div>
 
       <!-- Settings sections (own profile only) -->
@@ -153,7 +154,7 @@
                 <div class="text-[10px] text-gray-500">Get notified to start your day</div>
               </div>
               <div class="flex items-center gap-2">
-                <TimeInput v-if="notifPrefs.morningEnabled" v-model="notifPrefs.morningTime" />
+                <TimeInput v-if="notifPrefs.morningEnabled" v-model="notifPrefs.morningTime" @update:model-value="saveNotifPrefs" />
                 <button @click="notifPrefs.morningEnabled = !notifPrefs.morningEnabled; saveNotifPrefs()"
                   class="relative w-12 h-6 rounded-full transition-colors duration-200 shrink-0"
                   :class="notifPrefs.morningEnabled ? 'bg-emerald-600' : 'bg-gray-700'"
@@ -171,7 +172,7 @@
                 <div class="text-[10px] text-gray-500">Review your day before bed</div>
               </div>
               <div class="flex items-center gap-2">
-                <TimeInput v-if="notifPrefs.eveningEnabled" v-model="notifPrefs.eveningTime" />
+                <TimeInput v-if="notifPrefs.eveningEnabled" v-model="notifPrefs.eveningTime" @update:model-value="saveNotifPrefs" />
                 <button @click="notifPrefs.eveningEnabled = !notifPrefs.eveningEnabled; saveNotifPrefs()"
                   class="relative w-12 h-6 rounded-full transition-colors duration-200 shrink-0"
                   :class="notifPrefs.eveningEnabled ? 'bg-emerald-600' : 'bg-gray-700'"
@@ -370,6 +371,7 @@ import {
   User, Bell, Palmtree, Play, KeyRound, Save, ChevronLeft, ChevronRight,
 } from 'lucide-vue-next'
 import ContributionGrid from '../components/ContributionGrid.vue'
+import DayDetail from '../components/DayDetail.vue'
 import TimeInput from '../components/TimeInput.vue'
 import { setTimeFormat as setTimeFormatGlobal, getTimeFormat } from '../utils/timeFormat'
 
@@ -403,6 +405,7 @@ const pushLoading = ref(false)
 const profileGrid = ref([])
 const gridYear = ref(new Date().getFullYear())
 const gridYearRange = ref({ firstYear: new Date().getFullYear(), lastYear: new Date().getFullYear() })
+const selectedDay = ref(null)
 
 const timeFormat = ref(getTimeFormat())
 
@@ -437,9 +440,14 @@ async function loadSettings() {
       api.get('/vacation/status').catch(() => ({ data: { active: false } })),
     ])
     notifPrefs.value = prefsRes.data.preferences
+    if (!notifPrefs.value) {
+      notifPrefs.value = { morningEnabled: true, morningTime: '08:00', eveningEnabled: true, eveningTime: '21:00', habitRemindersEnabled: true, announcementsEnabled: true }
+    }
     vacation.active = vacRes.data.active
     vacation.data = vacRes.data.vacation
   } catch {
+    // Provide defaults so the spinner goes away
+    notifPrefs.value = { morningEnabled: true, morningTime: '08:00', eveningEnabled: true, eveningTime: '21:00', habitRemindersEnabled: true, announcementsEnabled: true }
     toast.error('Failed to load settings')
   }
 
@@ -707,6 +715,33 @@ async function loadProfileGrid() {
 }
 
 watch(gridYear, loadProfileGrid)
+
+async function selectDay(day) {
+  try {
+    const res = await api.get('/grid/day', { params: { date: day.date } })
+    const habits = res.data.habits || []
+    const tasks = res.data.tasks || []
+    const scheduledHabits = res.data.scheduledHabits || []
+    const showable = habits.length || tasks.length || scheduledHabits.length || day.scheduled > 0 || day.completed > 0 || day.tasks > 0
+    if (!showable) {
+      toast.info('No activity on this day')
+      return
+    }
+    selectedDay.value = { ...day, habits, tasks, scheduledHabits, isOnVacation: res.data.isOnVacation || false }
+  } catch {
+    const showable = day.scheduled > 0 || day.completed > 0 || day.tasks > 0
+    if (!showable) {
+      toast.info('No activity on this day')
+      return
+    }
+    selectedDay.value = day
+  }
+}
+
+async function handleDayChanged() {
+  if (selectedDay.value) selectDay(selectedDay.value)
+  loadProfileGrid()
+}
 
 async function loadAll() {
   await loadProfile()

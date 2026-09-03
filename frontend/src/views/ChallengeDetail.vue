@@ -30,21 +30,24 @@
         </span>
       </div>
 
-      <!-- Pending actions -->
-      <div v-if="challenge.status === 'pending' && (isOpponent || isCreator)" class="card space-y-3">
+      <!-- Pending actions: only the opponent can accept/decline -->
+      <div v-if="challenge.status === 'pending' && isOpponent" class="card space-y-3">
         <p class="text-sm text-gray-400">{{ challenge.creator?.username }} challenged you!</p>
         <div class="flex gap-2">
           <button @click="acceptChallenge" class="btn flex-1"><Check :size="14" /> Accept</button>
           <button @click="declineChallenge" class="btn-danger flex-1"><X :size="14" /> Decline</button>
         </div>
       </div>
+      <div v-else-if="challenge.status === 'pending' && isCreator" class="card text-center py-4">
+        <p class="text-sm text-gray-400">You sent this challenge — waiting for {{ challenge.opponent?.username || 'your friend' }} to respond.</p>
+      </div>
 
       <!-- Challenge Habit -->
       <div v-if="challenge.status === 'active' && challenge.habit" class="card">
         <div class="flex items-center gap-3">
-          <button v-bind="logTap" @click.stop.prevent :aria-label="iLoggedToday ? 'Challenge habit completed' : 'Complete challenge habit'" class="w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-150"
+          <button v-bind="logTap" @click.stop.prevent :aria-label="iLoggedToday ? 'Challenge habit completed' : (needsCamera ? 'Snap photo proof' : 'Complete challenge habit')" class="w-11 h-11 rounded-full flex items-center justify-center transition-colors duration-150"
             :class="iLoggedToday ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-800 text-gray-400 hover:bg-emerald-500/10 hover:text-emerald-400'">
-            <Camera v-if="challenge.habit.verificationType === 'photo' || challenge.habit.verificationType === 'be_better_cam'" :size="18" />
+            <Camera v-if="needsCamera && !iLoggedToday" :size="18" />
             <CheckCircle2 v-else :size="18" />
           </button>
           <div class="flex-1 min-w-0">
@@ -136,6 +139,7 @@
         </p>
       </div>
     </template>
+    <BeBetterCam :show="camOpen" @close="camOpen = false" @capture="submitCamProof" />
   </div>
 </template>
 
@@ -147,6 +151,7 @@ import { useToast } from 'vue-toastification'
 import { useAuthStore } from '../stores/auth'
 import { ArrowLeft, Loader2, Check, X, Trophy, Handshake, CheckCircle2, Camera, AlertCircle } from 'lucide-vue-next'
 import { useTap } from '../utils/tapTrigger'
+import BeBetterCam from '../components/BeBetterCam.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -158,7 +163,36 @@ const gridDays = ref([])
 const loading = ref(true)
 const notFound = ref(false)
 const iLoggedToday = ref(false)
-const logTap = useTap(() => logChallengeHabit())
+const camOpen = ref(false)
+const needsCamera = computed(() => {
+  const v = challenge.value?.habit?.verificationType
+  return v === 'photo' || v === 'be_better_cam'
+})
+const logTap = useTap(() => {
+  if (iLoggedToday.value) return
+  if (needsCamera.value) camOpen.value = true
+  else logChallengeHabit()
+})
+
+async function submitCamProof(dataUrl) {
+  try {
+    const res = await fetch(dataUrl)
+    const blob = await res.blob()
+    const form = new FormData()
+    form.append('photo', blob, 'proof.jpg')
+    const { data } = await api.post('/upload', form)
+    const payload = { habitId: challenge.value.habitId, photo: data.url }
+    const slot = challengeSlotTime()
+    if (slot) payload.scheduledTime = slot
+    await api.post('/logs', payload)
+    iLoggedToday.value = true
+    toast.success('Photo proof submitted!')
+    camOpen.value = false
+    loadChallenge()
+  } catch (e) {
+    toast.error(e.response?.data?.error || 'Failed to upload')
+  }
+}
 
 const isOpponent = computed(() => auth.user && challenge.value.opponentId === auth.user.id)
 const isCreator = computed(() => auth.user && challenge.value.creatorId === auth.user.id)
@@ -177,7 +211,10 @@ const statusClass = computed(() => {
 })
 
 function isToday(dateStr) {
-  return dateStr === new Date().toISOString().slice(0, 10)
+  // Local calendar date (not UTC) — matches how the grid keys days
+  const n = new Date()
+  const local = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`
+  return dateStr === local
 }
 
 async function loadChallenge() {

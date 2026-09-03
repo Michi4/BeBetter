@@ -168,7 +168,7 @@ function searchUsers() {
   searchTimeout = setTimeout(async () => {
     try {
       const res = await api.get('/friends/search', { params: { q: searchQuery.value } })
-      searchResults.value = (res.data.users || []).slice(0, 10)
+      searchResults.value = (res.data.users || []).filter(u => u.id !== auth.user?.id).slice(0, 10)
     } catch {
       searchResults.value = []
     }

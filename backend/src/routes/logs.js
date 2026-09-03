@@ -302,12 +302,14 @@ router.delete('/habit/:habitId', authMiddleware, async (req, res) => {
 
     const where = { habitId, userId: req.userId, completedAt: { gte: target, lt: upper } };
     if (scheduledTime) where.scheduledTime = scheduledTime;
-    else where.scheduledTime = null;
 
-    const log = await prisma.habitLog.findFirst({ where });
-    if (!log) return res.status(404).json({ error: 'No completion found' });
+    // When scheduledTime is omitted, delete ALL today's logs for the habit
+    // (timed or untimed). This is needed for the "reactivate finished habit"
+    // flow where the completed card doesn't know which slot was logged.
+    const logs = await prisma.habitLog.findMany({ where });
+    if (!logs.length) return res.status(404).json({ error: 'No completion found' });
 
-    await prisma.habitLog.delete({ where: { id: log.id } });
+    await prisma.habitLog.deleteMany({ where: { id: { in: logs.map(l => l.id) } } });
 
     const allLogs = await prisma.habitLog.findMany({
       where: { habitId, userId: req.userId },

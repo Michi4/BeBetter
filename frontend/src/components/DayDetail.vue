@@ -123,6 +123,7 @@ async function undoTask(t) {
 
 function formatDate(d) {
   if (!d) return ''
-  return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+  // UTC noon avoids local-timezone day-boundary shifts for YYYY-MM-DD keys
+  return new Date(d + 'T12:00:00Z').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
 }
 </script>

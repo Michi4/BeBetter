@@ -534,12 +534,12 @@ async function addBuddy(friend) {
     return
   }
   try {
-    const res = await api.post(`/habits/${route.params.id}/buddy`, { friendId: friend.id })
-    buddies.value.push(res.data.buddy)
+    await api.post(`/habits/${route.params.id}/buddy`, { friendId: friend.id })
     buddySearch.value = ''
     buddyResults.value = []
     showBuddyForm.value = false
     toast.success(`${friend.username} added as buddy`)
+    loadHabit()
   } catch (e) {
     toast.error(e.response?.data?.error || 'Failed to add buddy')
   }

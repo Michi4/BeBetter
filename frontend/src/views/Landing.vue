@@ -386,7 +386,7 @@ onMounted(() => {
         completionsValue: completions.value,
         completionsSuffix: completions.suffix,
         streakRetention: s.streakRetention || 0,
-        newHabits: s.avgSetup || 0,
+        newHabits: s.newHabits || s.avgSetup || 0,
       }
       loaded.value = true
     })

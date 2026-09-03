@@ -82,7 +82,7 @@ router.get('/landing', async (req, res) => {
       streakRetention: habitCount > 0
         ? Math.min(100, Math.round((streakStats._avg.bestStreak || 0) * 20))
         : 0,
-      avgSetup: recentHabits,
+      newHabits: recentHabits,
     };
 
     const payload = {

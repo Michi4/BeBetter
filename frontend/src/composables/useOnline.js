@@ -2,19 +2,34 @@ import { ref, onMounted, onUnmounted } from 'vue'
 
 const online = ref(navigator.onLine)
 
-let onlineHandler = null
-let offlineHandler = null
+// Module-level singleton with consumer ref-counting — like useTheme. Listeners
+// are only removed when the LAST consumer unmounts, so one component leaving
+// never kills online/offline tracking for everyone else.
+let consumers = 0
+
+function attach() {
+  if (consumers > 0) return
+  window.addEventListener('online', sync)
+  window.addEventListener('offline', sync)
+}
+
+function detach() {
+  window.removeEventListener('online', sync)
+  window.removeEventListener('offline', sync)
+}
+
+function sync() {
+  online.value = navigator.onLine
+}
 
 export function useOnline() {
   onMounted(() => {
-    onlineHandler = () => { online.value = navigator.onLine }
-    offlineHandler = () => { online.value = navigator.onLine }
-    window.addEventListener('online', onlineHandler)
-    window.addEventListener('offline', offlineHandler)
+    consumers++
+    attach()
   })
   onUnmounted(() => {
-    if (onlineHandler) window.removeEventListener('online', onlineHandler)
-    if (offlineHandler) window.removeEventListener('offline', offlineHandler)
+    consumers = Math.max(0, consumers - 1)
+    if (consumers === 0) detach()
   })
   return { online }
 }

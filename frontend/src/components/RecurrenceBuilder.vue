@@ -71,7 +71,7 @@ const props = defineProps({
 })
 const emit = defineEmits(['update:modelValue'])
 
-const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+const weekDays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 
 const presets = [
   { label: 'Daily', value: 'daily' },
@@ -86,6 +86,8 @@ const entries = ref(
 )
 
 const activePreset = ref('daily')
+
+detectPreset()
 
 function detectPreset() {
   if (entries.value.length !== 1) { activePreset.value = ''; return }
