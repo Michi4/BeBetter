@@ -289,7 +289,7 @@ html.light nav { background: rgba(255,255,255,0.92) !important; border-color: rg
 html.light nav a, html.light nav button { color: #6b7280 !important; }
 html.light nav a:hover, html.light nav button:hover { color: #374151 !important; background: #f3f4f6 !important; }
 html.light nav a.text-emerald-400, html.light nav button.text-emerald-400 { color: #059669 !important; background: rgba(5,150,105,0.08) !important; }
-html.light .text-gray-300 { color: #4b5563 !important; }
+html.light .text-gray-300 { color: #374151 !important; }
 html.light .text-gray-400 { color: #6b7280 !important; }
 html.light .text-gray-500 { color: #6b7280 !important; }
 html.light .text-gray-600 { color: #6b7280 !important; }
