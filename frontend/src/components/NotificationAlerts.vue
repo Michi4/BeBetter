@@ -110,6 +110,7 @@ async function acceptFriendRequest(n) {
     await api.post(`/friends/request/${n.data.requestId}/accept`)
     toastSuccess('Friend request accepted')
     dismiss(n.id)
+    window.dispatchEvent(new CustomEvent('friend-request-changed'))
   } catch {
     toastError('Failed to accept friend request')
   }
@@ -122,6 +123,7 @@ async function declineFriendRequest(n) {
     await api.post(`/friends/request/${n.data.requestId}/decline`)
     toastSuccess('Request declined')
     dismiss(n.id)
+    window.dispatchEvent(new CustomEvent('friend-request-changed'))
   } catch {
     toastError('Failed to decline request')
   }

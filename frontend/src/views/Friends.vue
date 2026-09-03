@@ -110,7 +110,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import api from '../api'
 import { useToast } from 'vue-toastification'
 import { Copy, Check, Loader2, UserPlus } from 'lucide-vue-next'
@@ -233,5 +233,11 @@ async function loadAll() {
   }
 }
 
-onMounted(loadAll)
+onMounted(() => {
+  loadAll()
+  window.addEventListener('friend-request-changed', loadAll)
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('friend-request-changed', loadAll)
+})
 </script>
