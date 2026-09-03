@@ -739,7 +739,21 @@ async function selectDay(day) {
 }
 
 async function handleDayChanged() {
-  if (selectedDay.value) selectDay(selectedDay.value)
+  if (!selectedDay.value) return
+  // Re-fetch and decide on FRESH data (not the stale modal object)
+  try {
+    const res = await api.get('/grid/day', { params: { date: selectedDay.value.date } })
+    const habits = res.data.habits || []
+    const tasks = res.data.tasks || []
+    const scheduledHabits = res.data.scheduledHabits || []
+    if (!habits.length && !tasks.length && !scheduledHabits.length) {
+      selectedDay.value = null
+    } else {
+      selectedDay.value = { ...selectedDay.value, habits, tasks, scheduledHabits, isOnVacation: res.data.isOnVacation || false }
+    }
+  } catch {
+    // keep modal open on error; user can retry or close manually
+  }
   loadProfileGrid()
 }
 
