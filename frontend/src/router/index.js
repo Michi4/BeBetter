@@ -49,7 +49,9 @@ router.beforeEach(async (to, from, next) => {
       if (err?.response?.status === 401) auth.logout()
     }
   }
-  if (to.path === '/' && auth.user) return next('/dashboard')
+  // Root redirect only on the app host (and dev) — the apex host is the
+  // landing page and must show it even to logged-in users.
+  if (!isApexProd() && to.path === '/' && auth.user) return next('/dashboard')
   // Guests landing on the app host root belong on the apex landing page.
   if (isAppProd() && (to.path === '/' || to.path === '/landing') && !auth.user) {
     window.location.href = 'https://bebetter.websters.at/'
