@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { isApexProd, isAppProd, needsAppHost, appUrl } from '../utils/appUrl'
 import Landing from '../views/Landing.vue'
 
 const routes = [
@@ -34,6 +35,13 @@ const router = createRouter({ history: createWebHistory(), routes })
 
 router.beforeEach(async (to, from, next) => {
   const auth = useAuthStore()
+  // Domain split: the apex host is landing-only. Any app route there jumps
+  // to the app host (path + query preserved) instead of rendering in-app
+  // login on the wrong domain.
+  if (isApexProd() && needsAppHost(to.path)) {
+    window.location.href = appUrl(to.fullPath)
+    return
+  }
   if (auth.token && !auth.user) {
     try { await auth.fetchUser() } catch (err) {
       // Only an explicit 401 invalidates the session; a transient network
@@ -42,6 +50,11 @@ router.beforeEach(async (to, from, next) => {
     }
   }
   if (to.path === '/' && auth.user) return next('/dashboard')
+  // Guests landing on the app host root belong on the apex landing page.
+  if (isAppProd() && (to.path === '/' || to.path === '/landing') && !auth.user) {
+    window.location.href = 'https://bebetter.websters.at/'
+    return
+  }
   if (to.meta.auth && !auth.user) return next({ path: '/login', query: { redirect: to.fullPath } })
   // Demo entry: pass through to /login so Login.vue can swap into the demo
   // account. The session is only replaced after a successful demo login, so a
