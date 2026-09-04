@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show && auth.user && isSupported" class="pb-24 md:pb-4">
+  <div v-if="show && auth.user && isSupported && onDashboard" class="pb-24 md:pb-4">
     <div class="card border border-emerald-500/30 bg-emerald-500/5">
     <div class="flex items-start gap-3">
       <div class="shrink-0 w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center">
@@ -20,15 +20,14 @@
       </button>
       <button @click="dismiss" class="btn-secondary flex-1 text-xs py-2">Not now</button>
     </div>
-    <p class="text-[10px] text-gray-500 mt-2">
-      A one-time browser permission is required — iOS Safari: add the app to your Home Screen for full background delivery on standalone.
-    </p>
+    <p class="text-[10px] text-gray-500 mt-2">{{ platformHint }}</p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../api'
 import { useToast } from 'vue-toastification'
@@ -36,6 +35,23 @@ import { BellRing, Loader2 } from 'lucide-vue-next'
 
 const auth = useAuthStore()
 const toast = useToast()
+const route = useRoute()
+
+// First-run onboarding — belongs on the Dashboard, not on every page
+// (Admin/Profile/Friends don't need a push upsell mid-content).
+const onDashboard = computed(() => route.path === '/dashboard')
+
+// iOS only shows web push in the installed standalone PWA — say so upfront
+// instead of letting users hit a dead permission prompt.
+const platformHint = computed(() => {
+  const ua = navigator.userAgent || ''
+  const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  if (!isIOS) return 'A one-time browser permission is required.'
+  const standalone = window.matchMedia('(display-mode: standalone)').matches
+  return standalone
+    ? 'A one-time browser permission is required.'
+    : 'iOS: add the app to your Home Screen first (Share → Add to Home Screen) — Safari only delivers push in the installed app.'
+})
 
 const show = ref(false)
 const loading = ref(false)
@@ -54,6 +70,7 @@ function urlBase64ToUint8Array(base64String) {
 
 onMounted(async () => {
   if (!auth.user) return
+  if (auth.user.role === 'admin') return
   if (localStorage.getItem(DISMISS_KEY)) return
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
   isSupported.value = true

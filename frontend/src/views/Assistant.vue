@@ -4,6 +4,9 @@
       <button @click="$router.back()" class="btn-ghost p-1" aria-label="Go back"><ArrowLeft :size="18" /></button>
       <h1 class="text-xl font-bold">Assistant</h1>
       <span class="text-[10px] px-2 py-0.5 rounded-full bg-gray-800 text-gray-400">beta</span>
+      <router-link to="/profile#ai-assistant" class="btn-ghost p-1 ml-auto" aria-label="AI settings" title="AI settings">
+        <Settings :size="18" />
+      </router-link>
     </div>
 
     <div v-if="auth.isDemo" class="card text-center py-8 space-y-3">
@@ -96,7 +99,7 @@ import { useAuthStore } from '../stores/auth'
 import { useOnline } from '../composables/useOnline'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
-import { ArrowLeft, Loader2, Mic, Send, Sparkles, WifiOff } from 'lucide-vue-next'
+import { ArrowLeft, Loader2, Mic, Send, Settings, Sparkles, WifiOff } from 'lucide-vue-next'
 
 // Assistant replies come back as markdown — render them safely.
 marked.setOptions({ gfm: true, breaks: true })
