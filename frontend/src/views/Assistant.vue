@@ -32,14 +32,18 @@
         </div>
         <div v-for="(m, i) in messages" :key="i">
           <div v-if="m.role === 'user'" class="flex justify-end">
-            <div class="max-w-[85%] px-3 py-2 rounded-2xl rounded-br-md bg-emerald-600 text-white text-sm break-words">{{ m.content }}</div>
+            <div class="max-w-[85%] px-3 py-2 rounded-2xl rounded-br-md bg-emerald-600 text-white text-sm break-words">
+              <p class="whitespace-pre-wrap">{{ m.content }}</p>
+              <span class="block text-[10px] text-white/60 text-right mt-1">{{ fmtTime(m.ts) }}</span>
+            </div>
           </div>
           <div v-else class="flex justify-start">
             <div class="max-w-[85%] px-3 py-2 rounded-2xl rounded-bl-md text-sm break-words space-y-2"
               :class="m.isError ? 'bg-red-950/60 border border-red-900 text-red-200' : 'bg-gray-800 text-gray-100'">
-              <p class="whitespace-pre-wrap">{{ m.content }}</p>
+              <div v-if="m.isError" class="whitespace-pre-wrap">{{ m.content }}</div>
+              <div v-else class="md-body" v-html="renderMarkdown(m.content)"></div>
               <button v-if="m.isError && m.canRetry && lastFailed" @click="retry" :disabled="sending"
-                class="text-[11px] px-2 py-1 rounded bg-red-900/70 hover:bg-red-800 text-red-100 min-h-[32px]">Retry</button>
+                class="text-[11px] px-2 py-1 rounded bg-red-900/70 hover:bg-red-800 text-red-100 min-h-[32px] self-start">Retry</button>
               <div v-if="m.pending?.length" class="space-y-1.5 pt-1">
                 <div v-for="a in m.pending" :key="a.id" class="flex items-center gap-2 p-2 rounded-lg bg-gray-900/60 border border-gray-700">
                   <span class="flex-1 text-xs text-gray-300">{{ a.summary }}</span>
@@ -48,6 +52,7 @@
                 <button v-if="m.pending.length > 1" @click="acceptAll(m)" class="text-[11px] text-emerald-400 hover:text-emerald-300" :disabled="sending">Accept all</button>
               </div>
               <router-link v-if="m.needsAccess" to="/profile" class="block text-[11px] text-emerald-400 hover:text-emerald-300 mt-1">Open Profile → AI Assistant</router-link>
+              <span class="block text-[10px] text-gray-500 mt-0.5">{{ fmtTime(m.ts) }}</span>
             </div>
           </div>
         </div>
@@ -89,7 +94,31 @@ import api from '../api'
 import { useToast } from 'vue-toastification'
 import { useAuthStore } from '../stores/auth'
 import { useOnline } from '../composables/useOnline'
+import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 import { ArrowLeft, Loader2, Mic, Send, Sparkles, WifiOff } from 'lucide-vue-next'
+
+// Assistant replies come back as markdown — render them safely.
+marked.setOptions({ gfm: true, breaks: true })
+DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+  if (node.tagName === 'A') {
+    node.setAttribute('target', '_blank')
+    node.setAttribute('rel', 'noopener noreferrer')
+  }
+})
+
+function renderMarkdown(text) {
+  try {
+    return DOMPurify.sanitize(marked.parse(String(text || '')))
+  } catch {
+    return ''
+  }
+}
+
+function fmtTime(ts) {
+  if (!ts) return ''
+  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
 
 const auth = useAuthStore()
 const toast = useToast()
@@ -133,12 +162,12 @@ async function enableAssistant() {
 function pushAssistant(data) {
   const pending = (data.needsConfirmation || []).map(a => ({ ...a }))
   const needsAccess = (data.actions || []).some(a => a.status === 'denied')
-  messages.value.push({ role: 'assistant', content: data.reply || 'Done.', pending, needsAccess })
+  messages.value.push({ role: 'assistant', content: data.reply || 'Done.', pending, needsAccess, ts: Date.now() })
   scrollDown()
 }
 
 function pushError(text, canRetry) {
-  messages.value.push({ role: 'assistant', content: text, isError: true, canRetry })
+  messages.value.push({ role: 'assistant', content: text, isError: true, canRetry, ts: Date.now() })
   scrollDown()
 }
 
@@ -195,7 +224,7 @@ async function send(confirmed) {
   const text = draft.value.trim()
   if (!text && !hasConfirmed) return
   if (text && !hasConfirmed) {
-    messages.value.push({ role: 'user', content: text })
+    messages.value.push({ role: 'user', content: text, ts: Date.now() })
     history.value.push({ role: 'user', content: text })
     draft.value = ''
   }
@@ -311,3 +340,49 @@ onBeforeUnmount(() => {
   chatAbort?.abort()
 })
 </script>
+
+<style scoped>
+.md-body { font-size: 0.875rem; line-height: 1.45; }
+.md-body > :first-child { margin-top: 0; }
+.md-body > :last-child { margin-bottom: 0; }
+.md-body p { margin: 0.35rem 0; }
+.md-body ul, .md-body ol { margin: 0.35rem 0; padding-left: 1.25rem; }
+.md-body ul { list-style: disc; }
+.md-body ol { list-style: decimal; }
+.md-body li { margin: 0.15rem 0; }
+.md-body strong { font-weight: 600; color: inherit; }
+.md-body em { font-style: italic; }
+.md-body a { color: #6ee7b7; text-decoration: underline; text-underline-offset: 2px; }
+.md-body code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8em;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.25rem;
+  padding: 0.05rem 0.3rem;
+}
+.md-body pre {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  overflow-x: auto;
+  margin: 0.4rem 0;
+}
+.md-body pre code { background: transparent; border: 0; padding: 0; }
+.md-body h1, .md-body h2, .md-body h3, .md-body h4 {
+  font-weight: 700;
+  margin: 0.5rem 0 0.25rem;
+  font-size: 0.925rem;
+}
+.md-body blockquote {
+  border-left: 3px solid rgba(110, 231, 183, 0.4);
+  padding-left: 0.6rem;
+  margin: 0.4rem 0;
+  color: #d1d5db;
+}
+.md-body hr { border-color: rgba(255, 255, 255, 0.12); margin: 0.5rem 0; }
+.md-body table { border-collapse: collapse; margin: 0.4rem 0; font-size: 0.8rem; }
+.md-body th, .md-body td { border: 1px solid rgba(255, 255, 255, 0.12); padding: 0.25rem 0.5rem; text-align: left; }
+.md-body th { background: rgba(0, 0, 0, 0.25); }
+</style>
