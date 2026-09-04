@@ -60,18 +60,18 @@
 
       <div class="sticky bottom-20 md:bottom-4 pt-2">
         <div v-if="!online" class="card !py-2 !px-3 mb-2 text-xs text-amber-300 bg-amber-950/40 border border-amber-900 flex items-center gap-2">
-          <WifiOff :size="14" /> You're offline — messages send once you reconnect.
+          <WifiOff :size="14" /> You might be offline — messages will still try to send.
         </div>
         <div class="flex gap-2">
-          <button v-if="micSupported" @click="toggleMic" :aria-label="listening ? 'Stop listening' : 'Voice input'"
+          <button @click="toggleMic" :aria-label="listening ? 'Stop listening' : 'Voice input'"
             class="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center transition-colors touch-target"
             :class="listening ? 'bg-red-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-gray-200'"
             :disabled="sending">
             <Mic :size="18" />
           </button>
-          <input v-model="draft" @keydown.enter="send" @keydown.esc="cancelListening" type="text" placeholder="Ask or tell me what to do…"
+          <input v-model="draft" @keydown.enter="send()" @keydown.esc="cancelListening" type="text" placeholder="Ask or tell me what to do…"
             aria-label="Message" class="input flex-1" maxlength="2000" />
-          <button @click="send" class="btn px-4 shrink-0" :disabled="sending || !draft.trim() || !online" aria-label="Send">
+          <button @click="send()" class="btn px-4 shrink-0" :disabled="sending || !draft.trim()" aria-label="Send">
             <Send :size="16" />
           </button>
         </div>
@@ -84,7 +84,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { ref, nextTick, onBeforeUnmount } from 'vue'
 import api from '../api'
 import { useToast } from 'vue-toastification'
 import { useAuthStore } from '../stores/auth'
@@ -102,7 +102,6 @@ const needsEnable = ref(false)
 const enabling = ref(false)
 const scrollEl = ref(null)
 const listening = ref(false)
-const micSupported = ref(false)
 const interim = ref('')
 const lastFailed = ref('')
 let recog = null
@@ -152,44 +151,31 @@ function friendlyError(e) {
   return e.response?.data?.error || 'That didn\'t work — try again.'
 }
 
-async function send(confirmed) {
-  const text = draft.value.trim()
-  if ((!text && !confirmed?.length) || sending.value || (!online.value && !confirmed?.length)) return
+async function performRequest({ confirmed = null, failedText = '' }) {
   sending.value = true
   lastFailed.value = ''
-  if (text && !confirmed) {
-    messages.value.push({ role: 'user', content: text })
-    history.value.push({ role: 'user', content: text })
-    draft.value = ''
-  }
-  scrollDown(true)
   chatAbort = new AbortController()
   const timer = setTimeout(() => chatAbort?.abort(), CHAT_TIMEOUT_MS)
   try {
     // Never POST an empty conversation — the API 400s and the user sees "failed"
     const usable = history.value.filter(m => m.role && String(m.content || '').trim()).slice(-20)
-    if (!usable.length && !confirmed?.length) {
-      sending.value = false
-      return
-    }
-    const body = { messages: usable.length ? usable : [{ role: 'user', content: text || 'Hello' }] }
-    if (confirmed?.length) body.confirmedActions = confirmed
+    if (!usable.length && !confirmed) return
+    const body = { messages: usable.length ? usable : [{ role: 'user', content: failedText || 'Hello' }] }
+    if (confirmed) body.confirmedActions = confirmed
     const res = await api.post('/assistant/chat', body, { signal: chatAbort.signal })
     if (res.data.reply) history.value.push({ role: 'assistant', content: res.data.reply })
     pushAssistant(res.data)
   } catch (e) {
     if (e.code === 'ERR_CANCELED') {
       pushError('That took too long — the request was cancelled. Try a shorter ask or retry.', true)
-      lastFailed.value = confirmed ? '' : text
+      lastFailed.value = failedText
     } else {
       const status = e.response?.status
       if (status === 403) {
         needsEnable.value = true
       } else {
-        const msg = friendlyError(e)
-        // Confirmation retries restore their buttons; plain sends offer Retry.
-        if (!confirmed?.length) lastFailed.value = text
-        pushError(msg, !confirmed?.length)
+        pushError(friendlyError(e), !!failedText)
+        lastFailed.value = failedText
       }
     }
   } finally {
@@ -200,10 +186,27 @@ async function send(confirmed) {
   }
 }
 
+async function send(confirmed) {
+  // @click="send" would hand the MouseEvent in as `confirmed` — an object —
+  // so the user's text never entered history and the empty-guard swallowed
+  // every send. UI always calls send(); only acceptOne/acceptAll pass arrays.
+  if (sending.value) return
+  const hasConfirmed = Array.isArray(confirmed) && confirmed.length > 0
+  const text = draft.value.trim()
+  if (!text && !hasConfirmed) return
+  if (text && !hasConfirmed) {
+    messages.value.push({ role: 'user', content: text })
+    history.value.push({ role: 'user', content: text })
+    draft.value = ''
+  }
+  scrollDown(true)
+  await performRequest({ confirmed: hasConfirmed ? confirmed : null, failedText: text })
+}
+
 function retry() {
-  const text = lastFailed.value
-  if (!text || sending.value) return
-  send(text)
+  if (sending.value || !lastFailed.value) return
+  // The failed text is still in history — just re-run the request.
+  performRequest({ failedText: lastFailed.value })
 }
 
 function collectConfirmed(msg, only) {
@@ -231,8 +234,7 @@ async function acceptAll(msg) {
 function toggleMic() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition
   if (!SR) {
-    micSupported.value = false
-    toast.error('Voice input is not supported in this browser — try Chrome or Edge')
+    toast.error('Voice input is not supported in this browser — Chrome, Edge or Safari work best')
     return
   }
   if (listening.value) {
@@ -244,7 +246,6 @@ function toggleMic() {
   try {
     r = new SR()
   } catch {
-    micSupported.value = false
     toast.error('Voice input is not available on this device')
     return
   }
@@ -272,8 +273,6 @@ function toggleMic() {
     interim.value = ''
     const err = e?.error || ''
     if (err === 'not-allowed' || err === 'service-not-allowed') {
-      // Mic blocked or speech service unreachable — stop offering it this session
-      micSupported.value = false
       toast.error('Microphone is blocked — allow access in the browser, or just type instead')
     } else if (err === 'aborted') {
       // User cancelled (Esc / toggle) — not an error
@@ -306,17 +305,6 @@ function cancelListening() {
   listening.value = false
   interim.value = ''
 }
-
-onMounted(() => {
-  try {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-    if (!SR) { micSupported.value = false; return }
-    new SR()
-    micSupported.value = true
-  } catch {
-    micSupported.value = false
-  }
-})
 
 onBeforeUnmount(() => {
   cancelListening()
