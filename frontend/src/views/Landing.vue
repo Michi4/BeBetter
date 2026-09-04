@@ -29,11 +29,11 @@
 
           <ScrollReveal variant="fade-up" :delay="300">
             <div class="flex flex-col sm:flex-row gap-4 justify-center pt-2">
-              <a href="/register" class="btn px-8 py-4 bg-emerald-700 hover:bg-emerald-600 shadow-[0_0_16px_rgba(16,185,129,0.16)] text-lg font-semibold group">
+              <a :href="appUrl('/register')" class="btn px-8 py-4 bg-emerald-700 hover:bg-emerald-600 shadow-[0_0_16px_rgba(16,185,129,0.16)] text-lg font-semibold group">
                 Sign Up
                 <ArrowRight :size="18" class="group-hover:translate-x-0.5 transition-transform" />
               </a>
-              <a href="/login" class="btn-secondary px-8 py-4 border border-[var(--bb-line)] text-lg font-medium">
+              <a :href="appUrl('/login')" class="btn-secondary px-8 py-4 border border-[var(--bb-line)] text-lg font-medium">
                 Sign In
               </a>
               <a href="/login?demo=1" class="btn-demo px-8 py-4 text-lg font-medium">
@@ -178,7 +178,7 @@
                   {{ item }}
                 </li>
               </ul>
-              <a href="/register" class="inline-flex items-center gap-2 text-sm font-semibold text-[var(--bb-accent)] hover:text-[var(--bb-accent-strong)] transition-colors">
+              <a :href="appUrl('/register')" class="inline-flex items-center gap-2 text-sm font-semibold text-[var(--bb-accent)] hover:text-[var(--bb-accent-strong)] transition-colors">
                 Find a worthy opponent
                 <ArrowRight :size="16" />
               </a>
@@ -226,11 +226,11 @@
             Bragging rights are on the line.
           </p>
           <div class="pt-4 flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="/register" class="btn px-10 py-4 bg-emerald-700 hover:bg-emerald-600 shadow-[0_0_20px_rgba(16,185,129,0.18)] text-lg font-semibold group">
+            <a :href="appUrl('/register')" class="btn px-10 py-4 bg-emerald-700 hover:bg-emerald-600 shadow-[0_0_20px_rgba(16,185,129,0.18)] text-lg font-semibold group">
               Sign Up
               <ArrowRight :size="18" class="group-hover:translate-x-0.5 transition-transform" />
             </a>
-            <a href="/login" class="btn-secondary px-10 py-4 text-lg font-medium">Sign In</a>
+            <a :href="appUrl('/login')" class="btn-secondary px-10 py-4 text-lg font-medium">Sign In</a>
             <a href="/login?demo=1" class="btn-demo px-10 py-4 text-lg font-medium">Try the Demo</a>
           </div>
           <p class="text-xs text-[var(--bb-faint)]">
@@ -258,6 +258,7 @@ import StatCounter from '../components/StatCounter.vue'
 import ContributionGrid from '../components/ContributionGrid.vue'
 import MarqueeBand from '../components/MarqueeBand.vue'
 import AmbientGlow from '../components/AmbientGlow.vue'
+import { appUrl } from '../utils/appUrl'
 import {
   Target, ListTodo, Users, CheckCircle2, BarChart2, ArrowRight, Bell,
   Check, Zap, Camera, Swords, Smartphone, Timer

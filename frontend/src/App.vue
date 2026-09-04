@@ -35,6 +35,10 @@
             class="p-2.5 rounded-lg text-gray-500 hover:text-emerald-300 hover:bg-gray-800 transition-colors touch-target inline-flex items-center justify-center shrink-0">
             <Sparkles :size="18" />
           </router-link>
+          <button v-else-if="auth.user" @click="openDemoPrompt()" aria-label="AI assistant — sign up to try"
+            class="p-2.5 rounded-lg text-gray-500 hover:text-emerald-300 hover:bg-gray-800 transition-colors touch-target inline-flex items-center justify-center shrink-0">
+            <Sparkles :size="18" />
+          </button>
           <template v-if="auth.user">
             <router-link :to="`/profile/${auth.user.username || auth.user.id}`" :aria-label="`View profile ${auth.user.username || ''}`"
               class="w-8 h-8 rounded-full bg-emerald-600/20 flex items-center justify-center text-xs font-bold text-emerald-400 ring-1 ring-emerald-500/30">

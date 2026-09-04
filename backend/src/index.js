@@ -25,7 +25,11 @@ const publicRoutes = require('./routes/public');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const PRODUCTION_ORIGIN = process.env.NODE_ENV === 'production' ? 'https://bebetter.websters.at' : true;
+const PRODUCTION_ORIGINS = ['https://bebetter.websters.at', 'https://app.bebetter.websters.at'];
+const PRODUCTION_ORIGIN =
+  process.env.NODE_ENV === 'production'
+    ? (origin, cb) => cb(null, !origin || PRODUCTION_ORIGINS.includes(origin))
+    : true;
 
 app.use(compression({ level: 6, threshold: 512 }));
 

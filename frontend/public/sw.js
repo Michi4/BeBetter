@@ -95,14 +95,16 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          const clone = res.clone();
-          caches.open(SHELL_CACHE).then((cache) => cache.put('/index.html', clone));
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(SHELL_CACHE).then((cache) => cache.put('/index.html', clone)).catch(() => {});
+          }
           return res;
         })
         .catch(() =>
           caches.match('/index.html').then((cached) =>
             cached || caches.match('/').then((root) => root || new Response('Offline', { status: 503 }))
-          )
+          ).catch(() => new Response('Offline', { status: 503 }))
         )
     );
     return;
@@ -130,17 +132,19 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static assets (hashed, immutable): cache-first, then network
+  // Static assets (hashed, immutable): network-first with cache fallback so a
+  // failed fetch never rejects the FetchEvent (failed SW fetches surface as
+  // console "network error" crashes and can break navigations relying on them).
   event.respondWith(
     caches.match(req).then((cached) => {
       if (cached) return cached;
       return fetch(req).then((res) => {
         if (res.ok) {
           const clone = res.clone();
-          caches.open(SHELL_CACHE).then((cache) => cache.put(req, clone));
+          caches.open(SHELL_CACHE).then((cache) => cache.put(req, clone)).catch(() => {});
         }
         return res;
-      });
+      }).catch(() => caches.match(req).then((retry) => retry || Response.error()));
     })
   );
 });

@@ -235,7 +235,15 @@
         </div>
 
         <!-- AI Assistant -->
-        <div class="card space-y-4">
+        <div v-if="auth.isDemo" class="card text-center py-6 space-y-2">
+          <div class="flex items-center justify-center gap-2">
+            <Sparkles :size="16" class="text-emerald-400" />
+            <h3 class="section-title">AI Assistant</h3>
+          </div>
+          <p class="text-xs text-gray-500 max-w-xs mx-auto">Chat, dictate tasks and check progress by voice — available on free accounts.</p>
+          <router-link to="/register" class="btn text-xs inline-flex">Create free account to try it</router-link>
+        </div>
+        <div v-else class="card space-y-4">
           <div class="flex items-center gap-2">
             <Sparkles :size="16" class="text-emerald-400" />
             <h3 class="section-title">AI Assistant</h3>
