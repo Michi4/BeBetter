@@ -87,12 +87,12 @@ async function resetDemoAccount(db = prisma) {
 
     // Re-seed with a friendly demo dataset so the UI looks alive
     const habits = [
-      { title: 'Morning Run', description: '30 minute jog around the block', emoji: '🏃', frequencyType: 'daily', verificationType: 'honor', bestStreak: 12, time: '07:00' },
-      { title: 'Deep Work Block', description: '90 minutes of focused, phone-free work', emoji: '🧠', frequencyType: 'daily', verificationType: 'honor', bestStreak: 5, time: '09:30', days: [1, 2, 3, 4, 5] },
-      { title: 'Drink 2L of Water', description: 'Stay hydrated through the day', emoji: '💧', frequencyType: 'always', verificationType: 'honor', bestStreak: 6, time: '10:00' },
-      { title: '10,000 Steps', description: 'Get moving — walk the long way home', emoji: '🚶', frequencyType: 'daily', verificationType: 'honor', bestStreak: 4, time: '17:00' },
-      { title: 'Read 20 Pages', description: 'Daily reading, no excuses', emoji: '📚', frequencyType: 'daily', verificationType: 'honor', bestStreak: 8, time: '20:30' },
-      { title: 'Evening Stretch', description: 'Wind down with a stretching routine', emoji: '🧘', frequencyType: 'daily', verificationType: 'honor', bestStreak: 21, time: '21:30' },
+      { title: 'Morning Run', description: '30 minute jog around the block', frequencyType: 'daily', verificationType: 'honor', bestStreak: 12, time: '07:00' },
+      { title: 'Deep Work Block', description: '90 minutes of focused, phone-free work', frequencyType: 'daily', verificationType: 'honor', bestStreak: 5, time: '09:30', days: [1, 2, 3, 4, 5] },
+      { title: 'Drink 2L of Water', description: 'Stay hydrated through the day', frequencyType: 'always', verificationType: 'honor', bestStreak: 6, time: '10:00' },
+      { title: '10,000 Steps', description: 'Get moving — walk the long way home', frequencyType: 'daily', verificationType: 'honor', bestStreak: 4, time: '17:00' },
+      { title: 'Read 20 Pages', description: 'Daily reading, no excuses', frequencyType: 'daily', verificationType: 'honor', bestStreak: 8, time: '20:30' },
+      { title: 'Evening Stretch', description: 'Wind down with a stretching routine', frequencyType: 'daily', verificationType: 'honor', bestStreak: 21, time: '21:30' },
     ];
 
     const demoStart = new Date();
@@ -137,12 +137,12 @@ async function resetDemoAccount(db = prisma) {
     }
 
     const taskSeed = [
-      { title: 'Reply to that email', emoji: '📧', time: '18:00', days: [1, 2, 3, 4, 5], reminders: [15] },
-      { title: 'Meal prep for tomorrow', emoji: '🍱', time: '19:30', days: [0, 3], reminders: [0] },
-      { title: 'Book dentist appointment', emoji: '🦷', dueIn: 1, reminders: [60] },
-      { title: 'Send feedback to team', emoji: '💬', dueIn: 2, reminders: [30] },
-      { title: 'Grocery run', emoji: '🛒', time: '10:00', days: [6], reminders: [0] },
-      { title: 'Water the plants', emoji: '🪴', days: [0, 2, 4, 6], reminders: [10] },
+      { title: 'Reply to that email', time: '18:00', days: [1, 2, 3, 4, 5], reminders: [15] },
+      { title: 'Meal prep for tomorrow', time: '19:30', days: [0, 3], reminders: [0] },
+      { title: 'Book dentist appointment', dueIn: 1, reminders: [60] },
+      { title: 'Send feedback to team', dueIn: 2, reminders: [30] },
+      { title: 'Grocery run', time: '10:00', days: [6], reminders: [0] },
+      { title: 'Water the plants', days: [0, 2, 4, 6], reminders: [10] },
     ];
 
     let linkedTaskId = null;
@@ -150,8 +150,7 @@ async function resetDemoAccount(db = prisma) {
       const data = {
         userId,
         title: t.title,
-        emoji: t.emoji,
-        isScheduled: true,
+               isScheduled: true,
         isEveryday: false,
         scheduledTime: t.time || null,
         scheduledDays: t.days ? JSON.stringify(t.days) : null,
@@ -377,8 +376,8 @@ async function checkScheduledReminders(db = prisma) {
 
           const label = offset === 0 ? 'Now' : `in ${offset} min`;
           const msg = offset === 0
-            ? `\u{1F514} Now: ${habit.emoji || '\u{1F3AF}'} ${habit.title}`
-            : `\u{23F0} ${habit.emoji || '\u{1F3AF}'} ${habit.title} ${label}`;
+            ? `Now: ${habit.title}`
+            : `${habit.title} — ${label}`;
 
           await sendReminder(pref.userId, msg, '/habits', { habitId: habit.id, time: slot.time, date: todayDate, reminderOffset: offset }, db);
         }
@@ -425,8 +424,8 @@ async function checkScheduledReminders(db = prisma) {
 
         const label = offset === 0 ? 'Now' : `in ${offset} min`;
         const msg = offset === 0
-          ? `\u{1F514} Now: ${task.emoji || '\u{1F4CB}'} ${task.title}`
-          : `\u{23F0} ${task.emoji || '\u{1F4CB}'} ${task.title} ${label}`;
+          ? `Now: ${task.title}`
+          : `${task.title} — ${label}`;
 
         await sendReminder(pref.userId, msg, '/habits', { taskId: task.id, time: task.scheduledTime, date: todayDate, reminderOffset: offset }, db);
       }

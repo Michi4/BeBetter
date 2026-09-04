@@ -48,6 +48,35 @@ model User {
   passwordResets     PasswordReset[]
   habitBuddies       HabitBuddy[] @relation("HabitBuddyFriend")
   assistantSettings  AssistantSettings?
+  chatSessions       ChatSession[]
+}
+
+// One assistant conversation (chat thread) per user.
+model ChatSession {
+  id        String        @id @default(uuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String        @default("New chat")
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  messages ChatMessage[]
+
+  @@index([userId, updatedAt])
+}
+
+// Persisted assistant chat message. meta keeps actions/confirm state so a
+// reloaded conversation still renders confirm chips and error styling.
+model ChatMessage {
+  id        String      @id @default(uuid())
+  sessionId String
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      String
+  content   String
+  meta      Json?
+  createdAt DateTime    @default(now())
+
+  @@index([sessionId, createdAt])
 }
 
 model Habit {
@@ -56,7 +85,7 @@ model Habit {
   user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   title            String
   description      String?
-  emoji            String      @default("🎯")
+  emoji            String      @default("")
   frequencyType    String      @default("daily")
   daysPerWeek      Json        @default("[1,2,3,4,5,6,7]")
   schedules        Json?       // [{ time: "15:00", days: [0,1,2,3,4,5,6] }] — time-based scheduling
@@ -266,7 +295,7 @@ model Task {
   user         User      @relation(fields: [userId], references: [id])
   title        String
   description  String?
-  emoji        String    @default("📝")
+  emoji        String    @default("")
   dueDate      DateTime?
   isScheduled  Boolean   @default(true)
   isEveryday   Boolean   @default(false)
@@ -362,6 +391,7 @@ model AssistantSettings {
   habitsLevel          Int      @default(2)
   logsLevel            Int      @default(2)
   statsLevel           Int      @default(1)
+  preferredModel       String   @default("")
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 }

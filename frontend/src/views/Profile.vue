@@ -292,6 +292,17 @@
                 </button>
               </div>
             </div>
+            <div class="flex items-center justify-between min-h-[44px] gap-2">
+              <div class="min-w-0">
+                <div class="text-sm text-gray-300">Model</div>
+                <div class="text-[10px] text-gray-500">Auto picks the fastest available</div>
+              </div>
+              <select v-model="aiPrefs.preferredModel" @change="saveAiPrefs()"
+                class="input !w-auto text-xs py-1.5 pr-8" aria-label="Preferred AI model">
+                <option value="">Auto</option>
+                <option v-for="m in aiModels" :key="m" :value="m">{{ m }}</option>
+              </select>
+            </div>
             <p class="text-[10px] text-gray-600">Reads and creations are on by default. If the assistant hits something locked, it tells you where to unlock it.</p>
           </div>
           <div v-else class="text-center py-4">
@@ -461,6 +472,7 @@ const editForm = reactive({ bio: '', isPublic: false })
 
 const notifPrefs = ref(null)
 const aiPrefs = ref(null)
+const aiModels = ref([])
 const aiGroups = [
   { key: 'tasksLevel', label: 'Tasks', options: [{ value: 0, label: 'Off' }, { value: 1, label: 'Read' }, { value: 2, label: 'Create' }, { value: 3, label: 'Full' }] },
   { key: 'habitsLevel', label: 'Habits', options: [{ value: 0, label: 'Off' }, { value: 1, label: 'Read' }, { value: 2, label: 'Create' }, { value: 3, label: 'Full' }] },
@@ -534,13 +546,17 @@ async function loadSettings() {
     if (!notifPrefs.value) {
       notifPrefs.value = { morningEnabled: true, morningTime: '08:00', eveningEnabled: true, eveningTime: '21:00', habitRemindersEnabled: true, announcementsEnabled: true }
     }
-    aiPrefs.value = aiRes.data.settings || { enabled: false, confirmBeforeExecute: true, tasksLevel: 2, habitsLevel: 2, logsLevel: 2, statsLevel: 1 }
+    aiPrefs.value = aiRes.data.settings || { enabled: false, confirmBeforeExecute: true, tasksLevel: 2, habitsLevel: 2, logsLevel: 2, statsLevel: 1, preferredModel: '' }
+    try {
+      const modelsRes = await api.get('/assistant/sessions/meta/models')
+      aiModels.value = modelsRes.data.models || []
+    } catch { aiModels.value = [] }
     vacation.active = vacRes.data.active
     vacation.data = vacRes.data.vacation
   } catch {
     // Provide defaults so the spinner goes away
     notifPrefs.value = { morningEnabled: true, morningTime: '08:00', eveningEnabled: true, eveningTime: '21:00', habitRemindersEnabled: true, announcementsEnabled: true }
-    aiPrefs.value = { enabled: false, confirmBeforeExecute: true, tasksLevel: 2, habitsLevel: 2, logsLevel: 2, statsLevel: 1 }
+    aiPrefs.value = { enabled: false, confirmBeforeExecute: true, tasksLevel: 2, habitsLevel: 2, logsLevel: 2, statsLevel: 1, preferredModel: '' }
     toast.error('Failed to load settings')
   }
 
@@ -861,5 +877,30 @@ watch(() => route.params.id, () => {
   loadAll()
 })
 
+// Deep link /profile#ai-assistant: the router scrolls before the AI card
+// exists (it renders once aiPrefs loads) — re-scroll here, then flash it.
+watch(() => route.hash, () => {
+  if (route.hash !== '#ai-assistant') return
+  const timer = setInterval(() => {
+    const el = document.getElementById('ai-assistant')
+    if (!el) return
+    clearInterval(timer)
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    el.classList.add('ai-flash')
+    setTimeout(() => el.classList.remove('ai-flash'), 1600)
+  }, 250)
+  setTimeout(() => clearInterval(timer), 5000)
+})
+
 onMounted(loadAll)
 </script>
+
+<style scoped>
+.ai-flash {
+  animation: ai-flash-pulse 1.6s ease-out;
+}
+@keyframes ai-flash-pulse {
+  0% { box-shadow: 0 0 0 2px rgba(110, 231, 183, 0.7); }
+  100% { box-shadow: 0 0 0 2px rgba(110, 231, 183, 0); }
+}
+</style>

@@ -22,6 +22,11 @@ const routes = [
   { path: '/notifications', name: 'notifications', component: () => import('../views/Notifications.vue'), meta: { auth: true } },
   { path: '/assistant', name: 'assistant', component: () => import('../views/Assistant.vue'), meta: { auth: true } },
   { path: '/profile/:id', name: 'profile', component: () => import('../views/Profile.vue') },
+  { path: '/profile', name: 'profile-own', redirect: (to) => {
+    const auth = useAuthStore()
+    const id = auth.user?.username || auth.user?.id || ''
+    return id ? { path: `/profile/${id}`, hash: to.hash, query: to.query } : '/dashboard'
+  } },
   { path: '/leaderboard', name: 'leaderboard', component: () => import('../views/Leaderboard.vue'), meta: { auth: true } },
   { path: '/challenges/new', name: 'new-challenge', component: () => import('../views/NewChallenge.vue'), meta: { auth: true } },
   { path: '/challenges/:id', name: 'challenge-detail', component: () => import('../views/ChallengeDetail.vue'), meta: { auth: true } },

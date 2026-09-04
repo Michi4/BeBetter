@@ -3,7 +3,7 @@ const prisma = require('../lib/prisma');
 const { authMiddleware, demoGuard } = require('../middleware/auth');
 const {
   TOOLS, TOOL_POLICY, summarizeCall, deniedMessage,
-  execTool, chatComplete, systemPrompt,
+  execTool, chatStream, systemPrompt, modelChain,
 } = require('../lib/assistant');
 
 const router = Router();
@@ -31,6 +31,11 @@ function sanitizeLevels(body) {
   if (body.statsLevel !== undefined) out.statsLevel = clamp(body.statsLevel, 1);
   if (body.enabled !== undefined) out.enabled = !!body.enabled;
   if (body.confirmBeforeExecute !== undefined) out.confirmBeforeExecute = !!body.confirmBeforeExecute;
+  if (body.preferredModel !== undefined) {
+    const m = String(body.preferredModel || '').trim();
+    // '' resets to Auto; otherwise only known model ids pass.
+    out.preferredModel = m === '' ? '' : (modelChain().includes(m) ? m : '');
+  }
   return out;
 }
 
@@ -91,7 +96,7 @@ router.post('/chat', async (req, res) => {
       return res.status(429).json({ error: 'Too many requests — please wait a moment and try again.' });
     }
 
-    const { messages, confirmedActions } = req.body || {};
+    const { messages, confirmedActions, sessionId } = req.body || {};
     if (!Array.isArray(messages) || !messages.length) {
       return res.status(400).json({ error: 'messages required' });
     }
@@ -102,9 +107,38 @@ router.post('/chat', async (req, res) => {
       role: m.role === 'assistant' ? 'assistant' : 'user',
       content: String(m.content || '').slice(0, 4000),
     }));
+
+    // Resolve (or create) the chat session this turn belongs to.
+    let session = null;
+    if (sessionId && typeof sessionId === 'string') {
+      session = await prisma.chatSession.findFirst({ where: { id: sessionId, userId: req.userId } });
+    }
+    const firstUserText = (history.find((m) => m.role === 'user')?.content || '').trim();
+    if (!session) {
+      session = await prisma.chatSession.create({
+        data: { userId: req.userId, title: firstUserText.slice(0, 60) || 'New chat' },
+      });
+    } else if (session.title === 'New chat' && firstUserText) {
+      session = await prisma.chatSession.update({ where: { id: session.id }, data: { title: firstUserText.slice(0, 60) } });
+    }
+
     const confirmed = new Set(
       (Array.isArray(confirmedActions) ? confirmedActions : []).map((a) => `${a.tool}::${stableKey(a.arguments || {})}`)
     );
+
+    // SSE response — tokens stream to the browser as the model writes them.
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    });
+    const send = (event, data) => {
+      if (!res.writableEnded) res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+    let clientGone = false;
+    const abort = new AbortController();
+    req.on('close', () => { clientGone = true; abort.abort(); });
 
     const convo = [{ role: 'system', content: systemPrompt(settings) }, ...history];
     const actions = [];
@@ -145,9 +179,13 @@ router.post('/chat', async (req, res) => {
     for (let step = 0; step < 3; step++) {
       let out;
       try {
-        out = await chatComplete({ messages: convo, tools: TOOLS });
+        out = await chatStream({
+          messages: convo, tools: TOOLS, preferred: settings.preferredModel || undefined,
+          signal: abort.signal, onDelta: (text) => send('delta', { text }), onThinking: (text) => send('thinking', { text }),
+        });
       } catch (e) {
-        if (e.code === 'NO_KEY') return res.status(503).json({ error: 'AI is not configured yet. Please try again later.' });
+        if (e.code === 'NO_KEY') { send('error', { error: 'AI is not configured yet. Please try again later.' }); return finish(); }
+        if (e.code === 'CLIENT_GONE' || clientGone) return finish();
         // If tools already ran, report them instead of failing the request —
         // the actions happened, only the summary text is missing.
         if (progressed) {
@@ -155,7 +193,8 @@ router.post('/chat', async (req, res) => {
           break;
         }
         console.error('[assistant] all models failed:', e.message);
-        return res.status(502).json({ error: 'The AI is briefly unavailable — please try again in a moment.' });
+        send('error', { error: 'The AI is briefly unavailable — please try again in a moment.' });
+        return finish();
       }
       usedModel = out.model;
       const msg = out.data?.choices?.[0]?.message || {};
@@ -208,12 +247,59 @@ router.post('/chat', async (req, res) => {
 
     if (!reply) {
       if (needsConfirmation.length) reply = 'Please confirm below and I’ll do it right away.';
-      else if (actions.length) reply = actions.map((a) => `${a.status === 'done' ? '✓' : '•'} ${a.summary}`).join('\n');
+      else if (actions.length) reply = actions.map((a) => `- ${a.summary}`).join('\n');
     }
-    res.json({ reply: reply || 'Done.', actions, needsConfirmation, model: usedModel });
+
+    // Persist the turn. Confirm rounds don't add a new user message — the
+    // original ask is already stored; they only close the pending chips.
+    try {
+      if (!confirmed.size && firstUserText) {
+        await prisma.chatMessage.create({
+          data: { sessionId: session.id, role: 'user', content: firstUserText.slice(0, 4000) },
+        });
+      } else if (confirmed.size) {
+        // Confirmation round: close the pending chips on the assistant
+        // message that requested them, so a reload doesn't re-offer them.
+        const lastPending = await prisma.chatMessage.findFirst({
+          where: { sessionId: session.id, role: 'assistant' },
+          orderBy: { createdAt: 'desc' },
+        });
+        if (lastPending && Array.isArray(lastPending.meta?.pending) && lastPending.meta.pending.length) {
+          await prisma.chatMessage.update({
+            where: { id: lastPending.id },
+            data: { meta: { ...lastPending.meta, pending: [] } },
+          });
+        }
+      }
+      await prisma.chatMessage.create({
+        data: {
+          sessionId: session.id, role: 'assistant',
+          content: (reply || 'Done.').slice(0, 8000),
+          meta: {
+            actions: actions.length ? actions : undefined,
+            pending: needsConfirmation.length ? needsConfirmation : undefined,
+            model: usedModel || undefined,
+          },
+        },
+      });
+      await prisma.chatSession.update({ where: { id: session.id }, data: { updatedAt: new Date() } });
+    } catch (e) {
+      console.error('[assistant] persist failed:', e.message);
+    }
+
+    send('done', { reply: reply || 'Done.', actions, needsConfirmation, model: usedModel, sessionId: session.id, title: session.title });
+    finish();
+
+    function finish() {
+      if (!res.writableEnded) res.end();
+    }
   } catch (e) {
     console.error('[assistant] chat 500:', e.message);
-    res.status(500).json({ error: 'Something went wrong on our side — your data is safe, please try again.' });
+    try {
+      if (!res.headersSent) return res.status(500).json({ error: 'Something went wrong on our side — your data is safe, please try again.' });
+      res.write(`event: error\ndata: ${JSON.stringify({ error: 'Something went wrong on our side — your data is safe, please try again.' })}\n\n`);
+      res.end();
+    } catch {}
   }
 });
 

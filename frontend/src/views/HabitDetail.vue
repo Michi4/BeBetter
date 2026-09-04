@@ -6,7 +6,7 @@
     <template v-else>
     <div class="flex items-center gap-2">
       <button @click="$router.back()" class="btn-ghost p-1" aria-label="Go back"><ArrowLeft :size="18" /></button>
-      <h1 class="text-xl font-bold truncate">{{ habit.emoji || '' }} {{ habit.title }}</h1>
+      <h1 class="text-xl font-bold truncate">{{ habit.title }}</h1>
     </div>
 
     <div v-if="!editing" class="space-y-3">
@@ -328,7 +328,7 @@ const activeBreak = computed(() => {
 const editForm = ref({
   title: '',
   description: '',
-  emoji: '🎯',
+  emoji: '',
   schedules: [{ time: null, days: [0, 1, 2, 3, 4, 5, 6] }],
   verificationType: 'honor',
   config: null,
@@ -366,7 +366,7 @@ async function loadHabit() {
     const ef = editForm.value
     ef.title = habit.value.title
     ef.description = habit.value.description || ''
-    ef.emoji = habit.value.emoji || '🎯'
+    ef.emoji = habit.value.emoji || ''
     ef.verificationType = habit.value.verificationType || 'honor'
     ef.config = habit.value.config || null
     ef.reminderMinutes = Array.isArray(habit.value.reminderMinutes) ? [...habit.value.reminderMinutes] : (habit.value.reminderMinutes != null ? [habit.value.reminderMinutes] : [])

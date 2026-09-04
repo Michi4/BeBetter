@@ -75,7 +75,7 @@
       >
         <div class="w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0"
           :class="c.status === 'active' ? 'bg-emerald-500/20' : c.status === 'pending' ? 'bg-amber-500/20' : 'bg-gray-700'">
-          {{ c.habit?.emoji || '🏆' }}
+          {{ c.habit?.emoji || '' }}
         </div>
         <div class="flex-1 min-w-0">
           <p class="text-sm font-medium truncate">{{ c.title }}</p>

@@ -4,7 +4,14 @@
     <div v-if="editing" class="rounded-xl border border-emerald-500/30 bg-gray-800/80 p-4 space-y-3">
       <input v-model="editForm.title" class="input" placeholder="Title" ref="titleInput" />
       <textarea v-model="editForm.description" class="input min-h-[60px]" placeholder="Description" rows="2"></textarea>
-      <input v-model="editForm.dueDate" type="datetime-local" class="input text-sm" />
+      <div class="flex gap-2">
+        <input v-model="editForm.dueDate" type="date" class="input text-sm flex-1" />
+        <TimeInput v-if="editForm.hasDueTime" v-model="editForm.dueTime" class="w-28" />
+        <button v-else type="button" @click="editForm.hasDueTime = true"
+          class="shrink-0 px-3 rounded-lg bg-gray-800 text-gray-400 hover:text-gray-200 text-xs flex items-center gap-1.5 transition-colors min-h-[44px]">
+          <Clock :size="14" /> Time
+        </button>
+      </div>
       <div>
         <button type="button" @click="editForm.setScheduledTime = !editForm.setScheduledTime"
           class="flex items-center gap-2 text-xs transition-colors"
@@ -111,7 +118,7 @@ const showMenu = ref(false)
 const menuPos = ref({ top: '50%', left: '50%' })
 const editing = ref(false)
 const titleInput = ref(null)
-const editForm = reactive({ title: '', description: '', dueDate: '', setScheduledTime: false, scheduledTime: '', reminderMinutes: [] })
+const editForm = reactive({ title: '', description: '', dueDate: '', hasDueTime: false, dueTime: '', setScheduledTime: false, scheduledTime: '', reminderMinutes: [] })
 let longPressTimer = null
 let longPressFired = false
 
@@ -167,7 +174,10 @@ function cancelLongPress() {
 function startEdit() {
   editForm.title = props.task.title
   editForm.description = props.task.description || ''
-  editForm.dueDate = props.task.dueDate ? toLocalDateTime(props.task.dueDate) : ''
+  editForm.dueDate = props.task.dueDate ? toLocalDate(props.task.dueDate) : ''
+  const hasT = props.task.dueDate ? hasExplicitTime(props.task.dueDate) : false
+  editForm.hasDueTime = hasT
+  editForm.dueTime = hasT ? toLocalTime(props.task.dueDate) : ''
   editForm.scheduledTime = props.task.scheduledTime || ''
   editForm.setScheduledTime = !!props.task.scheduledTime
   editForm.reminderMinutes = Array.isArray(props.task.reminderMinutes) ? [...props.task.reminderMinutes] : []
@@ -175,10 +185,23 @@ function startEdit() {
   nextTick(() => titleInput.value?.focus())
 }
 
-function toLocalDateTime(iso) {
+function toLocalDate(iso) {
   const d = new Date(iso)
   const s = (n) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${s(d.getMonth() + 1)}-${s(d.getDate())}T${s(d.getHours())}:${s(d.getMinutes())}`
+  return `${d.getFullYear()}-${s(d.getMonth() + 1)}-${s(d.getDate())}`
+}
+
+function toLocalTime(iso) {
+  const d = new Date(iso)
+  const s = (n) => String(n).padStart(2, '0')
+  return `${s(d.getHours())}:${s(d.getMinutes())}`
+}
+
+// Tasks created with a date only are stored at 00:00 — treat that as "no
+// time" so editing doesn't suddenly claim the task is due at midnight.
+function hasExplicitTime(iso) {
+  const d = new Date(iso)
+  return d.getHours() !== 0 || d.getMinutes() !== 0
 }
 
 function cancelEdit() {
@@ -204,7 +227,9 @@ function saveEdit() {
     ...props.task,
     title: editForm.title,
     description: editForm.description,
-    dueDate: editForm.dueDate || null,
+    dueDate: editForm.dueDate
+      ? (editForm.hasDueTime && editForm.dueTime ? `${editForm.dueDate}T${editForm.dueTime}:00` : `${editForm.dueDate}T00:00:00`)
+      : null,
   }
   if (editForm.setScheduledTime && editForm.scheduledTime) {
     payload.scheduledTime = editForm.scheduledTime

@@ -2,14 +2,17 @@ const prisma = require('./prisma');
 
 const BAI_BASE = (process.env.B_AI_BASE_URL || 'https://api.b.ai/v1').replace(/\/$/, '');
 const BAI_KEY = () => process.env.B_AI_API_KEY || '';
-const DEFAULT_CHAIN = ['glm-5.3-flash', 'hy3', 'mimo-v2.5', 'deepseek-v4-flash', 'qwen3.8-flash'];
+// Only models verified working (200 + tool calls) on the current key.
+// Everything else on b.ai 403s with insufficient credit — dead entries used
+// to burn 30-45s of "Thinking…" before the fallback kicked in.
+const DEFAULT_CHAIN = ['glm-5.3-flash', 'hy3'];
 
-function modelChain() {
+function modelChain(preferred) {
   const fromEnv = (process.env.AI_MODELS || '')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
-  const chain = [...fromEnv, ...DEFAULT_CHAIN];
+  const chain = [...(preferred ? [preferred] : []), ...fromEnv, ...DEFAULT_CHAIN];
   return [...new Set(chain)];
 }
 
@@ -48,7 +51,7 @@ const TOOLS = [
       parameters: {
         type: 'object',
         properties: {
-          title: { type: 'string' }, description: { type: 'string' }, emoji: { type: 'string' },
+          title: { type: 'string' }, description: { type: 'string' },
           dueDate: { type: 'string', description: 'YYYY-MM-DD' }, scheduledTime: { type: 'string', description: 'HH:MM' },
         },
         required: ['title'], additionalProperties: false,
@@ -59,12 +62,12 @@ const TOOLS = [
     type: 'function',
     function: {
       name: 'tasks_update',
-      description: 'Update a task title/description/emoji/dueDate by id. Null clears a field.',
+      description: 'Update a task title/description/dueDate by id. Null clears a field.',
       parameters: {
         type: 'object',
         properties: {
           id: { type: 'string' }, title: { type: 'string' }, description: { type: 'string' },
-          emoji: { type: 'string' }, dueDate: { type: ['string', 'null'], description: 'YYYY-MM-DD or null to clear' },
+          dueDate: { type: ['string', 'null'], description: 'YYYY-MM-DD or null to clear' },
         },
         required: ['id'], additionalProperties: false,
       },
@@ -110,7 +113,7 @@ const TOOLS = [
       parameters: {
         type: 'object',
         properties: {
-          title: { type: 'string' }, description: { type: 'string' }, emoji: { type: 'string' },
+          title: { type: 'string' }, description: { type: 'string' },
           schedules: {
             type: 'array',
             items: { type: 'object', properties: { time: { type: ['string', 'null'] }, days: { type: 'array', items: { type: 'integer' } } }, additionalProperties: false },
@@ -124,10 +127,10 @@ const TOOLS = [
     type: 'function',
     function: {
       name: 'habits_update',
-      description: 'Update a habit title/description/emoji by id.',
+      description: 'Update a habit title/description by id.',
       parameters: {
         type: 'object',
-        properties: { id: { type: 'string' }, title: { type: 'string' }, description: { type: 'string' }, emoji: { type: 'string' } },
+        properties: { id: { type: 'string' }, title: { type: 'string' }, description: { type: 'string' } },
         required: ['id'], additionalProperties: false,
       },
     },
@@ -209,20 +212,21 @@ function deniedMessage(tool) {
 }
 
 function summarizeCall(tool, args) {
+  // Short subject-only chip: the reply text around it carries the meaning.
   const a = args || {};
   const q = (s) => (s == null || s === '' ? '' : ` "${String(s).slice(0, 60)}"`);
   switch (tool) {
-    case 'tasks_create': return `Create task${q(a.title)}`;
-    case 'tasks_update': return `Update task${q(a.title)}`;
-    case 'tasks_complete': return 'Mark task done';
-    case 'tasks_uncomplete': return 'Undo task completion';
-    case 'tasks_delete': return 'Delete task';
-    case 'habits_create': return `Create habit${q(a.title)}`;
-    case 'habits_update': return `Update habit${q(a.title)}`;
-    case 'habits_delete': return 'Delete habit';
-    case 'habits_log': return 'Log habit completion';
-    case 'habits_unlog': return 'Undo habit completion';
-    default: return tool;
+    case 'tasks_create': return `Task${q(a.title)}`;
+    case 'tasks_update': return `Updated${q(a.title)}`;
+    case 'tasks_complete': return 'Completed';
+    case 'tasks_uncomplete': return 'Reopened';
+    case 'tasks_delete': return 'Deleted';
+    case 'habits_create': return `Habit${q(a.title)}`;
+    case 'habits_update': return `Updated${q(a.title)}`;
+    case 'habits_delete': return 'Deleted';
+    case 'habits_log': return 'Logged';
+    case 'habits_unlog': return 'Unlogged';
+    default: return 'Done';
   }
 }
 
@@ -251,7 +255,6 @@ async function execTool(userId, tool, args = {}) {
           userId,
           title: String(args.title).trim().slice(0, 200),
           description: args.description ? String(args.description).slice(0, 2000) : '',
-          emoji: args.emoji ? String(args.emoji).slice(0, 8) : '📝',
           dueDate: due || undefined,
           scheduledTime: args.scheduledTime || undefined,
         },
@@ -268,7 +271,6 @@ async function execTool(userId, tool, args = {}) {
         data.title = t.slice(0, 200);
       }
       if (args.description !== undefined) data.description = String(args.description ?? '').slice(0, 2000);
-      if (args.emoji !== undefined) data.emoji = String(args.emoji).slice(0, 8);
       if (args.dueDate !== undefined) {
         const due = parseDueDate(args.dueDate);
         if (due && due.invalid) return { error: 'dueDate must be YYYY-MM-DD' };
@@ -337,7 +339,6 @@ async function execTool(userId, tool, args = {}) {
           userId,
           title: String(args.title).trim().slice(0, 200),
           description: args.description ? String(args.description).slice(0, 2000) : '',
-          emoji: args.emoji ? String(args.emoji).slice(0, 8) : '🎯',
           frequencyType: 'daily',
           daysPerWeek: [0, 1, 2, 3, 4, 5, 6],
           schedules: schedules || undefined,
@@ -352,7 +353,6 @@ async function execTool(userId, tool, args = {}) {
       const data = {};
       if (args.title !== undefined) data.title = String(args.title).trim().slice(0, 200);
       if (args.description !== undefined) data.description = String(args.description ?? '').slice(0, 2000);
-      if (args.emoji !== undefined) data.emoji = String(args.emoji).slice(0, 8);
       const updated = await prisma.habit.update({ where: { id: args.id }, data });
       return { id: updated.id, title: updated.title };
     }
@@ -410,22 +410,40 @@ async function execTool(userId, tool, args = {}) {
 }
 
 // ---- b.ai chat client with model fallback chain ----
-async function chatComplete({ messages, tools, temperature = 0.2 }) {
+function extractSseData(buffer) {
+  // Returns {events, rest} — complete `data:` payloads split out of the raw
+  // SSE stream (chunks can split lines mid-buffer).
+  const events = [];
+  let rest = buffer;
+  let idx;
+  while ((idx = rest.indexOf('\n')) !== -1) {
+    const line = rest.slice(0, idx).replace(/\r$/, '');
+    rest = rest.slice(idx + 1);
+    if (line.startsWith('data:')) events.push(line.slice(5).trim());
+  }
+  return { events, rest };
+}
+
+// Streaming variant: calls onDelta(tokenText) as tokens arrive so the UI can
+// render the reply live. Falls back to non-streaming for models that reject
+// stream:true. Resolves {data, model} with the assembled final message.
+async function chatStream({ messages, tools, temperature = 0.2, preferred, signal, onDelta, onThinking }) {
   const key = BAI_KEY();
   if (!key) {
     const e = new Error('AI is not configured yet (missing API key).');
     e.code = 'NO_KEY';
     throw e;
   }
-  const chain = modelChain();
+  const chain = modelChain(preferred);
+  const effective = signal ? AbortSignal.any([signal, AbortSignal.timeout(90000)]) : AbortSignal.timeout(90000);
   let lastErr = null;
   for (const model of chain) {
     try {
       const res = await fetch(`${BAI_BASE}/chat/completions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-        body: JSON.stringify({ model, messages, tools, tool_choice: 'auto', temperature, max_tokens: 1200 }),
-        signal: AbortSignal.timeout(45000),
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, Accept: 'text/event-stream' },
+        body: JSON.stringify({ model, messages, tools, tool_choice: 'auto', temperature, max_tokens: 1200, stream: true }),
+        signal: effective,
       });
       if (!res.ok) {
         const text = await res.text().catch(() => '');
@@ -433,11 +451,69 @@ async function chatComplete({ messages, tools, temperature = 0.2 }) {
         console.warn('[assistant] falling back:', lastErr.message.slice(0, 160));
         continue;
       }
-      const data = await res.json();
-      return { data, model };
+      if (!res.body) throw new Error(`model ${model}: no body`);
+      // Non-streaming fallback: some models error on stream:true.
+      const ctype = res.headers.get('content-type') || '';
+      if (!ctype.includes('event-stream')) {
+        const data = await res.json();
+        return { data, model };
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+      let content = '';
+      let toolCalls = null;
+      let sawAny = false;
+      let finish = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const { events, rest } = extractSseData(buf);
+        buf = rest;
+        for (const ev of events) {
+          if (!ev || ev === '[DONE]') continue;
+          let j;
+          try { j = JSON.parse(ev); } catch { continue; }
+          const delta = j.choices?.[0]?.delta || {};
+          if (delta.content) {
+            content += delta.content;
+            sawAny = true;
+            try { onDelta?.(delta.content); } catch {}
+          }
+          if (delta.reasoning_content) {
+            sawAny = true;
+            try { onThinking?.(delta.reasoning_content); } catch {}
+          }
+          if (Array.isArray(delta.tool_calls)) {
+            toolCalls = toolCalls || [];
+            for (const tc of delta.tool_calls) {
+              const i = tc.index ?? 0;
+              if (!toolCalls[i]) {
+                toolCalls[i] = { id: tc.id || `call_${i}`, type: 'function', function: { name: tc.function?.name || '', arguments: '' } };
+              }
+              if (tc.id) toolCalls[i].id = tc.id;
+              if (tc.function?.name) toolCalls[i].function.name = tc.function.name;
+              if (tc.function?.arguments) toolCalls[i].function.arguments += tc.function.arguments;
+            }
+            sawAny = true;
+          }
+          if (j.choices?.[0]?.finish_reason) finish = j.choices[0].finish_reason;
+        }
+      }
+      if (!sawAny && !content && !toolCalls) throw new Error(`model ${model}: empty stream`);
+      const message = { role: 'assistant', content };
+      if (toolCalls) message.tool_calls = toolCalls.filter(Boolean);
+      return { data: { choices: [{ message, finish_reason: finish || 'stop' }] }, model };
     } catch (e) {
       lastErr = e;
       console.warn('[assistant] falling back:', `${model}: ${e.message}`.slice(0, 160));
+      if (signal?.aborted) {
+        const err = new Error('Client disconnected');
+        err.code = 'CLIENT_GONE';
+        throw err;
+      }
     }
   }
   const err = new Error(`All AI models failed. Last error: ${lastErr?.message || 'unknown'}`);
@@ -451,18 +527,20 @@ function systemPrompt(settings) {
   const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} (${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][now.getDay()]})`;
   return [
     'You are the BeBetter in-app assistant. Today is ' + today + '.',
-    'Reply in the user language. Be brief and warm.',
+    'Be brief and warm.',
+    'LANGUAGE: Always reply in the language the user writes in — German messages get German replies, English gets English, and so on. This applies to every reply, including confirmations, summaries and small talk.',
+    'NO EMOJI: Never use emojis, emoticons or decorative symbols anywhere — not in replies, not in titles or descriptions you create. Plain text only.',
     'You can read and manage the user own tasks, habits, logs and stats via tools.',
     'Rules:',
     '- Use tools for facts; never invent ids, titles or stats.',
     '- For create/update/log actions state exactly what you will do; the app may ask the user to confirm first.',
     '- Deletions only when the user explicitly asked to delete/remove.',
-    '- If a tool result contains {error} about missing access, tell the user they can enable it anytime in Profile → AI Assistant.',
-    '- Times are HH:MM 24h, days 0=Sun..6=Sat, dates YYYY-MM-DD.',
+    '- If a tool result contains {error} about missing access, tell the user they can enable it anytime in Profile \u2192 AI Assistant.',
+    '- Times are HH:MM 24h, days 0=Sun..6=Sat, dates YYYY-MM-DD. For a task due on a day without a specific time, pass only dueDate and leave scheduledTime out.',
   ].join('\n');
 }
 
 module.exports = {
   TOOLS, TOOL_POLICY, GROUP_LABEL, deniedMessage, summarizeCall,
-  execTool, chatComplete, systemPrompt, modelChain,
+  execTool, chatStream, systemPrompt, modelChain,
 };

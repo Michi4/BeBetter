@@ -69,7 +69,7 @@ router.post('/', demoGuard, async (req, res) => {
         description: description || '',
         config: config || undefined,
         category: category || 'general',
-        emoji: emoji || '🎯',
+        emoji: emoji || '',
         frequencyType: scheduleDays ? 'daily' : (frequencyType || 'daily'),
         daysPerWeek: scheduleDays ? scheduleDays : (daysPerWeek || JSON.stringify([1, 2, 3, 4, 5, 6, 7])),
         schedules: Array.isArray(schedules) && schedules.length ? schedules : undefined,
@@ -180,7 +180,7 @@ router.post('/:id/fork', async (req, res) => {
         userId: req.userId,
         title: preset.title,
         description: preset.description || '',
-        emoji: preset.emoji || '🎯',
+        emoji: preset.emoji || '',
         frequencyType: Array.isArray(preset.schedules) && preset.schedules.length ? 'daily' : (preset.frequencyType || 'daily'),
         daysPerWeek: Array.isArray(preset.schedules) && preset.schedules.length
           ? [...new Set(preset.schedules.flatMap(s => Array.isArray(s.days) ? s.days : []))]
@@ -224,7 +224,7 @@ router.post('/:id/use', async (req, res) => {
         userId: req.userId,
         title: preset.title,
         description: preset.description || '',
-        emoji: preset.emoji || '🎯',
+        emoji: preset.emoji || '',
         frequencyType: Array.isArray(preset.schedules) && preset.schedules.length ? 'daily' : (preset.frequencyType || 'daily'),
         daysPerWeek: Array.isArray(preset.schedules) && preset.schedules.length
           ? [...new Set(preset.schedules.flatMap(s => Array.isArray(s.days) ? s.days : []))]

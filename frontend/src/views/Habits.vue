@@ -522,7 +522,7 @@ async function loadAll() {
       completedMap.set(id, {
         id,
         title: l.task?.title || 'Task',
-        emoji: l.task?.emoji || '📝',
+        emoji: l.task?.emoji || '',
         isCompletedToday: true,
         completedAt: l.completedAt,
       })

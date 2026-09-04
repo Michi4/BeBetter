@@ -17,7 +17,7 @@
     <div v-else-if="challenge" class="space-y-4">
       <div class="card space-y-4 text-center">
         <div class="w-16 h-16 rounded-full bg-emerald-600/20 flex items-center justify-center text-3xl mx-auto">
-          {{ challenge.habit?.emoji || '🎯' }}
+          {{ challenge.habit?.emoji || '' }}
         </div>
         <div>
           <h2 class="text-lg font-bold">{{ challenge.habit?.title }}</h2>

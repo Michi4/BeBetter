@@ -60,7 +60,7 @@
         <div v-if="hoveredDay.items && hoveredDay.items.length" class="space-y-0.5">
           <div v-for="(item, idx) in hoveredDay.items" :key="idx" class="flex items-center gap-1.5">
             <span class="text-emerald-400">&#10003;</span>
-            <span class="text-gray-400">{{ item.emoji || '' }} {{ item.title }}</span>
+            <span class="text-gray-400">{{ item.title }}</span>
           </div>
         </div>
         <div v-if="hoveredDay.scheduled === 0 && hoveredDay.habits === 0 && hoveredDay.tasks === 0" class="text-gray-500 text-[10px]">No activity</div>

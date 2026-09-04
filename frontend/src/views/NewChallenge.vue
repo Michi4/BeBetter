@@ -16,7 +16,7 @@
           <button v-for="h in habits" :key="h.id" @click="form.habitId = h.id"
             class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-left"
             :class="form.habitId === h.id ? 'bg-emerald-600/20 border border-emerald-500/40' : 'hover:bg-gray-800 border border-transparent'">
-            <span class="text-lg">{{ h.emoji || '🎯' }}</span>
+            <span class="text-lg">{{ h.emoji || '' }}</span>
             <div class="flex-1 min-w-0">
               <div class="text-sm font-medium truncate">{{ h.title }}</div>
               <div class="text-xs text-gray-500">{{ formatRecurrence(h) }}</div>

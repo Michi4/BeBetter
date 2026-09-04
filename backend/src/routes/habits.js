@@ -232,7 +232,7 @@ router.post('/', authMiddleware, demoFieldGuard(['makePublic', 'buddyIds', 'chal
         userId: req.userId,
         title: title.trim(),
         description: description || '',
-        emoji: emoji || '🎯',
+        emoji: emoji || '',
         frequencyType: finalFreqType,
         daysPerWeek: finalDaysPerWeek,
         schedules: Array.isArray(schedules) && schedules.length > 0 ? schedules : undefined,
@@ -664,7 +664,7 @@ router.get('/featured/public', async (req, res) => {
     const formatted = habits.map(h => ({
       id: h.id,
       title: h.title,
-      emoji: h.emoji || '🎯',
+      emoji: h.emoji || '',
       streak: h.bestStreak || 0,
       scheduleDisplay: h.schedules && h.schedules.length > 0 && h.schedules[0].time
         ? h.schedules[0].time

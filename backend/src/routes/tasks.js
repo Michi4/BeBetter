@@ -77,7 +77,7 @@ router.post('/', authMiddleware, demoFieldGuard(['scheduledTime', 'scheduledDays
         userId: req.userId,
         title: title.trim(),
         description: description || '',
-        emoji: emoji || '📝',
+        emoji: emoji || '',
         dueDate: dueDate ? new Date(dueDate) : undefined,
         isScheduled: isScheduled !== false,
         isEveryday: isEveryday || false,

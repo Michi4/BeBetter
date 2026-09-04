@@ -52,7 +52,7 @@
           </button>
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">
-              <h4 class="font-medium text-sm">{{ challenge.habit.emoji || '' }} {{ challenge.habit.title }}</h4>
+              <h4 class="font-medium text-sm">{{ challenge.habit.title }}</h4>
               <span v-if="iLoggedToday" class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-medium">Done</span>
             </div>
             <p v-if="challenge.habit.description" class="text-xs text-gray-500 truncate mt-0.5">{{ challenge.habit.description }}</p>

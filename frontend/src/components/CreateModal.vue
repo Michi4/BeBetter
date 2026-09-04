@@ -37,8 +37,18 @@
             <textarea v-model="taskForm.description" class="input min-h-[60px]" placeholder="Add details..." rows="2"></textarea>
           </div>
           <div>
-            <label class="text-xs font-medium text-gray-400 mb-1.5 block">Due date &amp; time (optional)</label>
-            <input v-model="taskForm.dueDate" type="datetime-local" class="input text-sm" />
+            <label class="text-xs font-medium text-gray-400 mb-1.5 block">Due date (optional)</label>
+            <div class="flex gap-2">
+              <input v-model="taskForm.dueDate" type="date" class="input text-sm flex-1" />
+              <TimeInput v-if="taskForm.hasDueTime" v-model="taskForm.dueTime" class="w-28" />
+              <button v-else type="button" @click="taskForm.hasDueTime = true"
+                class="shrink-0 px-3 rounded-lg bg-gray-800 text-gray-400 hover:text-gray-200 text-xs flex items-center gap-1.5 transition-colors min-h-[44px]">
+                <Clock :size="14" /> Time
+              </button>
+            </div>
+            <p v-if="taskForm.hasDueTime" class="text-[10px] text-gray-600 mt-1">
+              <button type="button" @click="taskForm.hasDueTime = false; taskForm.dueTime = ''" class="hover:text-gray-400 underline">Remove time</button> — only a day is fine too.
+            </p>
           </div>
 
           <!-- Set time toggle for tasks -->
@@ -287,11 +297,11 @@ const customReminderInput = ref('')
 const customTaskReminderInput = ref('')
 
 const taskForm = reactive({
-  title: '', description: '', dueDate: '',
+  title: '', description: '', dueDate: '', hasDueTime: false, dueTime: '',
   setScheduledTime: false, scheduledTime: '', reminderMinutes: [],
 })
 const habitForm = reactive({
-  title: '', description: '', emoji: '🎯',
+  title: '', description: '', emoji: '',
   schedules: [{ time: null, days: [0, 1, 2, 3, 4, 5, 6] }],
   verificationType: 'honor', makePublic: false, reminderMinutes: [],
 })
@@ -337,12 +347,14 @@ watch(() => props.show, (val) => {
     taskForm.title = ''
     taskForm.description = ''
     taskForm.dueDate = ''
+    taskForm.hasDueTime = false
+    taskForm.dueTime = ''
     taskForm.setScheduledTime = false
     taskForm.scheduledTime = ''
     taskForm.reminderMinutes = []
     habitForm.title = ''
     habitForm.description = ''
-    habitForm.emoji = '🎯'
+    habitForm.emoji = ''
     habitForm.schedules = [{ time: null, days: [0, 1, 2, 3, 4, 5, 6] }]
     habitForm.verificationType = 'honor'
     habitForm.makePublic = false
@@ -485,12 +497,23 @@ function addCustomTaskReminder() {
 function createTask() {
   if (!taskForm.title.trim()) return
   if (demoBlocked() && taskForm.setScheduledTime) { taskForm.setScheduledTime = false; return }
-  const data = { ...taskForm, setScheduledTime: undefined }
-  delete data.setScheduledTime
-  if (!taskForm.setScheduledTime) {
-    delete data.scheduledTime
-    delete data.reminderMinutes
+  // Date-only tasks send dueDate at local midnight; the backend stores it as
+  // a plain date and TaskCard renders it without a time.
+  let dueDate = null
+  if (taskForm.dueDate) {
+    dueDate = taskForm.hasDueTime && taskForm.dueTime
+      ? `${taskForm.dueDate}T${taskForm.dueTime}:00`
+      : `${taskForm.dueDate}T00:00:00`
   }
+  const data = {
+    title: taskForm.title,
+    description: taskForm.description,
+    dueDate,
+    setScheduledTime: undefined,
+    scheduledTime: taskForm.setScheduledTime ? taskForm.scheduledTime : undefined,
+    reminderMinutes: taskForm.setScheduledTime ? taskForm.reminderMinutes : undefined,
+  }
+  delete data.setScheduledTime
   emit('created', 'task', data)
 }
 
