@@ -67,6 +67,13 @@ function stableKey(v) {
 const hits = new Map();
 function rateLimited(userId) {
   const now = Date.now();
+  if (hits.size > 5000) {
+    // Periodic sweep so inactive users don't leak memory
+    for (const [k, v] of hits) {
+      const fresh = v.filter((t) => now - t < 60000);
+      if (fresh.length) hits.set(k, fresh); else hits.delete(k);
+    }
+  }
   const arr = (hits.get(userId) || []).filter((t) => now - t < 60000);
   arr.push(now);
   hits.set(userId, arr);
@@ -80,12 +87,16 @@ router.post('/chat', async (req, res) => {
       return res.status(403).json({ error: 'AI assistant is off. Enable it in Profile → AI Assistant.' });
     }
     if (rateLimited(req.userId)) {
+      res.setHeader('Retry-After', '60');
       return res.status(429).json({ error: 'Too many requests — please wait a moment and try again.' });
     }
 
     const { messages, confirmedActions } = req.body || {};
     if (!Array.isArray(messages) || !messages.length) {
       return res.status(400).json({ error: 'messages required' });
+    }
+    if (messages.length > 40) {
+      return res.status(400).json({ error: 'Too many messages in one request' });
     }
     const history = messages.slice(-20).map((m) => ({
       role: m.role === 'assistant' ? 'assistant' : 'user',
@@ -139,8 +150,12 @@ router.post('/chat', async (req, res) => {
         if (e.code === 'NO_KEY') return res.status(503).json({ error: 'AI is not configured yet. Please try again later.' });
         // If tools already ran, report them instead of failing the request —
         // the actions happened, only the summary text is missing.
-        if (progressed) break;
-        return res.status(502).json({ error: 'AI is temporarily unavailable. Please try again in a moment.' });
+        if (progressed) {
+          console.error('[assistant] models failed after tool execution:', e.message);
+          break;
+        }
+        console.error('[assistant] all models failed:', e.message);
+        return res.status(502).json({ error: 'The AI is briefly unavailable — please try again in a moment.' });
       }
       usedModel = out.model;
       const msg = out.data?.choices?.[0]?.message || {};
@@ -197,8 +212,8 @@ router.post('/chat', async (req, res) => {
     }
     res.json({ reply: reply || 'Done.', actions, needsConfirmation, model: usedModel });
   } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: 'Server error' });
+    console.error('[assistant] chat 500:', e.message);
+    res.status(500).json({ error: 'Something went wrong on our side — your data is safe, please try again.' });
   }
 });
 

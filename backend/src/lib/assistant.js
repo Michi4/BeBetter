@@ -14,6 +14,15 @@ function modelChain() {
 }
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+// Models pass dates as strings — never let an invalid one reach Prisma.
+function parseDueDate(v) {
+  if (v === undefined) return undefined;
+  if (v === null || v === '') return null;
+  if (typeof v !== 'string' || !DATE_RE.test(v) || Number.isNaN(new Date(v).getTime())) return { invalid: true };
+  return new Date(v);
+}
 
 function parseDays(v) {
   if (!Array.isArray(v)) return null;
@@ -235,13 +244,15 @@ async function execTool(userId, tool, args = {}) {
     case 'tasks_create': {
       if (!args.title || !String(args.title).trim()) return { error: 'Title required' };
       if (args.scheduledTime && !TIME_RE.test(args.scheduledTime)) return { error: 'scheduledTime must be HH:MM' };
+      const due = parseDueDate(args.dueDate);
+      if (due && due.invalid) return { error: 'dueDate must be YYYY-MM-DD' };
       const task = await prisma.task.create({
         data: {
           userId,
           title: String(args.title).trim().slice(0, 200),
           description: args.description ? String(args.description).slice(0, 2000) : '',
           emoji: args.emoji ? String(args.emoji).slice(0, 8) : '📝',
-          dueDate: args.dueDate ? new Date(args.dueDate) : undefined,
+          dueDate: due || undefined,
           scheduledTime: args.scheduledTime || undefined,
         },
       });
@@ -251,10 +262,18 @@ async function execTool(userId, tool, args = {}) {
       const task = await prisma.task.findUnique({ where: { id: args.id } });
       if (!task || task.userId !== userId) return { error: 'Task not found' };
       const data = {};
-      if (args.title !== undefined) data.title = String(args.title).trim().slice(0, 200);
+      if (args.title !== undefined) {
+        const t = String(args.title).trim();
+        if (!t) return { error: 'Title cannot be empty' };
+        data.title = t.slice(0, 200);
+      }
       if (args.description !== undefined) data.description = String(args.description ?? '').slice(0, 2000);
       if (args.emoji !== undefined) data.emoji = String(args.emoji).slice(0, 8);
-      if (args.dueDate !== undefined) data.dueDate = args.dueDate ? new Date(args.dueDate) : null;
+      if (args.dueDate !== undefined) {
+        const due = parseDueDate(args.dueDate);
+        if (due && due.invalid) return { error: 'dueDate must be YYYY-MM-DD' };
+        data.dueDate = due;
+      }
       const updated = await prisma.task.update({ where: { id: args.id }, data });
       return { id: updated.id, title: updated.title };
     }
@@ -348,6 +367,7 @@ async function execTool(userId, tool, args = {}) {
     case 'habits_unlog': {
       const habit = await prisma.habit.findUnique({ where: { id: args.habitId }, include: { breaks: true } });
       if (!habit || habit.userId !== userId) return { error: 'Habit not found' };
+      if (args.scheduledTime && !TIME_RE.test(args.scheduledTime)) return { error: 'scheduledTime must be HH:MM' };
       const today = dayStart();
       if (tool === 'habits_log') {
         const where = { habitId: args.habitId, userId, completedAt: today };
@@ -410,12 +430,14 @@ async function chatComplete({ messages, tools, temperature = 0.2 }) {
       if (!res.ok) {
         const text = await res.text().catch(() => '');
         lastErr = new Error(`model ${model} failed: ${res.status} ${text.slice(0, 200)}`);
+        console.warn('[assistant] falling back:', lastErr.message.slice(0, 160));
         continue;
       }
       const data = await res.json();
       return { data, model };
     } catch (e) {
       lastErr = e;
+      console.warn('[assistant] falling back:', `${model}: ${e.message}`.slice(0, 160));
     }
   }
   const err = new Error(`All AI models failed. Last error: ${lastErr?.message || 'unknown'}`);
