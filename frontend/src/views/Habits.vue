@@ -368,7 +368,7 @@ async function loadHistory() {
           logIds.set(key, h.id)
         }
       })
-    } catch {}
+    } catch { toast.error('Could not load that day — try again') }
 
     scheduledForDay.value = scheduledHabits.map(h => {
       // Timed slots are completed per-slot only — the habit-level check would

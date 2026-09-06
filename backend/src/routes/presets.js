@@ -100,6 +100,9 @@ router.get('/:id', async (req, res) => {
       },
     });
     if (!preset) return res.status(404).json({ error: 'Preset not found' });
+    if (!preset.isPublished && preset.authorId !== req.userId) {
+      return res.status(404).json({ error: 'Preset not found' });
+    }
 
     const myLike = await prisma.presetLike.findUnique({
       where: { userId_presetId: { userId: req.userId, presetId: req.params.id } },
@@ -274,6 +277,9 @@ router.get('/:id/users', async (req, res) => {
   try {
     const preset = await prisma.preset.findUnique({ where: { id: req.params.id } });
     if (!preset) return res.status(404).json({ error: 'Preset not found' });
+    if (!preset.isPublished && preset.authorId !== req.userId) {
+      return res.status(404).json({ error: 'Preset not found' });
+    }
 
     const usages = await prisma.presetUsage.findMany({
       where: { presetId: req.params.id },

@@ -1,7 +1,10 @@
 const { Router } = require('express');
 const prisma = require('../lib/prisma');
 
+const { publicLimiter } = require('../middleware/rateLimit');
+
 const router = Router();
+router.use(publicLimiter);
 
 const authorSelect = { id: true, username: true, avatar: true };
 

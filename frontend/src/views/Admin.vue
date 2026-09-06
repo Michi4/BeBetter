@@ -304,6 +304,7 @@ async function loadReports() {
     reports.value = res.data.reports || res.data || []
   } catch {
     reports.value = []
+    toast.error('Failed to load reports — showing empty list, try again')
   } finally {
     loadingReports.value = false
   }

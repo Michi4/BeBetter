@@ -6,7 +6,7 @@ const { sendPushNotification } = require('../scheduler');
 
 const router = Router();
 
-const FRIEND_LINK_SECRET = process.env.JWT_SECRET || 'bebetter-friend-link-secret-key';
+const FRIEND_LINK_SECRET = crypto.createHash('sha256').update('friend-link:' + JWT_SECRET).digest('hex');
 
 function createFriendLinkToken(senderId, linkId) {
   const payload = { senderId, linkId, iat: Math.floor(Date.now() / 1000) };
@@ -157,7 +157,7 @@ router.post('/request', authMiddleware, demoGuard, async (req, res) => {
   }
 });
 
-router.post('/request/:id/accept', authMiddleware, async (req, res) => {
+router.post('/request/:id/accept', authMiddleware, demoGuard, async (req, res) => {
   try {
     const { id } = req.params;
     const request = await prisma.friendRequest.findUnique({ where: { id } });
@@ -187,7 +187,7 @@ router.post('/request/:id/accept', authMiddleware, async (req, res) => {
   }
 });
 
-router.post('/request/:id/decline', authMiddleware, async (req, res) => {
+router.post('/request/:id/decline', authMiddleware, demoGuard, async (req, res) => {
   try {
     const { id } = req.params;
     const request = await prisma.friendRequest.findUnique({ where: { id } });
@@ -243,7 +243,7 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 });
 
-router.delete('/:id', authMiddleware, async (req, res) => {
+router.delete('/:id', authMiddleware, demoGuard, async (req, res) => {
   try {
     const { id } = req.params;
     const friendship = await prisma.friendship.findUnique({ where: { id } });

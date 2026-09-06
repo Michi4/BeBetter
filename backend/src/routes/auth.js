@@ -1,8 +1,11 @@
 const { Router } = require('express');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const prisma = require('../lib/prisma');
 const { signToken, authMiddleware, demoGuard, isDemoUser, DEMO_USERNAME } = require('../middleware/auth');
+const { loginLimiter, registerLimiter, forgotLimiter, resetLimiter } = require('../middleware/rateLimit');
 
 const router = Router();
 
@@ -36,7 +39,7 @@ const userSelect = {
   isDemo: true,
 };
 
-router.post('/register', async (req, res) => {
+router.post('/register', registerLimiter, async (req, res) => {
   try {
     const { email, password, username, friendToken } = req.body;
     if (!email || !password || !username) {
@@ -74,7 +77,7 @@ router.post('/register', async (req, res) => {
       // friendToken is the signed JWT produced by POST /friends/link, not the
       // raw DB token column. Decode it to find the link id.
       try {
-        const FRIEND_LINK_SECRET = process.env.JWT_SECRET || 'bebetter-friend-link-secret-key';
+        const FRIEND_LINK_SECRET = crypto.createHash('sha256').update('friend-link:' + process.env.JWT_SECRET).digest('hex');
         const parts = friendToken.split('.');
         const sig = crypto.createHmac('sha256', FRIEND_LINK_SECRET).update(`${parts[0]}.${parts[1]}`).digest('base64url');
         const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
@@ -110,7 +113,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'Email/username and password are required' });
@@ -215,7 +218,7 @@ router.post('/logout', (_, res) => {
   res.json({ ok: true });
 });
 
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', forgotLimiter, async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'Email is required' });
@@ -228,9 +231,10 @@ router.post('/forgot-password', async (req, res) => {
     await prisma.passwordReset.deleteMany({ where: { userId: user.id, used: false } });
 
     const token = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
     await prisma.passwordReset.create({
-      data: { userId: user.id, token, expiresAt },
+      data: { userId: user.id, token: tokenHash, expiresAt },
     });
 
     const resetUrl = `${process.env.FRONTEND_URL || 'https://bebetter.websters.at'}/reset-password?token=${token}`;
@@ -253,7 +257,7 @@ router.post('/forgot-password', async (req, res) => {
   }
 });
 
-router.post('/reset-password', async (req, res) => {
+router.post('/reset-password', resetLimiter, async (req, res) => {
   try {
     const { token, password } = req.body;
     if (!token || !password) return res.status(400).json({ error: 'Token and password are required' });
@@ -262,14 +266,17 @@ router.post('/reset-password', async (req, res) => {
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
 
-    const reset = await prisma.passwordReset.findUnique({ where: { token } });
+    const tokenHash = crypto.createHash('sha256').update(String(token)).digest('hex');
+    const reset = await prisma.passwordReset.findUnique({ where: { token: tokenHash } });
     if (!reset || reset.used || reset.expiresAt < new Date()) {
       return res.status(400).json({ error: 'Invalid or expired reset token' });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    await prisma.user.update({ where: { id: reset.userId }, data: { passwordHash } });
-    await prisma.passwordReset.update({ where: { id: reset.id }, data: { used: true } });
+    await prisma.$transaction([
+      prisma.user.update({ where: { id: reset.userId }, data: { passwordHash } }),
+      prisma.passwordReset.update({ where: { id: reset.id }, data: { used: true } }),
+    ]);
 
     res.json({ ok: true, message: 'Password reset successful' });
   } catch (e) {
@@ -310,6 +317,20 @@ router.delete('/account', authMiddleware, demoGuard, async (req, res) => {
 
     const userId = req.userId;
 
+    // Collect proof-photo paths BEFORE the rows vanish, unlink after commit.
+    const uploadsDir = path.join(__dirname, '../../uploads');
+    let photoFiles = [];
+    try {
+      const [hLogs, tLogs, me] = await Promise.all([
+        prisma.habitLog.findMany({ where: { userId, proofUrl: { not: null } }, select: { proofUrl: true } }),
+        prisma.taskLog.findMany({ where: { userId, proofUrl: { not: null } }, select: { proofUrl: true } }),
+        prisma.user.findUnique({ where: { id: userId }, select: { avatar: true } }),
+      ]);
+      photoFiles = [...hLogs, ...tLogs].map((l) => l.proofUrl).concat(me?.avatar ? [me.avatar] : [])
+        .filter((u) => typeof u === 'string' && u.startsWith('/uploads/'))
+        .map((u) => path.basename(u));
+    } catch { photoFiles = []; }
+
     await prisma.$transaction(async (tx) => {
       await tx.habitLog.deleteMany({ where: { userId } });
       await tx.habitBreak.deleteMany({ where: { userId } });
@@ -333,6 +354,11 @@ router.delete('/account', authMiddleware, demoGuard, async (req, res) => {
       await tx.passwordReset.deleteMany({ where: { userId } });
       await tx.user.delete({ where: { id: userId } });
     });
+
+    for (const f of photoFiles) {
+      if (!/^[\w\-.]+$/.test(f)) continue;
+      fs.unlink(path.join(uploadsDir, f), () => {});
+    }
 
     res.clearCookie('token');
     res.json({ ok: true });

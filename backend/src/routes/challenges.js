@@ -7,7 +7,8 @@ const { dayKey } = require('../utils/dayKey');
 
 const router = Router();
 
-const INVITE_SECRET = process.env.JWT_SECRET || 'bebetter-challenge-invite-secret';
+const { JWT_SECRET } = require('../middleware/auth');
+const INVITE_SECRET = crypto.createHash('sha256').update('challenge-invite:' + JWT_SECRET).digest('hex');
 
 function createInviteToken(challengeId) {
   const payload = { challengeId, iat: Math.floor(Date.now() / 1000) };
@@ -227,7 +228,7 @@ router.get('/invite/:token', async (req, res) => {
   }
 });
 
-router.post('/invite/:token/accept', authMiddleware, async (req, res) => {
+router.post('/invite/:token/accept', authMiddleware, demoGuard, async (req, res) => {
   try {
     const payload = verifyInviteToken(req.params.token);
     if (!payload) return res.status(400).json({ error: 'Invalid or expired invite link' });
@@ -268,7 +269,7 @@ router.post('/invite/:token/accept', authMiddleware, async (req, res) => {
   }
 });
 
-router.post('/:id/accept', authMiddleware, async (req, res) => {
+router.post('/:id/accept', authMiddleware, demoGuard, async (req, res) => {
   try {
     const { id } = req.params;
     const challenge = await prisma.challenge.findUnique({ where: { id } });
@@ -307,7 +308,7 @@ router.post('/:id/accept', authMiddleware, async (req, res) => {
   }
 });
 
-router.post('/:id/decline', authMiddleware, async (req, res) => {
+router.post('/:id/decline', authMiddleware, demoGuard, async (req, res) => {
   try {
     const { id } = req.params;
     const challenge = await prisma.challenge.findUnique({ where: { id } });
@@ -460,7 +461,7 @@ router.get('/:id/progress', authMiddleware, async (req, res) => {
   }
 });
 
-router.post('/:id/resolve', authMiddleware, async (req, res) => {
+router.post('/:id/resolve', authMiddleware, demoGuard, async (req, res) => {
   try {
     const { id } = req.params;
     const { winnerId } = req.body;

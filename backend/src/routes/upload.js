@@ -11,8 +11,10 @@ const MAX_SIZE = 5 * 1024 * 1024;
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, path.join(__dirname, '../../uploads')),
   filename: (req, file, cb) => {
+    // Unpredictable names: userId+timestamp filenames were enumerable.
+    const { randomUUID } = require('crypto');
     const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `${req.userId}-${Date.now()}${ext}`);
+    cb(null, `${randomUUID()}${ext}`);
   },
 });
 

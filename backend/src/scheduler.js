@@ -194,10 +194,14 @@ async function sendPushNotification(userId, title, body, url, db = prisma) {
 
     for (const sub of subscriptions) {
       try {
-        await webpush.sendNotification(
-          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-          payload
-        );
+        // Dead push endpoints must not stall the scheduler tick or request handlers.
+        await Promise.race([
+          webpush.sendNotification(
+            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+            payload
+          ),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('push timeout')), 10000)),
+        ]);
       } catch (e) {
         if (e.statusCode === 404 || e.statusCode === 410) {
           await db.pushSubscription.delete({ where: { id: sub.id } });

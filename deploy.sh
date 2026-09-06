@@ -19,6 +19,23 @@ cd "$(dirname "$0")"
 
 log() { echo -e "\033[1;36m[deploy]\033[0m $*"; }
 
+# Rollback aid: tag the currently-live image before overwriting the tag.
+# Roll back with: docker tag bebetter-backend:prev bebetter-backend && ./deploy.sh
+PREV_TAG="bebetter-backend:prev-$(date +%Y%m%d-%H%M%S)"
+if docker image inspect bebetter-backend >/dev/null 2>&1; then
+  log "Tagging live image as $PREV_TAG (rollback point)..."
+  docker tag bebetter-backend "$PREV_TAG"
+fi
+
+# Never leave a half-deployed green attached to the live Traefik service.
+cleanup_green() {
+  if docker ps --format '{{.Names}}' | grep -qx 'bebetter-api-green'; then
+    log "Cleaning up orphan green instance..."
+    docker compose rm -sf backend-green || true
+  fi
+}
+trap cleanup_green EXIT
+
 log "Building image..."
 docker compose build backend
 

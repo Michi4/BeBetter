@@ -415,7 +415,7 @@ router.put('/:id', authMiddleware, demoFieldGuard(['reminderMinutes', 'isPublic'
   }
 });
 
-router.delete('/:id', authMiddleware, async (req, res) => {
+router.delete('/:id', authMiddleware, demoGuard, async (req, res) => {
   try {
     const { id } = req.params;
     const habit = await prisma.habit.findUnique({ where: { id } });

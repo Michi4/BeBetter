@@ -29,7 +29,7 @@
 
       <!-- 24h mode: native time input -->
       <input v-else :value="modelValue" @input="$emit('update:modelValue', $event.target.value)"
-        type="time" class="input w-24 text-xs text-center" :disabled="disabled" />
+        type="time" aria-label="Time" class="input w-24 text-xs text-center" :disabled="disabled" />
 
       <button v-if="allowClear" type="button" @click="emit('update:modelValue', '')"
         class="w-6 h-6 rounded-md flex items-center justify-center text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0" :aria-label="clearLabel">

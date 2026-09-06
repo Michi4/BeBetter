@@ -183,9 +183,16 @@ router.get('/streak', authMiddleware, async (req, res) => {
     if (habitId) {
       const habit = await prisma.habit.findUnique({
         where: { id: habitId },
-        select: { daysPerWeek: true, frequencyType: true, bestStreak: true },
+        select: { userId: true, daysPerWeek: true, frequencyType: true, bestStreak: true },
       });
       if (!habit) return res.status(404).json({ error: 'Not found' });
+      if (habit.userId !== req.userId) {
+        const shared = await prisma.challenge.findFirst({
+          where: { habitId, opponentId: req.userId, status: 'active' },
+          select: { id: true },
+        });
+        if (!shared) return res.status(404).json({ error: 'Not found' });
+      }
 
       const logs = await prisma.habitLog.findMany({
         where: { userId: req.userId, habitId },
@@ -248,7 +255,7 @@ router.get('/streak', authMiddleware, async (req, res) => {
 router.get('/consistency', authMiddleware, async (req, res) => {
   try {
     const { habitId, days } = req.query;
-    const numDays = parseInt(days) || 30;
+    const numDays = Math.min(Math.max(parseInt(days) || 30, 1), 366);
     const endDate = new Date();
     endDate.setHours(0, 0, 0, 0);
     const startDate = new Date(endDate);
@@ -307,7 +314,7 @@ router.get('/consistency', authMiddleware, async (req, res) => {
 router.get('/weekly', authMiddleware, async (req, res) => {
   try {
     const { weeks } = req.query;
-    const numWeeks = parseInt(weeks) || 4;
+    const numWeeks = Math.min(Math.max(parseInt(weeks) || 4, 1), 52);
 
     const now = new Date();
     const startOfWeek = new Date(now);

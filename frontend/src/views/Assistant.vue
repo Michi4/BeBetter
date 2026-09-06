@@ -25,7 +25,7 @@
         <div v-for="s in sessions" :key="s.id"
           class="group flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors min-h-[44px]"
           :class="s.id === currentSession ? 'bg-emerald-500/10 ring-1 ring-emerald-500/30' : 'hover:bg-gray-800'"
-          role="button" tabindex="0" @click="openSession(s)" @keydown.enter="openSession(s)">
+          role="button" tabindex="0" @click="openSession(s)" @keydown.enter="openSession(s)" @keydown.space.prevent="openSession(s)">
           <MessageSquare :size="14" class="shrink-0" :class="s.id === currentSession ? 'text-emerald-400' : 'text-gray-500'" />
           <div class="flex-1 min-w-0">
             <div class="text-sm truncate" :class="s.id === currentSession ? 'text-emerald-300 font-medium' : 'text-gray-200'">{{ s.title }}</div>

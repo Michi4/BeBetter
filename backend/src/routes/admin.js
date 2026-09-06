@@ -75,6 +75,7 @@ router.get('/users', async (req, res) => {
         bannedUntil: true, createdAt: true, _count: { select: { habits: true, logs: true } },
       },
       orderBy: { createdAt: 'desc' },
+      take: 100,
     });
 
     res.json({ users });
@@ -146,6 +147,7 @@ router.get('/reports', async (req, res) => {
         reporter: { select: { id: true, username: true } },
       },
       orderBy: { createdAt: 'desc' },
+      take: 100,
     });
 
     const enriched = await Promise.all(reports.map(async (r) => {

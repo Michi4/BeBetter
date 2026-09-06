@@ -4,6 +4,15 @@
       <Loader2 :size="24" class="animate-spin text-gray-500" />
     </div>
     <template v-else>
+    <div v-if="loadFailed" class="card text-center py-16 space-y-3">
+      <p class="text-gray-300 font-medium">Habit not found</p>
+      <p class="text-sm text-gray-500">It may have been deleted or the link is wrong.</p>
+      <div class="flex gap-2 justify-center">
+        <button class="btn-secondary" @click="$router.back()">Back</button>
+        <router-link class="btn" to="/habits">All habits</router-link>
+      </div>
+    </div>
+    <template v-else>
     <div class="flex items-center gap-2">
       <button @click="$router.back()" class="btn-ghost p-1" aria-label="Go back"><ArrowLeft :size="18" /></button>
       <h1 class="text-xl font-bold truncate">{{ habit.title }}</h1>
@@ -277,6 +286,7 @@
       </div>
     </Teleport>
     </template>
+    </template>
   </div>
 </template>
 
@@ -298,6 +308,7 @@ const toast = useToast()
 const auth = useAuthStore()
 
 const habit = ref({})
+const loadFailed = ref(false)
 const logs = ref([])
 const loading = ref(true)
 const editing = ref(false)
@@ -394,6 +405,7 @@ async function loadHabit() {
 
     loadChallenges()
   } catch {
+    loadFailed.value = true
     toast.error('Failed to load habit')
   } finally {
     loading.value = false

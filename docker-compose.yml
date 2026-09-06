@@ -31,6 +31,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-bebetter-jwt-secret-change-me-in-prod}
       B_AI_API_KEY: ${B_AI_API_KEY:-}
       AI_MODELS: ${AI_MODELS:-}
+      NODE_ENV: production
       PORT: "3000"
       TZ: Europe/Vienna
     volumes:
@@ -87,6 +88,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-bebetter-jwt-secret-change-me-in-prod}
       B_AI_API_KEY: ${B_AI_API_KEY:-}
       AI_MODELS: ${AI_MODELS:-}
+      NODE_ENV: production
       PORT: "3000"
       TZ: Europe/Vienna
     volumes:

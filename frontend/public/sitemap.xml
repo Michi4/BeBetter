@@ -5,16 +5,8 @@
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
-  <url>
-    <loc>https://bebetter.websters.at/login</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://bebetter.websters.at/register</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
+  
+  
   <url>
     <loc>https://bebetter.websters.at/privacy</loc>
     <changefreq>yearly</changefreq>

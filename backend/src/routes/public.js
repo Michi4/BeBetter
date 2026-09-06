@@ -1,7 +1,10 @@
 const { Router } = require('express');
 const prisma = require('../lib/prisma');
 
+const { publicLimiter } = require('../middleware/rateLimit');
+
 const router = Router();
+router.use(publicLimiter);
 
 function normalizeJson(val) {
   if (val == null) return null;

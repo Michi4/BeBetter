@@ -432,6 +432,14 @@
         </div>
       </Teleport>
     </template>
+    <div v-else class="card text-center py-16 space-y-3">
+      <p class="text-gray-300 font-medium">Profile could not be loaded</p>
+      <p class="text-sm text-gray-500">Check the link or try again.</p>
+      <div class="flex gap-2 justify-center">
+        <button class="btn-secondary" @click="$router.back()">Back</button>
+        <button class="btn" @click="loadProfile()">Retry</button>
+      </div>
+    </div>
   </div>
 </template>
 

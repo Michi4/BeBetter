@@ -316,7 +316,10 @@ router.delete('/habit/:habitId', authMiddleware, async (req, res) => {
       orderBy: { completedAt: 'asc' },
     });
     const { bestStreak } = calculateBestStreak(allLogs);
-    await prisma.habit.update({ where: { id: habitId }, data: { bestStreak } });
+    const habitOwner = await prisma.habit.findUnique({ where: { id: habitId }, select: { userId: true } });
+    if (habitOwner && habitOwner.userId === req.userId) {
+      await prisma.habit.update({ where: { id: habitId }, data: { bestStreak } });
+    }
 
     res.json({ ok: true });
   } catch (e) {

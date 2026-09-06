@@ -4,6 +4,9 @@ const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.world4you.com',
   port: parseInt(process.env.SMTP_PORT) || 587,
   secure: false,
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 15000,
   auth: {
     user: process.env.SMTP_USER || 'office@websters.at',
     pass: process.env.SMTP_PASS,

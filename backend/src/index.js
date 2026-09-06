@@ -4,6 +4,7 @@ const cookieParser = require('cookie-parser');
 const compression = require('compression');
 const path = require("path");
 const fs = require("fs");
+const prisma = require('./lib/prisma');
 
 const authRoutes = require('./routes/auth');
 const habitRoutes = require('./routes/habits');
@@ -48,6 +49,7 @@ app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=()');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   next();
 });
 
@@ -72,7 +74,14 @@ app.use('/api/assistant/sessions', assistantSessionRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/admin', adminRoutes);
 
-app.get('/api/health', (_, res) => res.json({ ok: true }));
+app.get('/api/health', async (_, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ ok: true });
+  } catch {
+    res.status(503).json({ ok: false, error: 'Database unreachable' });
+  }
+});
 
 const publicDir = path.join(__dirname, '../public');
 app.use(express.static(publicDir, {

@@ -20,7 +20,7 @@
         <form @submit.prevent="handleSubmit" class="card p-6 sm:p-7 space-y-4 rounded-2xl">
           <div v-if="error" class="text-red-400 text-sm bg-red-500/10 px-3 py-2 rounded-lg">{{ error }}</div>
           <div v-if="success" class="text-emerald-400 text-sm bg-emerald-500/10 px-3 py-2 rounded-lg">{{ success }}</div>
-          <input v-model="email" type="email" autocomplete="email" placeholder="Email" class="input" required />
+          <label class="sr-only" for="forgot-email">Email</label><input id="forgot-email" v-model="email" type="email" autocomplete="email" placeholder="Email" class="input" required />
           <button type="submit" class="btn w-full" :disabled="loading">
             <Loader2 v-if="loading" :size="18" class="animate-spin" />
             <span v-else>Send Reset Link</span>

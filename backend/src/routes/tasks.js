@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const prisma = require('../lib/prisma');
-const { authMiddleware, demoFieldGuard } = require('../middleware/auth');
+const { authMiddleware, demoFieldGuard, demoGuard } = require('../middleware/auth');
 const { parseDayKey } = require('../utils/dayKey');
 
 const router = Router();
@@ -204,7 +204,7 @@ router.put('/:id', authMiddleware, demoFieldGuard(['scheduledTime', 'scheduledDa
   }
 });
 
-router.delete('/:id', authMiddleware, async (req, res) => {
+router.delete('/:id', authMiddleware, demoGuard, async (req, res) => {
   try {
     const { id } = req.params;
     const task = await prisma.task.findUnique({ where: { id } });

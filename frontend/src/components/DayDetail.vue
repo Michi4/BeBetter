@@ -69,7 +69,7 @@
     <!-- Photo Lightbox -->
     <div v-if="lightboxSrc" class="fixed inset-0 z-[80] flex items-center justify-center bg-black/90 backdrop-blur-sm" @click.self="lightboxSrc = null" @keydown.escape="lightboxSrc = null" tabindex="-1" ref="lightboxEl">
       <button @click="lightboxSrc = null" class="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors z-10"><X :size="20" /></button>
-      <img :src="lightboxSrc" class="max-w-[90vw] max-h-[85vh] object-contain rounded-lg" />
+      <img :src="lightboxSrc" alt="Logged verification photo, enlarged" class="max-w-[90vw] max-h-[85vh] object-contain rounded-lg" />
     </div>
   </Teleport>
 </template>

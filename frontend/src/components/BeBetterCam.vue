@@ -22,7 +22,7 @@
 
         <!-- Captured photo preview -->
         <div v-if="photoUrl && showSwapPreview" class="absolute inset-0" @click="swapPreview">
-          <img :src="photoUrl" class="w-full h-full object-cover" />
+          <img :src="photoUrl" alt="Verification photo preview" class="w-full h-full object-cover" />
           <div class="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full bg-black/60 text-white text-xs flex items-center gap-1.5">
             <ArrowLeftRight :size="12" /> Tap to switch
           </div>

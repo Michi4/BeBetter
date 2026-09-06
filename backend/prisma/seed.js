@@ -4,7 +4,10 @@ const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
 
 async function main() {
-  const adminPassword = process.env.ADMIN_PASSWORD || 'Michael23';
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  if (!adminPassword) {
+    throw new Error('FATAL: ADMIN_PASSWORD env var is required to seed (refusing guessable default)');
+  }
   const adminHash = await bcrypt.hash(adminPassword, 10);
 
   const michi = await prisma.user.upsert({

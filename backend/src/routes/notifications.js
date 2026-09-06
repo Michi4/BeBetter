@@ -38,7 +38,7 @@ router.get('/', authMiddleware, async (req, res) => {
 router.post('/read', authMiddleware, async (req, res) => {
   try {
     const { ids } = req.body;
-    if (ids && Array.isArray(ids)) {
+    if (ids && Array.isArray(ids) && ids.length <= 200 && ids.every((x) => typeof x === "string" && x.length <= 64)) {
       await prisma.notification.updateMany({
         where: { id: { in: ids }, userId: req.userId },
         data: { read: true },

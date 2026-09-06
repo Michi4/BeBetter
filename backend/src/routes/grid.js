@@ -8,8 +8,17 @@ const router = Router();
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const { from, to } = req.query;
+    const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+    if ((from !== undefined && (typeof from !== 'string' || !DAY_RE.test(from))) ||
+        (to !== undefined && (typeof to !== 'string' || !DAY_RE.test(to)))) {
+      return res.status(400).json({ error: 'from/to must be YYYY-MM-DD' });
+    }
     const start = from ? parseDayKey(from) : new Date(new Date().getFullYear(), 0, 1);
     const end = to ? parseDayKey(to) : new Date();
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start ||
+        (end - start) > 400 * 24 * 60 * 60 * 1000) {
+      return res.status(400).json({ error: 'Invalid date range (max 400 days)' });
+    }
 
     const vacationDays = await prisma.vacation.findMany({
       where: {

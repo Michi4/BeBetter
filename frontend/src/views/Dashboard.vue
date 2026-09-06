@@ -292,8 +292,8 @@ async function createQuickTask() {
     todayTasks.value.unshift(res.data.task || res.data)
     quickTaskTitle.value = ''
     toast.success('Task created')
-  } catch {
-    toast.error('Failed to create task')
+  } catch (e) {
+    toast.error(e?.response?.data?.error || 'Failed to create task')
   }
 }
 
