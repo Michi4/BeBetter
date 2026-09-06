@@ -306,5 +306,34 @@ Only health signals are Docker/Traefik checks; uptime-kuma exists on infra but a
 ### Phase 7 note (dev runner)
 `test.sh` hardcodes prod BASE + uses host `docker exec`. Dev runs use `/tmp` copy with `BASE=http://bebetter-dev-api:3000/api`, dev-DB exec, inside a runner container with docker socket mounted. First dev run showed 6 admin FAILs — runner artifact (no docker CLI in container), not app bugs. Committed `test-assistant.js` (19 checks, `BASE`-overridable) closes the E2E-coverage gap for the assistant.
 
+### Approved follow-ups (user-approved 2026-09-06, all verified)
+- **JWT rotation (CRITICAL-1 CLOSED):** Frankfurt `.env` backed up (`.env.bak-20260906`, host-only), `JWT_SECRET` replaced with fresh 96-hex-char random (format-verified, value never printed). Full redeploy. Live proof: token forged with the old public default → **401 REJECTED** (was: would have been accepted). All users/sessions logged out once, as announced. Friend/challenge invite links signed under the old derived scheme invalidated (regenerable).
+- **Prod indexes (HIGH CLOSED):** 19 `@@index` added (Habit/Task/HabitLog/TaskLog/Notification/Activity/User/etc.), `prisma validate` + `format` clean, pushed to dev (`db push` in sync), `pg_indexes` confirms (`Habit_userId_idx`, …). Prod `db push` via deploy created 22 custom indexes (verified count). EXPLAIN on small tables still seq-scans (correct plan at 39 rows).
+- **FriendAccept explicit-accept (HIGH CLOSED):** auto-accept on mount removed; new `POST /friends/link/decline` invalidates the link server-side; Decline button calls it. Live dev probe: decline → 200, accept-after-decline → 400. `vite build` green.
+- **Backup restore (MEDIUM CLOSED):** latest dump restored into scratch `postgres:18-alpine` on prod host → exit 0, row counts sane (24 users / 16 habits / 48 tasks / 728 logs). Scratch destroyed. Recovery proven.
+- **Pre-deploy snapshot:** `deploy.sh` now pg_dumps live DB to `backups/pre-deploy-<ts>.sql` (keeps 5) before building. File-only change, `bash -n` clean, synced to prod host (takes effect next deploy).
+- **Prod post-deploy verification:** 83/83 suite (run on Frankfurt), 19/19 assistant E2E (prod), new bundle `index-C6NTwqzg.js` live on both domains, forged-token rejection confirmed.
+
+## Scorecard
+
+| Phase | Status | Notes |
+|---|---|---|
+| 0 Recon | ✅ Clean | Full inventory above |
+| 1 Frontend | ⚠️ Conditional | Static fixes done + build green; **rendering/console/a11y/Vitals unverified — no headless browser in this env** |
+| 2 Backend/API | ✅ Clean* | AuthZ/validation/DoS fixed + live-verified; *residual: per-field type depth, 4 non-atomic writes, unbounded assistant array |
+| 3 Security | ✅ Clean* | CRITICAL forgery closed+verified; *residual deferred w/ rationale: nodemailer major, CSP, 30d TTL + 6-char policy (product calls), auth-gated uploads (design) |
+| 4 Data/DB | ✅ Clean* | Indexes + restore proven; *residual: FK DDL + N+1 refactors (need migration decision / perf batch) |
+| 5 Infra | ✅ Clean* | Health checks DB, rollback tag+trap+snapshot, CI added, NODE_ENV, VAPID split; *residual: USER root, limits, monitoring registration, **SMTP unwired (reset-mail silently skipped in prod — needs real creds)** |
+| 6 Journeys | ⚠️ Conditional | Assistant + core + FriendAccept verified live; **reset-mail journey blocked on SMTP creds** |
+| 7 Tests | ✅ Clean* | 83/83 prod+dev, 19/19 prod+dev, assistant E2E committed; *residual: no unit tests |
+
+### Verdict: **CONDITIONAL GO**
+Ship the current state — all CRITICALs are closed and verified, HIGHs fixed or decided. Remaining blockers/conditions:
+1. **SMTP credentials** — password-reset mail is silently skipped in prod (`.env` has no `SMTP_PASS`). Provide creds → wire → test on dev → redeploy.
+2. **Browser verification** — run through key pages once with devtools open (console, mobile widths, keyboard) — could not be done from here.
+3. **Users must re-login** — expected fallout of the JWT rotation; consider an announcement.
+4. **Accepted tech debt** (tracked above): prisma-migrate baseline decision, nodemailer major, CSP, N+1 batch, 30d/6-char policy, USER root + limits, monitoring registration.
+`test.sh` hardcodes prod BASE + uses host `docker exec`. Dev runs use `/tmp` copy with `BASE=http://bebetter-dev-api:3000/api`, dev-DB exec, inside a runner container with docker socket mounted. First dev run showed 6 admin FAILs — runner artifact (no docker CLI in container), not app bugs. Committed `test-assistant.js` (19 checks, `BASE`-overridable) closes the E2E-coverage gap for the assistant.
+
 ## Scorecard
 *(final — after fix loop)*
