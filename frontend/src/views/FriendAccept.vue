@@ -36,7 +36,7 @@
             <UserPlus v-else :size="16" />
             Accept Friend
           </button>
-          <router-link to="/dashboard" class="btn-secondary flex-1">Decline</router-link>
+          <button @click="declineFriend" class="btn-secondary flex-1" :disabled="accepting">Decline</button>
         </div>
       </div>
 
@@ -87,6 +87,20 @@ async function acceptFriend() {
   accepting.value = false
 }
 
+async function declineFriend() {
+  if (acceptedOnce) return
+  acceptedOnce = true
+  accepting.value = true
+  try {
+    await api.post('/friends/link/decline', { token: route.params.token })
+    toast.success('Invite declined')
+  } catch {
+    // Link may be invalid/expired — declining is still the user's intent.
+  }
+  accepting.value = false
+  window.location.href = '/dashboard'
+}
+
 onMounted(async () => {
   const token = route.params.token
   if (!token) {
@@ -100,7 +114,7 @@ onMounted(async () => {
     return
   }
 
+  // Explicit choice: never auto-accept on visit. The user taps Accept.
   loading.value = false
-  acceptFriend()
 })
 </script>

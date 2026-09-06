@@ -36,6 +36,20 @@ cleanup_green() {
 }
 trap cleanup_green EXIT
 
+# Pre-deploy snapshot: fast pg_dump so a bad release (or bad db push) is
+# recoverable without waiting for the nightly backup.
+SNAP="backups/pre-deploy-$(date +%Y%m%d-%H%M%S).sql"
+if docker ps --format '{{.Names}}' | grep -qx 'bebetter-db'; then
+  log "Snapshotting live DB to $SNAP..."
+  mkdir -p backups
+  if docker exec bebetter-db pg_dump -U "${POSTGRES_USER:-bebetter}" -d "${POSTGRES_DB:-bebetter_db}" --clean --if-exists > "$SNAP" 2>/dev/null; then
+    ls -1t backups/pre-deploy-*.sql 2>/dev/null | tail -n +6 | xargs -r rm -f
+  else
+    log "WARNING: snapshot failed, continuing without it."
+    rm -f "$SNAP"
+  fi
+fi
+
 log "Building image..."
 docker compose build backend
 

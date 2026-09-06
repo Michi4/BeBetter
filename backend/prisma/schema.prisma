@@ -8,57 +8,59 @@ generator client {
 }
 
 model User {
-  id            String   @id @default(uuid())
-  email         String   @unique
-  username      String   @unique
-  passwordHash  String
-  avatar        String?
-  bio           String?
-  isPublic      Boolean  @default(false)
-  role          String   @default("user")
-  isDemo        Boolean  @default(false)
-  isTest        Boolean  @default(false)
+  id              String    @id @default(uuid())
+  email           String    @unique
+  username        String    @unique
+  passwordHash    String
+  avatar          String?
+  bio             String?
+  isPublic        Boolean   @default(false)
+  role            String    @default("user")
+  isDemo          Boolean   @default(false)
+  isTest          Boolean   @default(false)
   agreedToTermsAt DateTime?
-  bannedUntil   DateTime?
-  banReason     String?
-  createdAt     DateTime @default(now())
+  bannedUntil     DateTime?
+  banReason       String?
+  createdAt       DateTime  @default(now())
 
-  habits             Habit[]
-  logs               HabitLog[]
-  wagersAsUser       Wager[]        @relation("WagerUser")
-  wagersAsPeer       Wager[]        @relation("WagerPeer")
-  presets            Preset[]
-  presetUsages       PresetUsage[]
-  sentRequests       FriendRequest[] @relation("Requester")
-  receivedRequests   FriendRequest[] @relation("Receiver")
-  friendships1       Friendship[]    @relation("User1")
-  friendships2       Friendship[]    @relation("User2")
-  challengesAsCreator  Challenge[] @relation("ChallengeCreator")
-  challengesAsOpponent Challenge[] @relation("ChallengeOpponent")
-  activities         Activity[]
-  breaks             HabitBreak[]
-  vacations          Vacation[]
-  tasks              Task[]
-  taskLogs           TaskLog[]
-  reports            Report[]
-  notifications      Notification[]
-  pushSubscriptions  PushSubscription[]
-  notificationPrefs  NotificationPreference?
-  friendLinksSent    FriendLink[] @relation("FriendLinkSender")
-  passwordResets     PasswordReset[]
-  habitBuddies       HabitBuddy[] @relation("HabitBuddyFriend")
-  assistantSettings  AssistantSettings?
-  chatSessions       ChatSession[]
+  habits               Habit[]
+  logs                 HabitLog[]
+  wagersAsUser         Wager[]                 @relation("WagerUser")
+  wagersAsPeer         Wager[]                 @relation("WagerPeer")
+  presets              Preset[]
+  presetUsages         PresetUsage[]
+  sentRequests         FriendRequest[]         @relation("Requester")
+  receivedRequests     FriendRequest[]         @relation("Receiver")
+  friendships1         Friendship[]            @relation("User1")
+  friendships2         Friendship[]            @relation("User2")
+  challengesAsCreator  Challenge[]             @relation("ChallengeCreator")
+  challengesAsOpponent Challenge[]             @relation("ChallengeOpponent")
+  activities           Activity[]
+  breaks               HabitBreak[]
+  vacations            Vacation[]
+  tasks                Task[]
+  taskLogs             TaskLog[]
+  reports              Report[]
+  notifications        Notification[]
+  pushSubscriptions    PushSubscription[]
+  notificationPrefs    NotificationPreference?
+  friendLinksSent      FriendLink[]            @relation("FriendLinkSender")
+  passwordResets       PasswordReset[]
+  habitBuddies         HabitBuddy[]            @relation("HabitBuddyFriend")
+  assistantSettings    AssistantSettings?
+  chatSessions         ChatSession[]
+
+  @@index([isPublic, isDemo, isTest])
 }
 
 // One assistant conversation (chat thread) per user.
 model ChatSession {
-  id        String        @id @default(uuid())
+  id        String   @id @default(uuid())
   userId    String
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title     String        @default("New chat")
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String   @default("New chat")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   messages ChatMessage[]
 
@@ -80,42 +82,45 @@ model ChatMessage {
 }
 
 model Habit {
-  id               String      @id @default(uuid())
+  id               String    @id @default(uuid())
   userId           String
-  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   title            String
   description      String?
-  emoji            String      @default("")
-  frequencyType    String      @default("daily")
-  daysPerWeek      Json        @default("[1,2,3,4,5,6,7]")
-  schedules        Json?       // [{ time: "15:00", days: [0,1,2,3,4,5,6] }] — time-based scheduling
-  reminderMinutes  Json?       // [0, 5, 15] — array of reminder offsets in minutes
+  emoji            String    @default("")
+  frequencyType    String    @default("daily")
+  daysPerWeek      Json      @default("[1,2,3,4,5,6,7]")
+  schedules        Json? // [{ time: "15:00", days: [0,1,2,3,4,5,6] }] — time-based scheduling
+  reminderMinutes  Json? // [0, 5, 15] — array of reminder offsets in minutes
   config           Json?
-  verificationType String      @default("honor")
-  active           Boolean     @default(true)
-  bestStreak       Int         @default(0)
-  isPublic         Boolean     @default(false)
-  wagerDays        Int         @default(0)
-  wagerAmount      Float       @default(0)
+  verificationType String    @default("honor")
+  active           Boolean   @default(true)
+  bestStreak       Int       @default(0)
+  isPublic         Boolean   @default(false)
+  wagerDays        Int       @default(0)
+  wagerAmount      Float     @default(0)
   finishedAt       DateTime?
   finishedNote     String?
-  createdAt        DateTime    @default(now())
+  createdAt        DateTime  @default(now())
 
-  presetId         String?
-  wagers           Wager[]
-  logs             HabitLog[]
-  challenges       Challenge[]
-  breaks           HabitBreak[]
-  tags             HabitTag[]
-  buddies          HabitBuddy[] @relation("HabitBuddyHabit")
+  presetId   String?
+  wagers     Wager[]
+  logs       HabitLog[]
+  challenges Challenge[]
+  breaks     HabitBreak[]
+  tags       HabitTag[]
+  buddies    HabitBuddy[] @relation("HabitBuddyHabit")
+
+  @@index([userId])
+  @@index([userId, active])
 }
 
 model HabitTag {
-  id       String @id @default(uuid())
-  habitId  String
-  habit    Habit  @relation(fields: [habitId], references: [id], onDelete: Cascade)
-  name     String
-  color    String?
+  id      String  @id @default(uuid())
+  habitId String
+  habit   Habit   @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  name    String
+  color   String?
 }
 
 model HabitBuddy {
@@ -130,17 +135,17 @@ model HabitBuddy {
 }
 
 model Wager {
-  id             String    @id @default(uuid())
+  id             String   @id @default(uuid())
   habitId        String
-  habit          Habit     @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  habit          Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
   userId         String
-  user           User      @relation("WagerUser", fields: [userId], references: [id])
+  user           User     @relation("WagerUser", fields: [userId], references: [id])
   counterpartyId String?
-  counterparty   User?     @relation("WagerPeer", fields: [counterpartyId], references: [id])
+  counterparty   User?    @relation("WagerPeer", fields: [counterpartyId], references: [id])
   condition      String
-  penaltyText    String    @default("")
-  status         String    @default("active")
-  createdAt      DateTime  @default(now())
+  penaltyText    String   @default("")
+  status         String   @default("active")
+  createdAt      DateTime @default(now())
 }
 
 model HabitLog {
@@ -153,7 +158,10 @@ model HabitLog {
   status        String   @default("completed")
   proofUrl      String?
   verifiedBy    String?
-  scheduledTime String?  // "HH:MM" — which time slot was completed
+  scheduledTime String? // "HH:MM" — which time slot was completed
+
+  @@index([userId, completedAt])
+  @@index([habitId])
 }
 
 model HabitBreak {
@@ -165,6 +173,8 @@ model HabitBreak {
   startDate DateTime  @default(now())
   endDate   DateTime?
   reason    String?
+
+  @@index([habitId])
 }
 
 model Vacation {
@@ -175,6 +185,8 @@ model Vacation {
   endDate   DateTime?
   reason    String?
   createdAt DateTime  @default(now())
+
+  @@index([userId])
 }
 
 model Preset {
@@ -197,9 +209,12 @@ model Preset {
   usagesCount      Int      @default(0)
   createdAt        DateTime @default(now())
 
-  habitId          String?
-  likes            PresetLike[]
-  usages           PresetUsage[]
+  habitId String?
+  likes   PresetLike[]
+  usages  PresetUsage[]
+
+  @@index([authorId])
+  @@index([isPublished])
 }
 
 model PresetLike {
@@ -213,36 +228,39 @@ model PresetLike {
 }
 
 model PresetUsage {
-  id             String   @id @default(uuid())
-  userId         String
-  user           User     @relation(fields: [userId], references: [id])
-  presetId       String
-  preset         Preset   @relation(fields: [presetId], references: [id], onDelete: Cascade)
-  isOriginal     Boolean  @default(false)
-  completions    Int      @default(0)
-  currentStreak  Int      @default(0)
-  bestStreak     Int      @default(0)
-  createdAt      DateTime @default(now())
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  presetId      String
+  preset        Preset   @relation(fields: [presetId], references: [id], onDelete: Cascade)
+  isOriginal    Boolean  @default(false)
+  completions   Int      @default(0)
+  currentStreak Int      @default(0)
+  bestStreak    Int      @default(0)
+  createdAt     DateTime @default(now())
 
   @@unique([userId, presetId])
 }
 
 model Challenge {
-  id         String    @id @default(uuid())
-  creatorId  String
-  creator    User      @relation("ChallengeCreator", fields: [creatorId], references: [id])
-  opponentId String
-  opponent   User      @relation("ChallengeOpponent", fields: [opponentId], references: [id])
-  habitId    String
-  habit      Habit     @relation(fields: [habitId], references: [id])
-  title      String    @default("")
+  id          String    @id @default(uuid())
+  creatorId   String
+  creator     User      @relation("ChallengeCreator", fields: [creatorId], references: [id])
+  opponentId  String
+  opponent    User      @relation("ChallengeOpponent", fields: [opponentId], references: [id])
+  habitId     String
+  habit       Habit     @relation(fields: [habitId], references: [id])
+  title       String    @default("")
   description String?
-  startDate  DateTime  @default(now())
-  endDate    DateTime?
-  stake      String?
-  status     String    @default("active")
-  winnerId   String?
-  createdAt  DateTime  @default(now())
+  startDate   DateTime  @default(now())
+  endDate     DateTime?
+  stake       String?
+  status      String    @default("active")
+  winnerId    String?
+  createdAt   DateTime  @default(now())
+
+  @@index([creatorId])
+  @@index([opponentId])
 }
 
 model FriendRequest {
@@ -253,14 +271,17 @@ model FriendRequest {
   receiver    User     @relation("Receiver", fields: [receiverId], references: [id])
   status      String   @default("pending")
   createdAt   DateTime @default(now())
+
+  @@index([receiverId, status])
+  @@index([requesterId, status])
 }
 
 model Friendship {
-  id       String @id @default(uuid())
-  user1Id  String
-  user1    User   @relation("User1", fields: [user1Id], references: [id])
-  user2Id  String
-  user2    User   @relation("User2", fields: [user2Id], references: [id])
+  id        String   @id @default(uuid())
+  user1Id   String
+  user1     User     @relation("User1", fields: [user1Id], references: [id])
+  user2Id   String
+  user2     User     @relation("User2", fields: [user2Id], references: [id])
   createdAt DateTime @default(now())
 
   @@unique([user1Id, user2Id])
@@ -274,38 +295,43 @@ model Activity {
   payload    Json?
   visibility String   @default("friends")
   createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
 
 model Report {
-  id           String   @id @default(uuid())
-  reporterId   String
-  reporter     User     @relation(fields: [reporterId], references: [id])
-  targetType   String
-  targetId     String
-  targetData   Json?
-  reason       String
-  description  String?
-  status       String   @default("pending")
-  createdAt    DateTime @default(now())
+  id          String   @id @default(uuid())
+  reporterId  String
+  reporter    User     @relation(fields: [reporterId], references: [id])
+  targetType  String
+  targetId    String
+  targetData  Json?
+  reason      String
+  description String?
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
 }
 
 model Task {
-  id           String    @id @default(uuid())
-  userId       String
-  user         User      @relation(fields: [userId], references: [id])
-  title        String
-  description  String?
-  emoji        String    @default("")
-  dueDate      DateTime?
-  isScheduled  Boolean   @default(true)
-  isEveryday   Boolean   @default(false)
-  isActive     Boolean   @default(true)
-  scheduledTime String?  // "HH:MM" — specific time of day
-  scheduledDays Json?    // [0,1,2,3,4,5,6] — which days (null = everyday if isEveryday)
-  reminderMinutes Json?    // [0, 5, 15] — array of reminder offsets in minutes
-  createdAt    DateTime  @default(now())
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+  title           String
+  description     String?
+  emoji           String    @default("")
+  dueDate         DateTime?
+  isScheduled     Boolean   @default(true)
+  isEveryday      Boolean   @default(false)
+  isActive        Boolean   @default(true)
+  scheduledTime   String? // "HH:MM" — specific time of day
+  scheduledDays   Json? // [0,1,2,3,4,5,6] — which days (null = everyday if isEveryday)
+  reminderMinutes Json? // [0, 5, 15] — array of reminder offsets in minutes
+  createdAt       DateTime  @default(now())
 
-  logs        TaskLog[]
+  logs TaskLog[]
+
+  @@index([userId])
+  @@index([userId, isActive])
 }
 
 model TaskLog {
@@ -317,6 +343,8 @@ model TaskLog {
   completedAt DateTime @default(now())
   note        String?
   proofUrl    String?
+
+  @@index([userId, completedAt])
 }
 
 model Notification {
@@ -328,6 +356,8 @@ model Notification {
   data      Json?
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
 
 model FriendLink {
@@ -352,6 +382,7 @@ model PushSubscription {
   createdAt DateTime @default(now())
 
   @@unique([userId, endpoint])
+  @@index([userId])
 }
 
 model NotificationPreference {
@@ -376,6 +407,8 @@ model PasswordReset {
   expiresAt DateTime
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 // Per-user AI assistant access control. Levels for tasks/habits/logs:

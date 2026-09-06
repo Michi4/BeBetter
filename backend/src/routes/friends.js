@@ -439,4 +439,25 @@ router.post('/link/accept', authMiddleware, async (req, res) => {
   }
 });
 
+// Declining invalidates the link so it can't be used afterwards.
+router.post('/link/decline', authMiddleware, async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ error: 'Token required' });
+
+    const payload = verifyFriendLinkToken(token);
+    if (!payload) return res.status(400).json({ error: 'Invalid or expired token' });
+
+    const link = await prisma.friendLink.findUnique({ where: { id: payload.linkId } });
+    if (!link || link.used) return res.status(400).json({ error: 'Link already used' });
+    if (link.senderId === req.userId) return res.status(400).json({ error: 'Cannot decline your own link' });
+
+    await prisma.friendLink.update({ where: { id: link.id }, data: { used: true, usedById: req.userId } });
+    res.json({ ok: true, message: 'Invite declined' });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 module.exports = router;
