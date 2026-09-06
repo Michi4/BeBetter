@@ -333,7 +333,3 @@ Ship the current state — all CRITICALs are closed and verified, HIGHs fixed or
 2. **Browser verification** — run through key pages once with devtools open (console, mobile widths, keyboard) — could not be done from here.
 3. **Users must re-login** — expected fallout of the JWT rotation; consider an announcement.
 4. **Accepted tech debt** (tracked above): prisma-migrate baseline decision, nodemailer major, CSP, N+1 batch, 30d/6-char policy, USER root + limits, monitoring registration.
-`test.sh` hardcodes prod BASE + uses host `docker exec`. Dev runs use `/tmp` copy with `BASE=http://bebetter-dev-api:3000/api`, dev-DB exec, inside a runner container with docker socket mounted. First dev run showed 6 admin FAILs — runner artifact (no docker CLI in container), not app bugs. Committed `test-assistant.js` (19 checks, `BASE`-overridable) closes the E2E-coverage gap for the assistant.
-
-## Scorecard
-*(final — after fix loop)*
