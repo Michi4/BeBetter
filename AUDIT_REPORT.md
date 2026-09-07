@@ -314,6 +314,16 @@ Only health signals are Docker/Traefik checks; uptime-kuma exists on infra but a
 - **Pre-deploy snapshot:** `deploy.sh` now pg_dumps live DB to `backups/pre-deploy-<ts>.sql` (keeps 5) before building. File-only change, `bash -n` clean, synced to prod host (takes effect next deploy).
 - **Prod post-deploy verification:** 83/83 suite (run on Frankfurt), 19/19 assistant E2E (prod), new bundle `index-C6NTwqzg.js` live on both domains, forged-token rejection confirmed.
 
+### Notification round (user-reported: "settings do not apply" — root-caused + fixed, 2026-09-07)
+- **Missing prefs row (ROOT CAUSE, proven live):** scheduler only visits users WITH a `NotificationPreference` row; rows were created lazily on first settings open. Probe: fresh user + imminent habit → 0 notifications in 200s; after `GET /preferences` → "Now: Habit B" delivered. Dev: 41/55 users had no row; **prod backfill: 22/27 users had no row**. Fix: row created at register (`auth.js`) + idempotent backfill script (`test/backfill-prefs.js`, run on dev + prod).
+- **Prod clock was UTC (ROOT CAUSE #2, proven):** `docker exec bebetter-api date` → UTC despite `TZ=Europe/Vienna` — `tzdata` missing from `node:20-alpine`. All reminders/digests fired 1–2h off wall-clock. Fix: `apk add tzdata` in `Dockerfile` + `Dockerfile.dev`; prod now reports CEST.
+- **Digest emoji escapes removed** (`\u{1F305}`, `\u{1F319}` in scheduler digests) + leaderboard medals → `#1/#2/#3`.
+- **Push subscribe validated** (https-only, length caps); push path live-tested (malformed sub fails in 82ms, 10s timeout wrapper covers dead endpoints).
+- **Full password-reset mail E2E on dev** (fake SMTP catcher, `test/mail-catcher.py`): forgot → mail with token link → reset → 200, reuse → 400, DB holds sha256 + `used=t`.
+- **SMTP send path hardened:** timeouts + `secure` auto-select for port 465. Prod `.env` still lacks `SMTP_*` → mail silently skipped (needs human creds — see verdict item 1).
+- **Full 60-check sweep** (`test-e2e-full.js`, committed): habits/logs/breaks/tasks/grid/stats/friends/challenges/presets/public/vacation/notifications/upload/password-flow — 60/60 dev, 60/60 prod. Found + fixed along the way: task `dueDate` garbage → 500 (now 400, POST+PUT), challenge `endDate` garbage → 500 (now 400).
+- **Challenge decline verified** (200 + resolve-after-decline semantics intact).
+
 ## Scorecard
 
 | Phase | Status | Notes |
