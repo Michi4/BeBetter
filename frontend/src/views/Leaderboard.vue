@@ -131,10 +131,7 @@ function rankColor(i) {
 }
 
 function rankLabel(i) {
-  if (i === 0) return '\u{1F947}'
-  if (i === 1) return '\u{1F948}'
-  if (i === 2) return '\u{1F949}'
-  return String(i + 1)
+  return '#' + (i + 1)
 }
 
 function statusClass(s) {

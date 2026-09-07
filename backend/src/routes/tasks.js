@@ -70,6 +70,10 @@ router.get('/', authMiddleware, async (req, res) => {
 router.post('/', authMiddleware, demoFieldGuard(['scheduledTime', 'scheduledDays', 'isEveryday', 'reminderMinutes']), async (req, res) => {
   try {
     const { title, description, emoji, dueDate, isScheduled, isEveryday, scheduledTime, scheduledDays, reminderMinutes } = req.body;
+    if (dueDate) {
+      const parsed = new Date(dueDate);
+      if (Number.isNaN(parsed.getTime())) return res.status(400).json({ error: 'dueDate must be a valid date' });
+    }
     if (!title) return res.status(400).json({ error: 'Title required' });
 
     const task = await prisma.task.create({
@@ -168,6 +172,10 @@ router.put('/:id', authMiddleware, demoFieldGuard(['scheduledTime', 'scheduledDa
     if (!task || task.userId !== req.userId) return res.status(404).json({ error: 'Not found' });
 
     const { title, description, emoji, dueDate, isActive, isScheduled, isEveryday, scheduledTime, scheduledDays, reminderMinutes } = req.body;
+    if (dueDate) {
+      const parsed = new Date(dueDate);
+      if (Number.isNaN(parsed.getTime())) return res.status(400).json({ error: 'dueDate must be a valid date' });
+    }
 
     const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
     if (scheduledTime !== undefined && scheduledTime !== null && typeof scheduledTime === 'string' && !TIME_RE.test(scheduledTime)) {

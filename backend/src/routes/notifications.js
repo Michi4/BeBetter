@@ -103,6 +103,13 @@ router.post('/subscribe', authMiddleware, demoGuard, async (req, res) => {
   try {
     const { endpoint, p256dh, auth } = req.body;
     if (!endpoint || !p256dh || !auth) return res.status(400).json({ error: 'Missing subscription fields' });
+    if (typeof endpoint !== 'string' || endpoint.length > 512 || !/^https:\/\//.test(endpoint)) {
+      return res.status(400).json({ error: 'Invalid push endpoint' });
+    }
+    if (typeof p256dh !== 'string' || typeof auth !== 'string' ||
+        p256dh.length > 256 || auth.length > 256 || !p256dh.length || !auth.length) {
+      return res.status(400).json({ error: 'Invalid push keys' });
+    }
 
     await prisma.pushSubscription.upsert({
       where: { userId_endpoint: { userId: req.userId, endpoint } },

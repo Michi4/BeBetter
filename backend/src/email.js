@@ -1,9 +1,10 @@
 const nodemailer = require('nodemailer');
 
+const smtpPort = parseInt(process.env.SMTP_PORT) || 587;
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.world4you.com',
-  port: parseInt(process.env.SMTP_PORT) || 587,
-  secure: false,
+  port: smtpPort,
+  secure: smtpPort === 465, // implicit TLS on 465, STARTTLS on 587
   connectionTimeout: 10000,
   greetingTimeout: 10000,
   socketTimeout: 15000,

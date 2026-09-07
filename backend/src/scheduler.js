@@ -469,7 +469,7 @@ async function morningReminder(db = prisma) {
     const dueToday = habits.filter((h) => isHabitDueToday(h, dayOfWeek));
 
     if (dueToday.length > 0) {
-      await sendReminder(pref.userId, `\u{1F305} Good morning! You have ${dueToday.length} habit${dueToday.length > 1 ? 's' : ''} scheduled for today.`, '/habits', { date: todayDate }, db, 'morning_reminder');
+      await sendReminder(pref.userId, `Good morning! You have ${dueToday.length} habit${dueToday.length > 1 ? 's' : ''} scheduled for today.`, '/habits', { date: todayDate }, db, 'morning_reminder');
     }
   }
 }
@@ -516,7 +516,7 @@ async function eveningReminder(db = prisma) {
     const completedCount = new Set(todayLogs.map((l) => l.habitId)).size;
 
     if (completedCount < dueToday.length) {
-      await sendReminder(pref.userId, `\u{1F319} Day's not over yet! You've completed ${completedCount}/${dueToday.length} habits today. Keep going!`, '/habits', { date: todayDate }, db, 'evening_reminder');
+      await sendReminder(pref.userId, `Day's not over yet! You've completed ${completedCount}/${dueToday.length} habits today. Keep going!`, '/habits', { date: todayDate }, db, 'evening_reminder');
     }
   }
 }

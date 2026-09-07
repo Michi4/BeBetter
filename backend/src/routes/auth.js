@@ -73,6 +73,11 @@ router.post('/register', registerLimiter, async (req, res) => {
       data: { email, passwordHash, username, agreedToTermsAt: new Date() },
     });
 
+    // Every user gets a preference row at signup — the scheduler only visits
+    // users WITH a row, so without this, reminders/digests silently never fire
+    // until the user happens to open notification settings.
+    await prisma.notificationPreference.create({ data: { userId: user.id } }).catch(() => {});
+
     if (friendToken) {
       // friendToken is the signed JWT produced by POST /friends/link, not the
       // raw DB token column. Decode it to find the link id.

@@ -117,6 +117,10 @@ router.post('/', authMiddleware, demoGuard, async (req, res) => {
   try {
     const { habitId, opponentId, endDate } = req.body;
     if (!habitId || !opponentId) return res.status(400).json({ error: 'habitId and opponentId required' });
+    if (endDate) {
+      const parsed = new Date(endDate);
+      if (Number.isNaN(parsed.getTime())) return res.status(400).json({ error: 'endDate must be a valid date' });
+    }
 
     const habit = await prisma.habit.findUnique({ where: { id: habitId } });
     if (!habit || habit.userId !== req.userId) return res.status(404).json({ error: 'Habit not found' });

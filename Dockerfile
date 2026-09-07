@@ -7,6 +7,7 @@ RUN npm run build
 
 FROM node:20-alpine
 WORKDIR /app
+RUN apk add --no-cache tzdata
 COPY backend/package.json backend/package-lock.json ./
 RUN npm ci --omit=dev
 COPY backend/prisma ./prisma
