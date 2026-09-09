@@ -324,6 +324,17 @@ Only health signals are Docker/Traefik checks; uptime-kuma exists on infra but a
 - **Full 60-check sweep** (`test-e2e-full.js`, committed): habits/logs/breaks/tasks/grid/stats/friends/challenges/presets/public/vacation/notifications/upload/password-flow — 60/60 dev, 60/60 prod. Found + fixed along the way: task `dueDate` garbage → 500 (now 400, POST+PUT), challenge `endDate` garbage → 500 (now 400).
 - **Challenge decline verified** (200 + resolve-after-decline semantics intact).
 
+### Feature batch (user requests, 2026-09-08/09 — all live + verified)
+- **Task recurring reminders:** Repeat selector (Once/Daily/Weekly+days) in task creation; `isEveryday`/`scheduledDays` forwarded by Dashboard+Habits handlers (was dropped); standard at-time `[0]` default when a time is set (create + PUT, tasks + habits); scheduler already fires per occurrence.
+- **Every-N-days habits:** `Habit.intervalDays` (2–365) + shared `lib/recurrence.js` (anchor=creation day); wired into scheduler reminders + `isHabitDueToday`, `logs/with-scheduled`, grid counts, stats streaks (interval-aware walk-back), `lib/streak.js` predicate (legacy behavior preserved for weekday habits); RecurrenceBuilder presets (2/3/7 days + custom N) + edit flows; assistant `habits_create` supports it. Streak semantics: consecutive due dates.
+- **Grid since signup + autoscroll:** `ContributionGrid` `startDate` prop (pre-account days blank) + auto-scroll to today on Dashboard/Profile grids.
+- **History month-grid:** Habits history prev/next+date-input replaced by tappable month grid (completion colors) + Today jump; per-day list + undo kept.
+- **Assistant past/multi/advanced:** new `history_query` tool (93-day span, capped), `tasks_create` full surface (repeat/reminders), loop 3→6 steps, prompt (batch creates per turn, history-first for past-Q, scheduling knowledge). Verified live: past-Q answers with dates, 3 creates in one turn, interval creation.
+- **Assistant input docked** to screen bottom (theme-aware bar).
+- **Task drag-sort:** `Task.position` + `POST /tasks/reorder` (ownership-checked, atomic) + GripVertical handle (desktop DnD) + mobile up/down buttons + keyboard arrows.
+- **Owner-write hardening:** opponent logging/unlogging no longer rewrites shared habit `bestStreak` (POST + both DELETE paths).
+- **Suites:** 83/83 + 60/60 (`test-e2e-full.js` committed) + 19/19 (`test-assistant.js`) + adv probes (`test-assistant-adv.js`: DE/EN/FR/ES, past, multi) — all green on dev AND prod.
+
 ## Scorecard
 
 | Phase | Status | Notes |
