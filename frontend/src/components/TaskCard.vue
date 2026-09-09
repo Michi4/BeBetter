@@ -53,7 +53,26 @@
     </div>
 
     <!-- Normal mode -->
-    <div v-else class="flex items-center gap-3 group" @contextmenu.prevent="showContextMenu" @touchstart="startLongPress" @touchend="cancelLongPress" @touchmove="cancelLongPress">
+    <div v-else class="flex items-center gap-2 group" @contextmenu.prevent="showContextMenu" @touchstart="startLongPress" @touchend="cancelLongPress" @touchmove="cancelLongPress"
+      :draggable="dragging" @dragstart="onDragStart" @dragend="onDragEnd" @dragover.prevent="isOver = true" @dragleave="isOver = false" @drop.prevent="onDrop"
+      :class="isOver ? 'rounded-xl outline outline-2 outline-emerald-500/60 outline-offset-2' : ''">
+      <!-- Drag grip (desktop drag + mobile move buttons) -->
+      <div class="shrink-0 flex flex-col items-center -ml-1">
+        <span @mousedown="dragging = true" @touchstart.passive="dragging = true"
+          class="cursor-grab active:cursor-grabbing text-gray-600 hover:text-gray-300 p-1 touch-none"
+          role="button" tabindex="0" aria-label="Drag to reorder task"
+          @keydown.up.prevent="$emit('move', task, -1)" @keydown.down.prevent="$emit('move', task, 1)">
+          <GripVertical :size="16" />
+        </span>
+        <div class="flex md:hidden">
+          <button @click.stop="$emit('move', task, -1)" class="p-1 text-gray-600 hover:text-gray-300" aria-label="Move task up">
+            <ChevronUp :size="14" />
+          </button>
+          <button @click.stop="$emit('move', task, 1)" class="p-1 text-gray-600 hover:text-gray-300" aria-label="Move task down">
+            <ChevronDown :size="14" />
+          </button>
+        </div>
+      </div>
       <!-- Checkbox -->
       <button v-bind="completeTap" @click.stop.prevent
         class="shrink-0 w-11 h-11 rounded-lg border-2 flex items-center justify-center transition-all duration-200"
@@ -106,13 +125,29 @@
 
 <script setup>
 import { ref, reactive, computed, nextTick } from 'vue'
-import { Check, X, Pencil, ArrowRightLeft, Trash2, Clock } from 'lucide-vue-next'
+import { Check, X, Pencil, ArrowRightLeft, Trash2, Clock, GripVertical, ChevronUp, ChevronDown } from 'lucide-vue-next'
 import { formatTime } from '../utils/timeFormat'
 import TimeInput from './TimeInput.vue'
 import { useTap } from '../utils/tapTrigger'
 
 const props = defineProps({ task: { type: Object, required: true } })
-const emit = defineEmits(['complete', 'delete', 'edit', 'convert'])
+const emit = defineEmits(['complete', 'delete', 'edit', 'convert', 'dragstart', 'drop', 'move'])
+
+const dragging = ref(false)
+const isOver = ref(false)
+function onDragStart(e) {
+  try { e.dataTransfer.setData('text/plain', props.task?.id || ''); e.dataTransfer.effectAllowed = 'move' } catch {}
+  emit('dragstart', props.task)
+}
+function onDragEnd() {
+  dragging.value = false
+  isOver.value = false
+}
+function onDrop() {
+  isOver.value = false
+  dragging.value = false
+  emit('drop', props.task)
+}
 
 const showMenu = ref(false)
 const menuPos = ref({ top: '50%', left: '50%' })

@@ -2,6 +2,7 @@ const { Router } = require('express');
 const prisma = require('../lib/prisma');
 const { authMiddleware } = require('../middleware/auth');
 const { dayKey } = require('../utils/dayKey');
+const { isIntervalDueDate } = require('../lib/recurrence');
 
 function parseSchedules(h) {
   return JSON.parse(typeof h.daysPerWeek === 'string' ? h.daysPerWeek : JSON.stringify(h.daysPerWeek || '[]'));
@@ -9,29 +10,43 @@ function parseSchedules(h) {
 
 // Streak = consecutive scheduled days (completions), counted backwards from a
 // given end day. Default end = most recent completed day.
-function computeStreakFrom(logDates, isDaily, sched, endDay) {
+function computeStreakFrom(logDates, isDaily, sched, endDay, isDue) {
   if (!logDates.size) return 0;
   let streak = 0;
   for (let i = 0; i < 365 * 3; i++) {
     const checkDate = new Date(endDay);
     checkDate.setDate(checkDate.getDate() - i);
-    const dow = checkDate.getDay();
-    if (!(isDaily || sched.includes(dow))) continue;
+    checkDate.setHours(0, 0, 0, 0);
+    if (isDue) {
+      if (!isDue(checkDate)) continue;
+    } else {
+      const dow = checkDate.getDay();
+      if (!(isDaily || sched.includes(dow))) continue;
+    }
     if (logDates.has(checkDate.getTime())) streak++;
     else break;
   }
   return streak;
 }
-
-function computeCurrentStreak(logDates, isDaily, sched) {
-  if (!logDates.size) return 0;
-  return computeStreakFrom(logDates, isDaily, sched, new Date(Math.max(...logDates)));
+// Due-predicate for one habit row (interval-aware). Null = legacy weekday logic.
+function duePredicate(h) {
+  if (h && Number.isInteger(h.intervalDays) && h.intervalDays >= 2 && h.createdAt) {
+    const anchor = h.createdAt, n = h.intervalDays;
+    return (d) => isIntervalDueDate(anchor, n, d);
+  }
+  return null;
 }
 
-function computeBestStreak(logDates, isDaily, sched) {
+function computeCurrentStreak(logDates, isDaily, sched, habit) {
+  if (!logDates.size) return 0;
+  return computeStreakFrom(logDates, isDaily, sched, new Date(Math.max(...logDates)), habit ? duePredicate(habit) : null);
+}
+
+function computeBestStreak(logDates, isDaily, sched, habit) {
   let best = 0;
+  const due = habit ? duePredicate(habit) : null;
   for (const ts of logDates) {
-    const s = computeStreakFrom(logDates, isDaily, sched, new Date(ts));
+    const s = computeStreakFrom(logDates, isDaily, sched, new Date(ts), due);
     if (s > best) best = s;
   }
   return best;
@@ -64,7 +79,7 @@ router.get('/overview', authMiddleware, async (req, res) => {
 
     const allHabits = await prisma.habit.findMany({
       where: { userId, active: true },
-      select: { id: true, bestStreak: true, daysPerWeek: true, frequencyType: true },
+      select: { id: true, bestStreak: true, daysPerWeek: true, frequencyType: true, intervalDays: true, createdAt: true },
     });
 
     const bestStreak = allHabits.reduce((max, h) => Math.max(max, h.bestStreak || 0), 0);
@@ -98,14 +113,22 @@ router.get('/overview', authMiddleware, async (req, res) => {
         const isDaily = h.frequencyType === 'daily' || h.frequencyType === 'always';
         const lastLog = new Date(Math.max(...logSet));
         let cur = 0;
-        // A streak is only "current" if not broken for 2+ days
+        // A streak is only "current" if not broken for 2+ days (interval
+        // habits: within one recurrence gap of the last due date).
         const gapDays = Math.round((today - lastLog) / (1000 * 60 * 60 * 24));
-        if (gapDays <= 1) {
+        const due = duePredicate(h);
+        const gapOk = due ? gapDays <= Math.max(h.intervalDays, 1) : gapDays <= 1;
+        if (gapOk) {
           for (let i = 0; i < 365 * 3; i++) {
             const check = new Date(lastLog);
             check.setDate(check.getDate() - i);
-            const dow = check.getDay();
-            if (!(isDaily || sched.includes(dow))) continue;
+            check.setHours(0, 0, 0, 0);
+            if (due) {
+              if (!due(check)) continue;
+            } else {
+              const dow = check.getDay();
+              if (!(isDaily || sched.includes(dow))) continue;
+            }
             if (logSet.has(check.getTime())) cur++;
             else break;
           }
@@ -183,7 +206,7 @@ router.get('/streak', authMiddleware, async (req, res) => {
     if (habitId) {
       const habit = await prisma.habit.findUnique({
         where: { id: habitId },
-        select: { userId: true, daysPerWeek: true, frequencyType: true, bestStreak: true },
+        select: { userId: true, daysPerWeek: true, frequencyType: true, bestStreak: true, intervalDays: true, createdAt: true },
       });
       if (!habit) return res.status(404).json({ error: 'Not found' });
       if (habit.userId !== req.userId) {
@@ -208,15 +231,15 @@ router.get('/streak', authMiddleware, async (req, res) => {
         return d.getTime();
       }));
 
-      const currentStreak = computeCurrentStreak(logDates, isDaily, sched);
-      const bestStreak = Math.max(computeBestStreak(logDates, isDaily, sched), habit.bestStreak || 0);
+      const currentStreak = computeCurrentStreak(logDates, isDaily, sched, habit);
+      const bestStreak = Math.max(computeBestStreak(logDates, isDaily, sched, habit), habit.bestStreak || 0);
 
       return res.json({ bestStreak, currentStreak });
     }
 
     const habits = await prisma.habit.findMany({
       where: { userId: req.userId, active: true },
-      select: { id: true, daysPerWeek: true, frequencyType: true, bestStreak: true },
+      select: { id: true, daysPerWeek: true, frequencyType: true, bestStreak: true, intervalDays: true, createdAt: true },
     });
 
     let maxBest = 0;
@@ -239,9 +262,9 @@ router.get('/streak', authMiddleware, async (req, res) => {
       const sched = parseSchedules(h);
       const isDaily = h.frequencyType === 'daily' || h.frequencyType === 'always';
 
-      const current = computeCurrentStreak(logDates, isDaily, sched);
+      const current = computeCurrentStreak(logDates, isDaily, sched, h);
       if (current > maxCurrent) maxCurrent = current;
-      const best = computeBestStreak(logDates, isDaily, sched);
+      const best = computeBestStreak(logDates, isDaily, sched, h);
       if (best > maxBest) maxBest = best;
     }
 

@@ -47,12 +47,14 @@ const TOOLS = [
     type: 'function',
     function: {
       name: 'tasks_create',
-      description: 'Create a one-time task. Prefer dueDate (YYYY-MM-DD) and optional scheduledTime (HH:MM).',
+      description: 'Create a task. dueDate (YYYY-MM-DD) for a due day, scheduledTime (HH:MM) for a reminder time. Repeat: isEveryday true for daily, or scheduledDays [0-6] for weekly repeats (0=Sun). reminderMinutes e.g. [0] at time, [15,0] for 15min before + at time.',
       parameters: {
         type: 'object',
         properties: {
           title: { type: 'string' }, description: { type: 'string' },
           dueDate: { type: 'string', description: 'YYYY-MM-DD' }, scheduledTime: { type: 'string', description: 'HH:MM' },
+          isEveryday: { type: 'boolean' }, scheduledDays: { type: 'array', items: { type: 'integer' } },
+          reminderMinutes: { type: 'array', items: { type: 'integer' }, description: 'Offsets in minutes, 0 = at time' },
         },
         required: ['title'], additionalProperties: false,
       },
@@ -109,7 +111,7 @@ const TOOLS = [
     type: 'function',
     function: {
       name: 'habits_create',
-      description: 'Create a habit. schedules is a list of {time: HH:MM|null, days: [0-6]}. Omit schedules for an untimed daily habit.',
+      description: 'Create a habit. schedules is a list of {time: HH:MM|null, days: [0-6]}. Omit schedules for an untimed daily habit. intervalDays (2-365) makes it repeat every N days from today instead of weekdays.',
       parameters: {
         type: 'object',
         properties: {
@@ -118,6 +120,8 @@ const TOOLS = [
             type: 'array',
             items: { type: 'object', properties: { time: { type: ['string', 'null'] }, days: { type: 'array', items: { type: 'integer' } } }, additionalProperties: false },
           },
+          intervalDays: { type: 'integer', description: 'Repeat every N days (2-365)' },
+          reminderMinutes: { type: 'array', items: { type: 'integer' }, description: 'Offsets in minutes, 0 = at time' },
         },
         required: ['title'], additionalProperties: false,
       },
@@ -170,6 +174,21 @@ const TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'history_query',
+      description: 'Look up past completions (habit + task logs) in a date range. Use for ANY question about the past: what was done, when, how often. Dates YYYY-MM-DD, defaults to the last 7 days. Max 93-day span.',
+      parameters: {
+        type: 'object',
+        properties: {
+          from: { type: 'string', description: 'YYYY-MM-DD start, default 7 days ago' },
+          to: { type: 'string', description: 'YYYY-MM-DD end, default today' },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'stats_overview',
       description: 'Get streak, consistency, totals and today progress.',
       parameters: { type: 'object', properties: {}, additionalProperties: false },
@@ -199,6 +218,7 @@ const TOOL_POLICY = {
   habits_delete: { group: 'habitsLevel', need: 3, write: true },
   habits_log: { group: 'logsLevel', need: 2, write: true },
   habits_unlog: { group: 'logsLevel', need: 2, write: true },
+  history_query: { group: 'statsLevel', need: 1, write: false },
   stats_overview: { group: 'statsLevel', need: 1, write: false },
   today_summary: { group: 'statsLevel', need: 1, write: false },
 };
@@ -226,6 +246,7 @@ function summarizeCall(tool, args) {
     case 'habits_delete': return 'Deleted';
     case 'habits_log': return 'Logged';
     case 'habits_unlog': return 'Unlogged';
+    case 'history_query': return 'History';
     default: return 'Done';
   }
 }
@@ -250,6 +271,20 @@ async function execTool(userId, tool, args = {}) {
       if (args.scheduledTime && !TIME_RE.test(args.scheduledTime)) return { error: 'scheduledTime must be HH:MM' };
       const due = parseDueDate(args.dueDate);
       if (due && due.invalid) return { error: 'dueDate must be YYYY-MM-DD' };
+      let schedDays;
+      if (args.scheduledDays !== undefined) {
+        if (!Array.isArray(args.scheduledDays) || !args.scheduledDays.every((d) => Number.isInteger(d) && d >= 0 && d <= 6)) {
+          return { error: 'scheduledDays must be an array of 0-6' };
+        }
+        schedDays = [...args.scheduledDays].sort((a, b) => a - b);
+      }
+      let remMinutes;
+      if (args.reminderMinutes !== undefined) {
+        if (!Array.isArray(args.reminderMinutes) || !args.reminderMinutes.every((m) => Number.isInteger(m) && m >= 0 && m <= 1440)) {
+          return { error: 'reminderMinutes must be integers 0-1440' };
+        }
+        remMinutes = args.reminderMinutes;
+      }
       const task = await prisma.task.create({
         data: {
           userId,
@@ -257,6 +292,9 @@ async function execTool(userId, tool, args = {}) {
           description: args.description ? String(args.description).slice(0, 2000) : '',
           dueDate: due || undefined,
           scheduledTime: args.scheduledTime || undefined,
+          isEveryday: args.isEveryday === true ? true : undefined,
+          scheduledDays: schedDays !== undefined ? JSON.stringify(schedDays) : undefined,
+          reminderMinutes: remMinutes !== undefined ? remMinutes : (args.scheduledTime ? [0] : undefined),
         },
       });
       return { id: task.id, title: task.title };
@@ -334,6 +372,20 @@ async function execTool(userId, tool, args = {}) {
         }
         schedules = args.schedules;
       }
+      let intervalDays;
+      if (args.intervalDays !== undefined && args.intervalDays !== null) {
+        intervalDays = Number(args.intervalDays);
+        if (!Number.isInteger(intervalDays) || intervalDays < 2 || intervalDays > 365) {
+          return { error: 'intervalDays must be a whole number between 2 and 365' };
+        }
+      }
+      let remMinutes;
+      if (args.reminderMinutes !== undefined) {
+        if (!Array.isArray(args.reminderMinutes) || !args.reminderMinutes.every((m) => Number.isInteger(m) && m >= 0 && m <= 1440)) {
+          return { error: 'reminderMinutes must be integers 0-1440' };
+        }
+        remMinutes = args.reminderMinutes;
+      }
       const habit = await prisma.habit.create({
         data: {
           userId,
@@ -342,6 +394,9 @@ async function execTool(userId, tool, args = {}) {
           frequencyType: 'daily',
           daysPerWeek: [0, 1, 2, 3, 4, 5, 6],
           schedules: schedules || undefined,
+          intervalDays: intervalDays !== undefined ? intervalDays : undefined,
+          reminderMinutes: remMinutes !== undefined ? remMinutes
+            : (Array.isArray(schedules) && schedules.some((s) => s && s.time) ? [0] : undefined),
           verificationType: 'honor',
         },
       });
@@ -385,6 +440,54 @@ async function execTool(userId, tool, args = {}) {
       if (!logs.length) return { error: 'No completion found for today' };
       await prisma.habitLog.deleteMany({ where: { id: { in: logs.map((l) => l.id) } } });
       return { ok: true, completed: false };
+    }
+    case 'history_query': {
+      const dayKeyOf = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const parseDay = (v, fb) => {
+        if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) {
+          const p = v.split('-').map(Number);
+          const d = new Date(p[0], p[1] - 1, p[2]);
+          if (!Number.isNaN(d.getTime())) return d;
+        }
+        return fb;
+      };
+      const today = dayStart();
+      const weekAgo = new Date(today);
+      weekAgo.setDate(weekAgo.getDate() - 6);
+      let from = parseDay(args.from, weekAgo);
+      let to = parseDay(args.to, today);
+      if (from > to) [from, to] = [to, from];
+      // Clamp span to 93 days.
+      if ((to - from) / 86400000 > 93) {
+        from = new Date(to);
+        from.setDate(from.getDate() - 93);
+      }
+      const toNext = new Date(to);
+      toNext.setDate(toNext.getDate() + 1);
+      const [hLogs, tLogs] = await Promise.all([
+        prisma.habitLog.findMany({
+          where: { userId, completedAt: { gte: from, lt: toNext } },
+          include: { habit: { select: { title: true } } },
+          orderBy: { completedAt: 'desc' },
+          take: 100,
+        }),
+        prisma.taskLog.findMany({
+          where: { userId, completedAt: { gte: from, lt: toNext } },
+          include: { task: { select: { title: true } } },
+          orderBy: { completedAt: 'desc' },
+          take: 100,
+        }),
+      ]);
+      const entries = [
+        ...hLogs.map((l) => ({ date: dayKeyOf(l.completedAt), type: 'habit', title: l.habit?.title || 'Habit' })),
+        ...tLogs.map((l) => ({ date: dayKeyOf(l.completedAt), type: 'task', title: l.task?.title || 'Task' })),
+      ].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 100);
+      return {
+        from: dayKeyOf(from), to: dayKeyOf(to),
+        habitCompletions: hLogs.length, taskCompletions: tLogs.length,
+        truncated: entries.length >= 100,
+        entries,
+      };
     }
     case 'stats_overview':
     case 'today_summary': {
@@ -537,6 +640,9 @@ function systemPrompt(settings) {
     '- Deletions only when the user explicitly asked to delete/remove.',
     '- If a tool result contains {error} about missing access, tell the user they can enable it anytime in Profile \u2192 AI Assistant.',
     '- Times are HH:MM 24h, days 0=Sun..6=Sat, dates YYYY-MM-DD. For a task due on a day without a specific time, pass only dueDate and leave scheduledTime out.',
+    '- MULTIPLE CREATIONS: when the user asks for several tasks/habits at once, emit ALL the create calls together in a single turn (parallel tool calls) — never one per message, never ask "what else" between them.',
+    '- PAST QUESTIONS: questions about what happened ("what did I do last week", "did I run yesterday", "how often") MUST be answered with history_query first — never guess, never say you cannot see the past. Compute the answer from its entries.',
+    '- ADVANCED SCHEDULING: habits support intervalDays (every N days from today) and weekday schedules with times; tasks support dueDate + scheduledTime + weekly repeats (scheduledDays) or daily (isEveryday) + reminder offsets ([0] = at time). Offer these options when a request is vague instead of picking silently.',
   ].join('\n');
 }
 

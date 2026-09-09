@@ -378,6 +378,7 @@ async function loadHabit() {
     ef.title = habit.value.title
     ef.description = habit.value.description || ''
     ef.emoji = habit.value.emoji || ''
+    ef.intervalDays = habit.value.intervalDays ?? null
     ef.verificationType = habit.value.verificationType || 'honor'
     ef.config = habit.value.config || null
     ef.reminderMinutes = Array.isArray(habit.value.reminderMinutes) ? [...habit.value.reminderMinutes] : (habit.value.reminderMinutes != null ? [habit.value.reminderMinutes] : [])
@@ -432,6 +433,7 @@ async function saveEdit() {
       description: ef.description,
       emoji: ef.emoji,
       schedules: ef.schedules,
+      intervalDays: ef.intervalDays ?? null,
       verificationType: ef.verificationType,
       config: ef.config,
       reminderMinutes: ef.reminderMinutes.length ? ef.reminderMinutes : null,

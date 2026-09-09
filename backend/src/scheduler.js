@@ -3,6 +3,7 @@ const webpush = require('web-push');
 const bcrypt = require('bcryptjs');
 
 const { getVapidKeys } = require('./lib/vapid');
+const { isIntervalDueDate } = require('./lib/recurrence');
 const keys = getVapidKeys();
 if (keys.publicKey && keys.privateKey) {
   webpush.setVapidDetails(
@@ -244,6 +245,11 @@ function parseJsonArray(val) {
 }
 
 function isHabitDueToday(habit, dayOfWeek) {
+  // Interval recurrence ("every N days") wins when set — weekday selections
+  // only choose reminder times then, not due-ness.
+  if (Number.isInteger(habit.intervalDays) && habit.intervalDays >= 2) {
+    return isIntervalDueDate(habit.createdAt, habit.intervalDays, new Date());
+  }
   if (habit.frequencyType === 'daily' || habit.frequencyType === 'always') return true;
   const dwp = parseJsonArray(habit.daysPerWeek);
   if (dwp.includes(dayOfWeek)) return true;
@@ -369,7 +375,11 @@ async function checkScheduledReminders(db = prisma) {
       if (!schedules.length || !reminders.length) continue;
 
       for (const slot of schedules) {
-        if (!Array.isArray(slot.days) || !slot.days.includes(dayOfWeek)) continue;
+        // Interval habits: due-ness comes from the interval, not slot weekdays
+        // (slots still provide the reminder times).
+        const intervalOn = Number.isInteger(habit.intervalDays) && habit.intervalDays >= 2;
+        if (!intervalOn && (!Array.isArray(slot.days) || !slot.days.includes(dayOfWeek))) continue;
+        if (intervalOn && !isIntervalDueDate(habit.createdAt, habit.intervalDays, new Date())) continue;
         if (!slot.time) continue;
 
         for (const offset of reminders) {

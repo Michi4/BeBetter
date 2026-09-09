@@ -80,12 +80,16 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { computed, ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 
 const props = defineProps({
   grid: { type: Array, default: () => [] },
   year: { type: Number, default: () => new Date().getFullYear() },
   fit: { type: Boolean, default: false },
+  // Days before startDate (YYYY-MM-DD, e.g. account creation) render blank:
+  // the grid only displays since the account was made.
+  startDate: { type: String, default: null },
+  autoScroll: { type: Boolean, default: true },
 })
 
 defineEmits(['select'])
@@ -185,7 +189,8 @@ const weeks = computed(() => {
     for (let d = 0; d < 7; d++) {
       const dateStr = cursor.toISOString().slice(0, 10)
       const inYear = cursor.getUTCFullYear() === year
-      if (inYear) {
+      const beforeStart = props.startDate && dateStr < props.startDate
+      if (inYear && !beforeStart) {
           const data = dayMap[dateStr]
           if (data) {
             const habits = data.habits ?? data.completed ?? 0
@@ -277,6 +282,24 @@ function onScroll() {
   if (scrollRef.value) scrollLeft.value = scrollRef.value.scrollLeft
 }
 
+function scrollToToday() {
+  if (!props.autoScroll || !scrollRef.value) return
+  const now = new Date()
+  if (now.getFullYear() !== props.year) return
+  const key = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const wi = weeks.value.findIndex(w => w.some(d => d && d.date === key))
+  if (wi < 0) return
+  const x = (dayLabelW + GAP) + wi * (cell.value + GAP)
+  const el = scrollRef.value
+  const maxScroll = Math.max(0, el.scrollWidth - el.clientWidth)
+  if (maxScroll <= 0) return
+  el.scrollLeft = Math.min(maxScroll, Math.max(0, x - el.clientWidth / 2))
+}
+
+watch(weeks, () => {
+  nextTick(() => setTimeout(scrollToToday, 50))
+})
+
 function onWheel(e) {
   if (!scrollRef.value) return
   const el = scrollRef.value
@@ -350,6 +373,7 @@ function measureWidth() {
 onMounted(() => {
   measureWidth()
   window.addEventListener('resize', measureWidth)
+  nextTick(() => setTimeout(scrollToToday, 50))
 })
 onUnmounted(() => window.removeEventListener('resize', measureWidth))
 </script>

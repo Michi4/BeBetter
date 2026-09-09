@@ -106,7 +106,7 @@
         </div>
       </div>
 
-      <div class="sticky bottom-20 md:bottom-4 pt-2">
+      <div class="sticky bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] md:bottom-0 -mx-4 px-4 pt-2 pb-3 bg-[var(--app-bar-bg)] border-t border-gray-800/60">
         <div v-if="!online" class="card !py-2 !px-3 mb-2 text-xs text-amber-300 bg-amber-950/40 border border-amber-900 flex items-center gap-2">
           <WifiOff :size="14" /> You might be offline — messages will still try to send.
         </div>

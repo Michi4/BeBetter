@@ -2,6 +2,7 @@ const { Router } = require('express');
 const prisma = require('../lib/prisma');
 const { authMiddleware, isDemoUser } = require('../middleware/auth');
 const { calculateBestStreak } = require('../lib/streak');
+const { duePredicateFor } = require('../lib/recurrence');
 const { parseDayKey } = require('../utils/dayKey');
 
 const router = Router();
@@ -94,9 +95,13 @@ router.post('/', authMiddleware, async (req, res) => {
       orderBy: { completedAt: 'asc' },
     });
 
-    const { bestStreak, currentStreak } = calculateBestStreak(allLogs);
+    const { bestStreak, currentStreak } = calculateBestStreak(allLogs, duePredicateFor(habit));
 
-    await prisma.habit.update({ where: { id: habitId }, data: { bestStreak } });
+    // Only the owner's logs define the habit's streak — challenge opponents
+    // log to the shared habit but must not rewrite its record.
+    if (habit.userId === req.userId) {
+      await prisma.habit.update({ where: { id: habitId }, data: { bestStreak } });
+    }
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -192,10 +197,13 @@ router.get('/with-scheduled', authMiddleware, async (req, res) => {
       if (d < createdDay) continue;
 
       const sched = JSON.parse(typeof h.daysPerWeek === 'string' ? h.daysPerWeek : JSON.stringify(h.daysPerWeek || '[]'));
+      const { isIntervalDueDate } = require('../lib/recurrence');
+      const intervalDue = h.intervalDays >= 2 && isIntervalDueDate(h.createdAt, h.intervalDays, d);
       const isScheduled = !isOnVacation && (
         h.frequencyType === 'daily' ||
         h.frequencyType === 'always' ||
-        sched.includes(dayOfWeek)
+        sched.includes(dayOfWeek) ||
+        intervalDue
       );
 
       if (isScheduled) {
@@ -315,8 +323,8 @@ router.delete('/habit/:habitId', authMiddleware, async (req, res) => {
       where: { habitId, userId: req.userId },
       orderBy: { completedAt: 'asc' },
     });
-    const { bestStreak } = calculateBestStreak(allLogs);
-    const habitOwner = await prisma.habit.findUnique({ where: { id: habitId }, select: { userId: true } });
+    const habitOwner = await prisma.habit.findUnique({ where: { id: habitId }, select: { userId: true, frequencyType: true, daysPerWeek: true, intervalDays: true, createdAt: true } });
+    const { bestStreak } = calculateBestStreak(allLogs, duePredicateFor(habitOwner));
     if (habitOwner && habitOwner.userId === req.userId) {
       await prisma.habit.update({ where: { id: habitId }, data: { bestStreak } });
     }
@@ -342,9 +350,12 @@ router.delete('/:id', authMiddleware, async (req, res) => {
         orderBy: { completedAt: 'asc' },
       });
 
-      const { bestStreak } = calculateBestStreak(allLogs);
+      const logHabit = await prisma.habit.findUnique({ where: { id: log.habitId }, select: { userId: true, frequencyType: true, daysPerWeek: true, intervalDays: true, createdAt: true } });
+      const { bestStreak } = calculateBestStreak(allLogs, logHabit ? duePredicateFor(logHabit) : null);
 
-      await prisma.habit.update({ where: { id: log.habitId }, data: { bestStreak } });
+      if (logHabit && logHabit.userId === req.userId) {
+        await prisma.habit.update({ where: { id: log.habitId }, data: { bestStreak } });
+      }
     }
 
     res.json({ ok: true });

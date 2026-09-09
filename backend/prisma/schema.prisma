@@ -90,7 +90,8 @@ model Habit {
   emoji            String    @default("")
   frequencyType    String    @default("daily")
   daysPerWeek      Json      @default("[1,2,3,4,5,6,7]")
-  schedules        Json? // [{ time: "15:00", days: [0,1,2,3,4,5,6] }] — time-based scheduling
+  schedules        Json? // [{ time: "15:00", days: [0,1,2,3,4,5,6] }]
+  intervalDays     Int? // "every N days" recurrence (2..365); null = weekday-based scheduling
   reminderMinutes  Json? // [0, 5, 15] — array of reminder offsets in minutes
   config           Json?
   verificationType String    @default("honor")
@@ -326,6 +327,7 @@ model Task {
   scheduledTime   String? // "HH:MM" — specific time of day
   scheduledDays   Json? // [0,1,2,3,4,5,6] — which days (null = everyday if isEveryday)
   reminderMinutes Json? // [0, 5, 15] — array of reminder offsets in minutes
+  position        Int      @default(0) // manual sort order (drag & drop); lower = first
   createdAt       DateTime  @default(now())
 
   logs TaskLog[]

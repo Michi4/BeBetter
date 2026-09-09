@@ -76,7 +76,7 @@
         </div>
         <span v-else class="text-xs font-medium text-gray-400">{{ selectedYear }}</span>
       </div>
-      <ContributionGrid :grid="gridDays" :year="selectedYear" @select="selectDay" />
+      <ContributionGrid :grid="gridDays" :year="selectedYear" :start-date="gridStartDate" @select="selectDay" />
     </div>
 
     <!-- Quick Create (Task + Habit) - desktop only, mobile uses the floating button -->
@@ -106,7 +106,8 @@
       <h3 class="section-title">Today's Tasks</h3>
       <div v-if="visibleTasks.length === 0" class="text-sm text-gray-500 py-2">No tasks for today</div>
       <TaskCard v-for="t in visibleTasks" :key="t.id" :task="t"
-        @complete="completeTask" @delete="deleteTask" @edit="editTask" @convert="convertTask" />
+        @complete="completeTask" @delete="deleteTask" @edit="editTask" @convert="convertTask"
+        @dragstart="dragTaskId = t.id" @drop="dropTask(t)" @move="moveTask" />
       <button v-if="todayTasks.length > 5 && !showAllTasks" @click="showAllTasks = true"
         class="touch-target text-xs text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1">
         <ChevronDown :size="14" /> Show more ({{ todayTasks.length - 5 }} remaining)
@@ -230,12 +231,54 @@ const convertData = ref(null)
 
 const stats = ref({})
 const todayTasks = ref([])
+const dragTaskId = ref(null)
+function orderedIdsAfterMove(list, fromId, toId, dir = 0) {
+  const ids = list.map(t => t.id)
+  const fi = ids.indexOf(fromId)
+  if (fi < 0) return null
+  ids.splice(fi, 1)
+  if (dir !== 0) {
+    ids.splice(Math.max(0, Math.min(ids.length, fi + dir)), 0, fromId)
+  } else {
+    const ti = ids.indexOf(toId)
+    ids.splice(ti < 0 ? ids.length : ti, 0, fromId)
+  }
+  return ids
+}
+async function persistTaskOrder(ids) {
+  const byId = new Map(todayTasks.value.map(t => [t.id, t]))
+  todayTasks.value = ids.map(id => byId.get(id)).filter(Boolean)
+    .concat(todayTasks.value.filter(t => !ids.includes(t.id)))
+  try {
+    await api.post('/tasks/reorder', { ids: todayTasks.value.map(t => t.id) })
+  } catch {
+    loadTasks()
+  }
+}
+function dropTask(target) {
+  const from = dragTaskId.value
+  dragTaskId.value = null
+  if (!from || !target || from === target.id) return
+  const ids = orderedIdsAfterMove(todayTasks.value, from, target.id)
+  if (ids) persistTaskOrder(ids)
+}
+function moveTask(task, dir) {
+  const ids = orderedIdsAfterMove(todayTasks.value, task.id, null, dir)
+  if (ids) persistTaskOrder(ids)
+}
 const todayHabits = ref([])
 const gridDays = ref([])
 const loading = ref(true)
 
 const selectedYear = ref(new Date().getFullYear())
 const yearRange = ref({ firstYear: new Date().getFullYear(), lastYear: new Date().getFullYear() })
+const gridStartDate = computed(() => {
+  const created = auth.user?.createdAt
+  if (!created) return null
+  const d = new Date(created)
+  if (d.getFullYear() !== selectedYear.value) return null
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+})
 
 const visibleTasks = computed(() => {
   if (showAllTasks.value || todayTasks.value.length <= 5) return todayTasks.value
@@ -420,14 +463,15 @@ async function handleCreated(type, data) {
       const payload = { title: data.title, description: data.description, emoji: data.emoji, dueDate: data.dueDate || undefined }
       if (data.scheduledTime) payload.scheduledTime = data.scheduledTime
       if (data.scheduledDays?.length) payload.scheduledDays = data.scheduledDays
+      if (data.isEveryday) payload.isEveryday = true
       if (data.reminderMinutes != null) payload.reminderMinutes = data.reminderMinutes
       const res = await api.post('/tasks', payload)
       todayTasks.value.unshift(res.data.task || res.data)
       toast.success('Task created')
       loadStats()
       loadGrid()
-    } catch {
-      toast.error('Failed to create task')
+    } catch (e) {
+      toast.error(e?.response?.data?.error || 'Failed to create task')
     }
   } else {
     try {
@@ -435,6 +479,7 @@ async function handleCreated(type, data) {
         title: data.title, description: data.description || undefined, emoji: data.emoji,
         schedules: data.schedules, verificationType: data.verificationType,
         makePublic: data.makePublic,
+        intervalDays: data.intervalDays ?? undefined,
       }
       if (data.reminderMinutes != null) payload.reminderMinutes = data.reminderMinutes
       if (data.buddyIds?.length) payload.buddyIds = data.buddyIds

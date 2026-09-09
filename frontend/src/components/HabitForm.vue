@@ -16,7 +16,7 @@
     </div>
 
     <!-- Schedule -->
-    <RecurrenceBuilder v-model="form.schedules" />
+    <RecurrenceBuilder v-model="form.schedules" :interval-days="form.intervalDays ?? null" @update:interval-days="form.intervalDays = $event" />
 
     <!-- Reminders -->
     <div>
@@ -162,6 +162,7 @@ const form = reactive({
   schedules: Array.isArray(props.modelValue?.schedules) && props.modelValue.schedules.length
     ? props.modelValue.schedules.map(s => ({ time: s?.time ?? null, days: [...(s?.days || [])] }))
     : [{ time: null, days: [0, 1, 2, 3, 4, 5, 6] }],
+  intervalDays: props.modelValue?.intervalDays ?? null,
 })
 
 if (!form.schedules || !form.schedules.length) {
@@ -176,6 +177,7 @@ watch(() => props.modelValue, (val) => {
   if (val.title !== undefined) form.title = val.title
   if (val.description !== undefined) form.description = val.description
   if (val.emoji !== undefined) form.emoji = val.emoji
+  if (val.intervalDays !== undefined) form.intervalDays = val.intervalDays
   if (val.schedules !== undefined && Array.isArray(val.schedules)) {
     form.schedules = val.schedules.map(s => ({ time: s?.time ?? null, days: [...(s?.days || [])] }))
   }

@@ -52,7 +52,7 @@ router.get('/', authMiddleware, async (req, res) => {
       }),
       prisma.habit.findMany({
         where: { userId: req.userId, active: true },
-        select: { id: true, daysPerWeek: true, frequencyType: true, schedules: true, createdAt: true, breaks: { select: { startDate: true, endDate: true } } },
+        select: { id: true, daysPerWeek: true, frequencyType: true, schedules: true, createdAt: true, intervalDays: true, breaks: { select: { startDate: true, endDate: true } } },
       }),
     ]);
 
@@ -98,7 +98,9 @@ router.get('/', authMiddleware, async (req, res) => {
         for (const h of parsedHabits) {
           if (h.breaks.some((b) => !b.endDate || new Date(b.endDate) >= cur)) continue;
           if (h.createdAt && cur < startOfDay(h.createdAt)) continue;
-          if (h.frequencyType === 'daily' || h.frequencyType === 'always' || (Array.isArray(h.sched) && h.sched.includes(dow))) {
+          const { isIntervalDueDate } = require('../lib/recurrence');
+          const intervalDue = h.intervalDays >= 2 && isIntervalDueDate(h.createdAt, h.intervalDays, cur);
+          if (h.frequencyType === 'daily' || h.frequencyType === 'always' || (Array.isArray(h.sched) && h.sched.includes(dow)) || intervalDue) {
             if (!grid[ds]) grid[ds] = { scheduled: 0, completed: 0, habits: 0, tasks: 0, items: [] };
             // Count per-slotted-schedule (not per-habit), so a habit with 2
             // timed slots on the same day shows scheduled=2, not 1.

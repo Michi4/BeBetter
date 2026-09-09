@@ -407,6 +407,7 @@ html.light .from-gray-950 { --tw-gradient-from: #f9fafb !important; }
   --app-btn-sec-hover: #2a2f3a;
   --app-nav-bg: rgba(11, 13, 18, 0.86);
   --app-nav-border: rgba(255, 255, 255, 0.06);
+  --app-bar-bg: #030712;
   --app-accent: #34d399;
 }
 html.light {
@@ -437,6 +438,7 @@ html.light {
   --app-btn-sec-hover: #e2e5ea;
   --app-nav-bg: rgba(255, 255, 255, 0.9);
   --app-nav-border: rgba(0, 0, 0, 0.07);
+  --app-bar-bg: #f9fafb;
   --app-accent: #047857;
 }
 /* fix landing navs clobbered by global html.light nav rules */

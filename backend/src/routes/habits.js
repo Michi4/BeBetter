@@ -185,6 +185,15 @@ router.get('/scheduled', authMiddleware, async (req, res) => {
 router.post('/', authMiddleware, demoFieldGuard(['makePublic', 'buddyIds', 'challengeFriendIds', 'reminderMinutes', 'wagerDays', 'wagerAmount']), async (req, res) => {
   try {
     const { title, description, emoji, frequencyType, daysPerWeek, schedule, schedules, reminderMinutes, verificationType, wagerDays, wagerAmount, makePublic, config, buddyIds, challengeFriendIds, endDate } = req.body;
+    let { intervalDays } = req.body;
+    if (intervalDays !== undefined && intervalDays !== null) {
+      intervalDays = Number(intervalDays);
+      if (!Number.isInteger(intervalDays) || intervalDays < 2 || intervalDays > 365) {
+        return res.status(400).json({ error: 'intervalDays must be a whole number between 2 and 365' });
+      }
+    } else {
+      intervalDays = undefined;
+    }
     if (!title) return res.status(400).json({ error: 'Title required' });
 
     if (Array.isArray(schedules)) {
@@ -236,7 +245,11 @@ router.post('/', authMiddleware, demoFieldGuard(['makePublic', 'buddyIds', 'chal
         frequencyType: finalFreqType,
         daysPerWeek: finalDaysPerWeek,
         schedules: Array.isArray(schedules) && schedules.length > 0 ? schedules : undefined,
-        reminderMinutes: reminderMinutes !== undefined ? reminderMinutes : undefined,
+        intervalDays,
+        // Standard reminder: at the set time(s) unless the caller chose otherwise
+        // (or disabled reminders in settings — enforced by the scheduler).
+        reminderMinutes: reminderMinutes !== undefined ? reminderMinutes
+          : (Array.isArray(schedules) && schedules.some((s) => s && s.time) ? [0] : undefined),
         config: config || undefined,
         verificationType: verificationType || 'honor',
         isPublic: makePublic || false,
@@ -349,6 +362,13 @@ router.put('/:id', authMiddleware, demoFieldGuard(['reminderMinutes', 'isPublic'
 
     const { title, description, emoji, frequencyType, daysPerWeek, schedule, schedules, reminderMinutes, verificationType, config, isPublic, active, wagers } = req.body;
     const sched = schedule || daysPerWeek;
+    let { intervalDays } = req.body;
+    if (intervalDays !== undefined && intervalDays !== null) {
+      intervalDays = Number(intervalDays);
+      if (!Number.isInteger(intervalDays) || intervalDays < 2 || intervalDays > 365) {
+        return res.status(400).json({ error: 'intervalDays must be a whole number between 2 and 365' });
+      }
+    }
 
     if ((schedules && schedules.some((s) => s && s.time)) || verificationType === 'be_better_cam' || verificationType === 'photo') {
       if (await isDemoUser(req.userId)) {
@@ -365,6 +385,7 @@ router.put('/:id', authMiddleware, demoFieldGuard(['reminderMinutes', 'isPublic'
       isPublic: isPublic !== undefined ? isPublic : undefined,
       reminderMinutes: reminderMinutes !== undefined ? reminderMinutes : undefined,
       active: active !== undefined ? active : undefined,
+      intervalDays: intervalDays !== undefined ? intervalDays : undefined,
     };
 
     if (Array.isArray(schedules) && schedules.length > 0) {

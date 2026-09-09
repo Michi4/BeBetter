@@ -22,7 +22,7 @@ router.get('/', authMiddleware, async (req, res) => {
 
     const tasks = await prisma.task.findMany({
       where: { userId: req.userId, isActive: true },
-      orderBy: [{ dueDate: 'asc' }, { createdAt: 'desc' }],
+      orderBy: [{ position: 'asc' }, { dueDate: 'asc' }, { createdAt: 'desc' }],
     });
 
     const todayLogs = await prisma.taskLog.findMany({
@@ -76,9 +76,11 @@ router.post('/', authMiddleware, demoFieldGuard(['scheduledTime', 'scheduledDays
     }
     if (!title) return res.status(400).json({ error: 'Title required' });
 
+    const minPos = await prisma.task.aggregate({ where: { userId: req.userId }, _min: { position: true } });
     const task = await prisma.task.create({
       data: {
         userId: req.userId,
+        position: (minPos._min.position ?? 0) - 1,
         title: title.trim(),
         description: description || '',
         emoji: emoji || '',
@@ -87,11 +89,36 @@ router.post('/', authMiddleware, demoFieldGuard(['scheduledTime', 'scheduledDays
         isEveryday: isEveryday || false,
         scheduledTime: scheduledTime || undefined,
         scheduledDays: Array.isArray(scheduledDays) ? JSON.stringify(scheduledDays) : undefined,
-        reminderMinutes: reminderMinutes !== undefined ? reminderMinutes : undefined,
+        // Standard reminder: at the set time unless the caller chose otherwise
+        // (or disabled reminders in settings — enforced by the scheduler).
+        reminderMinutes: reminderMinutes !== undefined ? reminderMinutes : (scheduledTime ? [0] : undefined),
       },
     });
 
     res.json({ task });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Persist manual drag-&-drop order. ids = full ordered id list of the user's
+// visible tasks; positions are assigned 0..n in that order, atomically.
+router.post('/reorder', authMiddleware, async (req, res) => {
+  try {
+    const { ids } = req.body || {};
+    if (!Array.isArray(ids) || !ids.length || ids.length > 200 ||
+        !ids.every((x) => typeof x === 'string' && x.length <= 64)) {
+      return res.status(400).json({ error: 'ids must be an array of 1-200 task ids' });
+    }
+    const owned = await prisma.task.findMany({ where: { id: { in: ids }, userId: req.userId }, select: { id: true } });
+    if (owned.length !== new Set(ids).size) {
+      return res.status(404).json({ error: 'Unknown task in reorder list' });
+    }
+    await prisma.$transaction(
+      ids.map((id, i) => prisma.task.update({ where: { id }, data: { position: i } }))
+    );
+    res.json({ ok: true });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Server error' });
@@ -181,6 +208,10 @@ router.put('/:id', authMiddleware, demoFieldGuard(['scheduledTime', 'scheduledDa
     if (scheduledTime !== undefined && scheduledTime !== null && typeof scheduledTime === 'string' && !TIME_RE.test(scheduledTime)) {
       return res.status(400).json({ error: 'Scheduled time must be in HH:MM format' });
     }
+    // Standard reminder: adding a time without reminders defaults to at-time,
+    // unless the task already has reminders stored.
+    const effectiveTime = scheduledTime !== undefined ? scheduledTime : task.scheduledTime;
+    const needsDefaultReminder = reminderMinutes === undefined && effectiveTime && task.reminderMinutes == null;
     if (Array.isArray(scheduledDays)) {
       for (const d of scheduledDays) {
         if (!Number.isInteger(d) || d < 0 || d > 6) {
@@ -201,7 +232,7 @@ router.put('/:id', authMiddleware, demoFieldGuard(['scheduledTime', 'scheduledDa
         isEveryday: isEveryday !== undefined ? isEveryday : undefined,
         scheduledTime: scheduledTime !== undefined ? scheduledTime : undefined,
         scheduledDays: scheduledDays !== undefined ? (Array.isArray(scheduledDays) ? JSON.stringify(scheduledDays) : scheduledDays) : undefined,
-        reminderMinutes: reminderMinutes !== undefined ? reminderMinutes : undefined,
+        reminderMinutes: reminderMinutes !== undefined ? reminderMinutes : (needsDefaultReminder ? [0] : undefined),
       },
     });
 

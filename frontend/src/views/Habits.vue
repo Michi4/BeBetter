@@ -31,7 +31,7 @@
       </div>
       <div v-if="incompleteTasks.length === 0" class="text-sm text-gray-500 py-2">No incomplete tasks</div>
       <div v-for="task in incompleteTasks" :key="task.id" class="space-y-1" :class="{ 'animate-celebrate': completingTaskId === task.id }">
-        <TaskCard :task="task" @complete="completeTask" @delete="confirmDeleteTask" @edit="updateTaskFromCard" @convert="convertTask" />
+        <TaskCard :task="task" @complete="completeTask" @delete="confirmDeleteTask" @edit="updateTaskFromCard" @convert="convertTask" @dragstart="dragTaskId = task.id" @drop="dropTask(task)" @move="moveTask" />
       </div>
       <div v-if="completedTasks.length > 0" class="rounded-xl border border-gray-800 bg-gray-900/50 overflow-hidden">
         <div class="min-h-[44px] w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-400 hover:bg-gray-800/50 transition-colors">
@@ -125,24 +125,33 @@
     <!-- History Section -->
     <section class="space-y-3">
       <h2 class="section-title">History</h2>
-      <div class="card space-y-4">
+      <div class="card space-y-3">
         <div class="flex items-center justify-between gap-2">
-          <button @click="prevDay" class="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-800 transition-colors" aria-label="Previous day">
+          <button @click="shiftHistoryMonth(-1)" class="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-800 transition-colors" aria-label="Previous month">
             <ChevronLeft :size="18" />
           </button>
           <div class="text-center min-w-0 flex-1">
-            <div class="text-sm font-semibold truncate">{{ selectedDateLabel }}</div>
-            <div class="text-[10px] text-gray-500 mt-0.5">{{ selectedDateStatus }}</div>
+            <div class="text-sm font-semibold truncate">{{ historyMonthLabel }}</div>
+            <div class="text-[10px] text-gray-500 mt-0.5">{{ selectedDateLabel }} · {{ selectedDateStatus }}</div>
           </div>
-          <button @click="nextDay" class="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-800 transition-colors" aria-label="Next day">
+          <button @click="shiftHistoryMonth(1)" :disabled="historyMonth >= currentMonthKey" class="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-800 transition-colors disabled:opacity-30" aria-label="Next month">
             <ChevronRight :size="18" />
           </button>
         </div>
-        <div class="flex items-center gap-2">
-          <input v-model="selectedDate" type="date" aria-label="Habit date" class="min-h-[44px] flex-1 min-w-0 rounded-lg border border-gray-700 bg-gray-800/50 px-3 py-2 text-sm text-gray-200 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
-          <button @click="selectedDate = todayStr()" class="min-h-[44px] rounded-lg bg-gray-800 px-4 py-2 text-xs font-medium text-gray-300 hover:bg-gray-700 transition-colors shrink-0">Today</button>
+        <div class="grid grid-cols-7 gap-1" role="grid" aria-label="Pick a day">
+          <div v-for="d in ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']" :key="d" class="text-center text-[10px] text-gray-600 font-medium py-0.5">{{ d }}</div>
+          <div v-for="cell in historyMonthCells" :key="cell.key">
+            <button v-if="cell.date" type="button" @click="selectedDate = cell.date"
+              :aria-label="cell.date" :aria-pressed="selectedDate === cell.date"
+              class="w-full aspect-square rounded-md text-xs font-medium transition-colors flex items-center justify-center"
+              :class="historyDayClass(cell)">
+              {{ cell.dayNum }}
+            </button>
+            <div v-else class="w-full aspect-square"></div>
+          </div>
         </div>
-        <div v-if="scheduledForDay.length" class="flex items-center gap-2">
+        <button @click="selectedDate = todayStr(); historyMonth = currentMonthKey; loadHistoryMonth()" class="w-full min-h-[40px] rounded-lg bg-gray-800 px-4 py-2 text-xs font-medium text-gray-300 hover:bg-gray-700 transition-colors">Today</button>
+        <div v-if="scheduledForDay.length" class="flex items-center gap-2 pt-1">
           <span class="text-xs text-gray-400 shrink-0">{{ doneForDay }}/{{ scheduledForDay.length }} done</span>
           <div class="flex-1 h-1.5 rounded-full bg-gray-800 overflow-hidden">
             <div class="h-full rounded-full bg-emerald-500 transition-all duration-300" :style="{ width: donePct + '%' }"></div>
@@ -326,12 +335,78 @@ const scheduledGroups = computed(() => {
   return groups
 })
 
-function prevDay() {
-  selectedDate.value = shiftDay(-1)
+function monthKeyOf(ds) {
+  return ds.slice(0, 7)
+}
+function currentMonthKeyFn() {
+  return todayStr().slice(0, 7)
+}
+const currentMonthKey = computed(() => currentMonthKeyFn())
+const historyMonth = ref(monthKeyOf(selectedDate.value))
+const historyMonthData = ref({})
+
+const historyMonthLabel = computed(() => {
+  const d = new Date(historyMonth.value + '-01T12:00:00')
+  return isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+})
+
+function shiftHistoryMonth(offset) {
+  const d = new Date(historyMonth.value + '-01T12:00:00')
+  d.setMonth(d.getMonth() + offset)
+  const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  if (key > currentMonthKey.value) return
+  historyMonth.value = key
+  loadHistoryMonth()
 }
 
-function nextDay() {
-  selectedDate.value = shiftDay(1)
+const historyMonthCells = computed(() => {
+  const [y, m] = historyMonth.value.split('-').map(Number)
+  const first = new Date(y, m - 1, 1)
+  const lead = (first.getDay() + 6) % 7
+  const daysInMonth = new Date(y, m, 0).getDate()
+  const cells = []
+  for (let i = 0; i < lead; i++) cells.push({ key: 'lead-' + i, date: null })
+  for (let day = 1; day <= daysInMonth; day++) {
+    const ds = `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    cells.push({ key: ds, date: ds, dayNum: day })
+  }
+  return cells
+})
+
+function historyDayClass(cell) {
+  const classes = []
+  const info = historyMonthData.value[cell.date]
+  const ratio = info && info.scheduled > 0 ? info.completed / info.scheduled : (info && (info.completed > 0 || info.tasks > 0) ? 1 : 0)
+  if (cell.date === selectedDate.value) classes.push('ring-2 ring-emerald-400')
+  if (cell.date === todayStr()) classes.push('font-bold')
+  if (ratio >= 1) classes.push('bg-emerald-500 text-white')
+  else if (ratio > 0.5) classes.push('bg-emerald-700 text-white')
+  else if (ratio > 0) classes.push('bg-emerald-950 text-emerald-300')
+  else classes.push('bg-gray-800/60 text-gray-400 hover:bg-gray-700')
+  if (cell.date > todayStr()) classes.push('opacity-50')
+  return classes.join(' ')
+}
+
+let historyMonthToken = 0
+async function loadHistoryMonth() {
+  const token = ++historyMonthToken
+  try {
+    const [y, m] = historyMonth.value.split('-').map(Number)
+    const lastDay = new Date(y, m, 0).getDate()
+    const from = `${historyMonth.value}-01`
+    const to = `${historyMonth.value}-${String(lastDay).padStart(2, '0')}`
+    const res = await api.get('/grid', { params: { from, to } })
+    if (token !== historyMonthToken) return
+    const raw = res.data.grid || {}
+    const map = {}
+    for (const [ds, g] of Object.entries(raw)) {
+      map[ds] = { scheduled: g.scheduled || 0, completed: g.completed || 0, tasks: g.tasks || 0 }
+    }
+    historyMonthData.value = map
+  } catch {
+    if (token !== historyMonthToken) return
+    historyMonthData.value = {}
+  }
 }
 
 async function loadHistory() {
@@ -390,11 +465,44 @@ async function loadHistory() {
     scheduledForDay.value = []
     historyTasks.value = []
   }
+  // Keep the month grid colors fresh after completes/undos.
+  if (monthKeyOf(selectedDate.value) === historyMonth.value) loadHistoryMonth()
 }
 
 watch(selectedDate, loadHistory)
 
 const incompleteTasks = ref([])
+const dragTaskId = ref(null)
+async function persistTaskOrder(ids) {
+  const byId = new Map(incompleteTasks.value.map(t => [t.id, t]))
+  incompleteTasks.value = ids.map(id => byId.get(id)).filter(Boolean)
+    .concat(incompleteTasks.value.filter(t => !ids.includes(t.id)))
+  try {
+    await api.post('/tasks/reorder', { ids: incompleteTasks.value.map(t => t.id) })
+  } catch {
+    toast.error('Could not save order')
+  }
+}
+function dropTask(target) {
+  const from = dragTaskId.value
+  dragTaskId.value = null
+  if (!from || !target || from === target.id) return
+  const ids = incompleteTasks.value.map(t => t.id)
+  const fi = ids.indexOf(from)
+  if (fi < 0) return
+  ids.splice(fi, 1)
+  const ti = ids.indexOf(target.id)
+  ids.splice(ti < 0 ? ids.length : ti, 0, from)
+  persistTaskOrder(ids)
+}
+function moveTask(task, dir) {
+  const ids = incompleteTasks.value.map(t => t.id)
+  const fi = ids.indexOf(task.id)
+  if (fi < 0) return
+  ids.splice(fi, 1)
+  ids.splice(Math.max(0, Math.min(ids.length, fi + dir)), 0, task.id)
+  persistTaskOrder(ids)
+}
 const completedTasks = ref([])
 const activeHabits = ref([])
 const completedHabits = ref([])
@@ -444,7 +552,7 @@ async function handleCreated(type, data) {
   }
   if (type === 'task') {
     try {
-      const res = await api.post('/tasks', { title: data.title, description: data.description, emoji: data.emoji, dueDate: data.dueDate || undefined, scheduledTime: data.scheduledTime || undefined, scheduledDays: data.scheduledDays?.length ? data.scheduledDays : undefined, reminderMinutes: data.reminderMinutes != null ? data.reminderMinutes : undefined })
+      const res = await api.post('/tasks', { title: data.title, description: data.description, emoji: data.emoji, dueDate: data.dueDate || undefined, scheduledTime: data.scheduledTime || undefined, scheduledDays: data.scheduledDays?.length ? data.scheduledDays : undefined, isEveryday: data.isEveryday || undefined, reminderMinutes: data.reminderMinutes != null ? data.reminderMinutes : undefined })
       incompleteTasks.value.unshift(res.data.task || res.data)
       toast.success('Task created')
     } catch {
@@ -456,6 +564,7 @@ async function handleCreated(type, data) {
         title: data.title, description: data.description || undefined, emoji: data.emoji,
         schedules: data.schedules, verificationType: data.verificationType,
         makePublic: data.makePublic,
+        intervalDays: data.intervalDays ?? undefined,
       }
       if (data.reminderMinutes != null) payload.reminderMinutes = data.reminderMinutes
       if (data.buddyIds?.length) payload.buddyIds = data.buddyIds
@@ -816,5 +925,5 @@ async function confirmDeleteAllHabits() {
 function loadMoreCompletedTasks() { completedTasksPage.value++ }
 function loadMoreCompletedHabits() { completedHabitsPage.value++ }
 
-onMounted(() => { loadAll(); loadHistory() })
+onMounted(() => { loadAll(); loadHistory(); loadHistoryMonth() })
 </script>

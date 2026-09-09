@@ -176,7 +176,7 @@ router.post('/chat', async (req, res) => {
       }
     }
 
-    for (let step = 0; step < 3; step++) {
+    for (let step = 0; step < 6; step++) {
       let out;
       try {
         out = await chatStream({

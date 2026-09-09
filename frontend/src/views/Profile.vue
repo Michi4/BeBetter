@@ -67,7 +67,7 @@
           </div>
           <span v-else class="text-xs font-medium text-gray-400">{{ gridYear }}</span>
         </div>
-        <ContributionGrid :grid="profileGrid" :year="gridYear" @select="selectDay" />
+        <ContributionGrid :grid="profileGrid" :year="gridYear" :start-date="profileGridStart" @select="selectDay" />
         <DayDetail :show="!!selectedDay" :day="selectedDay" @close="selectedDay = null" @changed="handleDayChanged" />
       </div>
 
@@ -513,6 +513,13 @@ const pushEnabled = ref(false)
 const pushLoading = ref(false)
 
 const profileGrid = ref([])
+const profileGridStart = computed(() => {
+  const created = profile.value?.createdAt
+  if (!created) return null
+  const d = new Date(created)
+  if (d.getFullYear() !== gridYear.value) return null
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+})
 const gridYear = ref(new Date().getFullYear())
 const gridYearRange = ref({ firstYear: new Date().getFullYear(), lastYear: new Date().getFullYear() })
 const selectedDay = ref(null)
