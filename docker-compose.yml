@@ -31,6 +31,11 @@ services:
       JWT_SECRET: ${JWT_SECRET:-bebetter-jwt-secret-change-me-in-prod}
       B_AI_API_KEY: ${B_AI_API_KEY:-}
       AI_MODELS: ${AI_MODELS:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
       NODE_ENV: production
       PORT: "3000"
       TZ: Europe/Vienna
@@ -88,6 +93,11 @@ services:
       JWT_SECRET: ${JWT_SECRET:-bebetter-jwt-secret-change-me-in-prod}
       B_AI_API_KEY: ${B_AI_API_KEY:-}
       AI_MODELS: ${AI_MODELS:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
       NODE_ENV: production
       PORT: "3000"
       TZ: Europe/Vienna
