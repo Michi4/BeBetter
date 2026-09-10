@@ -457,9 +457,11 @@ check "200" "$STATUS" "Public profile accessible"
 
 # ========== PASSWORD FLOW ==========
 log_section "PASSWORD FLOW"
+# NOTE: deliberately a nonexistent address — the generic 200 is asserted WITHOUT
+# sending a real mail (existing-user path would emit via SMTP every run).
 STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/auth/forgot-password" -X POST \
-  -H "Content-Type: application/json" -d "{\"email\":\"$ALICE_EMAIL\"}")
-check "200" "$STATUS" "Forgot password"
+  -H "Content-Type: application/json" -d "{\"email\":\"nobody-$TS@test.com\"}")
+check "200" "$STATUS" "Forgot password (generic, no mail sent)"
 
 NEW_PW="Alice789"
 STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/auth/change-password" -X POST \

@@ -172,8 +172,9 @@ async function main() {
   ok(upBad.status === 400, `upload exe rejected (${upBad.status})`);
 
   // ---- password flow (mail skipped without SMTP; assert shapes) ----
-  const fg = await api('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email: `fa_${ts}@test.com` }) }, ta);
-  ok(fg.status === 200, 'forgot-password generic ok');
+  // NOTE: nonexistent address on purpose — asserts the generic shape WITHOUT emitting real mail.
+  const fg = await api('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email: `nobody_${ts}@test.com` }) }, ta);
+  ok(fg.status === 200, 'forgot-password generic ok (no mail sent)');
   const rsBad = await api('/auth/reset-password', { method: 'POST', body: JSON.stringify({ token: 'garbage', password: 'newpass123' }) }, ta);
   ok(rsBad.status === 400, 'reset-password garbage 400');
   const chpw = await api('/auth/change-password', { method: 'POST', body: JSON.stringify({ currentPassword: 'test-test-test', newPassword: 'test-test-test2' }) }, ta);
