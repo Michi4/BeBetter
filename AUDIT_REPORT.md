@@ -350,7 +350,7 @@ Only health signals are Docker/Traefik checks; uptime-kuma exists on infra but a
 
 ### Verdict: **CONDITIONAL GO**
 Ship the current state — all CRITICALs are closed and verified, HIGHs fixed or decided. Remaining blockers/conditions:
-1. **SMTP credentials** — password-reset mail is silently skipped in prod (`.env` has no `SMTP_PASS`). Provide creds → wire → test on dev → redeploy.
+1. **SMTP credentials** ✅ RESOLVED 2026-09-10 — user added purelymail creds to Frankfurt `.env`; `docker-compose.yml` now passes `SMTP_*` through to the backend (it previously didn't, so `.env`-only would never have worked); live test mail to office@websters.at accepted by smtp.purelymail.com:587 (messageId returned). Full reset flow proven earlier on dev via fake SMTP.
 2. **Browser verification** — run through key pages once with devtools open (console, mobile widths, keyboard) — could not be done from here.
 3. **Users must re-login** — expected fallout of the JWT rotation; consider an announcement.
 4. **Accepted tech debt** (tracked above): prisma-migrate baseline decision, nodemailer major, CSP, N+1 batch, 30d/6-char policy, USER root + limits, monitoring registration.
