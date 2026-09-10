@@ -233,7 +233,25 @@ router.post('/forgot-password', forgotLimiter, async (req, res) => {
       return res.json({ ok: true, message: 'If an account exists, a reset link has been sent' });
     }
 
+    // Anti-spam / cost guard per address: 10-minute cooldown between mails,
+    // max 5 mails per 24h. Always reply generic so account existence never leaks.
+    const now = new Date();
+    const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const recent = await prisma.passwordReset.findMany({
+      where: { userId: user.id, createdAt: { gte: dayAgo } },
+      select: { createdAt: true },
+      orderBy: { createdAt: 'desc' },
+    });
+    const freshest = recent[0];
+    if ((freshest && now.getTime() - new Date(freshest.createdAt).getTime() < 10 * 60 * 1000) || recent.length >= 5) {
+      return res.json({ ok: true, message: 'If an account exists, a reset link has been sent. Please wait a few minutes before requesting another.' });
+    }
+
     await prisma.passwordReset.deleteMany({ where: { userId: user.id, used: false } });
+    // Bound table growth: drop consumed/expired rows (the 24h cap above ran first).
+    await prisma.passwordReset.deleteMany({
+      where: { userId: user.id, OR: [{ used: true }, { expiresAt: { lt: new Date() } }] },
+    }).catch(() => {});
 
     const token = crypto.randomBytes(32).toString('hex');
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');

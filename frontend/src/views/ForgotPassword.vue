@@ -21,10 +21,12 @@
           <div v-if="error" class="text-red-400 text-sm bg-red-500/10 px-3 py-2 rounded-lg">{{ error }}</div>
           <div v-if="success" class="text-emerald-400 text-sm bg-emerald-500/10 px-3 py-2 rounded-lg">{{ success }}</div>
           <label class="sr-only" for="forgot-email">Email</label><input id="forgot-email" v-model="email" type="email" autocomplete="email" placeholder="Email" class="input" required />
-          <button type="submit" class="btn w-full" :disabled="loading">
+          <button type="submit" class="btn w-full" :disabled="loading || cooldownLeft > 0">
             <Loader2 v-if="loading" :size="18" class="animate-spin" />
+            <span v-else-if="cooldownLeft > 0">Wait {{ cooldownLeft }}s before retrying</span>
             <span v-else>Send Reset Link</span>
           </button>
+          <p v-if="success" class="text-center text-xs text-[var(--bb-muted)]">Didn't get mail? Check spam — and wait a few minutes before requesting another link.</p>
           <p class="text-center text-sm text-[var(--bb-muted)]">
             <router-link to="/login" class="text-emerald-400 hover:text-emerald-300 transition-colors duration-150">Back to Sign In</router-link>
           </p>
@@ -53,7 +55,21 @@ const email = ref('')
 const error = ref('')
 const success = ref('')
 const loading = ref(false)
+const cooldownLeft = ref(0)
+let cooldownTimer = null
 const { isDark, toggleTheme } = useTheme()
+
+function startCooldown(secs) {
+  cooldownLeft.value = secs
+  if (cooldownTimer) clearInterval(cooldownTimer)
+  cooldownTimer = setInterval(() => {
+    cooldownLeft.value--
+    if (cooldownLeft.value <= 0) {
+      clearInterval(cooldownTimer)
+      cooldownTimer = null
+    }
+  }, 1000)
+}
 
 async function handleSubmit() {
   loading.value = true
@@ -62,8 +78,16 @@ async function handleSubmit() {
   try {
     const res = await api.post('/auth/forgot-password', { email: email.value })
     success.value = res.data.message || 'If an account exists, a reset link has been sent'
+    // Slow down repeat requests client-side too (server enforces 10-min
+    // per-address cooldown + daily cap regardless).
+    startCooldown(60)
   } catch (e) {
-    error.value = e.response?.data?.error || 'Failed to send reset link'
+    if (e.response?.status === 429) {
+      error.value = 'Too many attempts — please wait a minute and try again'
+      startCooldown(60)
+    } else {
+      error.value = e.response?.data?.error || 'Failed to send reset link'
+    }
   } finally {
     loading.value = false
   }
