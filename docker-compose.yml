@@ -28,9 +28,10 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-bebetter}:${POSTGRES_PASSWORD:-secretpassword}@postgres:5432/${POSTGRES_DB:-bebetter_db}
-      JWT_SECRET: ${JWT_SECRET:-bebetter-jwt-secret-change-me-in-prod}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required in .env — refusing to boot with a default (see .env.example)}
       B_AI_API_KEY: ${B_AI_API_KEY:-}
       AI_MODELS: ${AI_MODELS:-}
+      FRONTEND_URL: ${FRONTEND_URL:-https://bebetter.websters.at}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
@@ -90,9 +91,10 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-bebetter}:${POSTGRES_PASSWORD:-secretpassword}@postgres:5432/${POSTGRES_DB:-bebetter_db}
-      JWT_SECRET: ${JWT_SECRET:-bebetter-jwt-secret-change-me-in-prod}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required in .env — refusing to boot with a default (see .env.example)}
       B_AI_API_KEY: ${B_AI_API_KEY:-}
       AI_MODELS: ${AI_MODELS:-}
+      FRONTEND_URL: ${FRONTEND_URL:-https://bebetter.websters.at}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}

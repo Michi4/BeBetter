@@ -334,6 +334,7 @@ model Task {
 
   @@index([userId])
   @@index([userId, isActive])
+  @@index([userId, position])
 }
 
 model TaskLog {

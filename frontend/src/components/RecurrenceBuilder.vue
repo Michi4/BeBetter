@@ -5,6 +5,7 @@
     <!-- Quick presets -->
     <div class="flex flex-wrap gap-2">
       <button v-for="p in presets" :key="p.value" type="button" @click="selectPreset(p)" :disabled="disabled"
+        :aria-pressed="isPresetActive(p.value)"
         class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-150"
         :class="isPresetActive(p.value) ? 'bg-emerald-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'">
         {{ p.label }}
@@ -23,6 +24,7 @@
           class="ml-auto text-[10px] text-gray-500 hover:text-gray-300 underline">weekdays instead</button>
       </div>
       <p class="text-[10px] text-gray-500">Due dates repeat every {{ intervalDays }} days. Times below still set the reminder times.</p>
+      <p v-if="intervalError" class="text-[10px] text-red-400">{{ intervalError }}</p>
     </div>
 
     <!-- Schedule entries -->
@@ -161,9 +163,14 @@ function selectPreset(p) {
   entries.value = [{ time: entries.value[0]?.time || null, days: dayMap[p.value] || [0, 1, 2, 3, 4, 5, 6] }]
 }
 
+const intervalError = ref('')
 function setCustomInterval(n) {
-  n = Math.max(2, Math.min(365, parseInt(n) || 0))
-  if (!n) return
+  n = parseInt(n)
+  if (!Number.isInteger(n) || n < 2 || n > 365) {
+    intervalError.value = 'Enter a whole number from 2 to 365'
+    return
+  }
+  intervalError.value = ''
   entries.value = [{ time: entries.value[0]?.time || null, days: [0, 1, 2, 3, 4, 5, 6] }]
   emit('update:intervalDays', n)
   activePreset.value = 'interval:' + n

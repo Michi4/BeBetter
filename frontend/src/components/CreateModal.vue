@@ -67,6 +67,7 @@
               <label class="text-[10px] text-gray-500 mb-1 block">Repeat</label>
               <div class="flex flex-wrap gap-1">
                 <button v-for="r in taskRepeatOptions" :key="r.value" type="button" @click="taskForm.repeat = r.value"
+                  :aria-pressed="taskForm.repeat === r.value"
                   class="px-2 py-0.5 rounded text-[10px] font-medium transition-colors"
                   :class="taskForm.repeat === r.value ? 'bg-emerald-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'">
                   {{ r.label }}
@@ -334,8 +335,10 @@ const taskRepeatHint = computed(() => {
 })
 function toggleTaskRepeatDay(di) {
   const i = taskForm.repeatDays.indexOf(di)
-  if (i >= 0) taskForm.repeatDays.splice(i, 1)
-  else taskForm.repeatDays.push(di)
+  if (i >= 0) {
+    if (taskForm.repeatDays.length <= 1) return // keep >=1 day: empty weekly would silently become one-time
+    taskForm.repeatDays.splice(i, 1)
+  } else taskForm.repeatDays.push(di)
 }
 const habitForm = reactive({
   title: '', description: '', emoji: '',
@@ -553,7 +556,7 @@ function createTask() {
     setScheduledTime: undefined,
     scheduledTime: taskForm.setScheduledTime ? taskForm.scheduledTime : undefined,
     // Standard reminder: at the set time unless the user removed every reminder.
-    reminderMinutes: taskForm.setScheduledTime
+    reminderMinutes: taskForm.setScheduledTime && taskForm.scheduledTime
       ? (taskForm.reminderMinutes?.length ? taskForm.reminderMinutes : [0])
       : undefined,
     isEveryday: taskForm.setScheduledTime && taskForm.repeat === 'daily' ? true : undefined,

@@ -152,6 +152,9 @@ router.get('/day', authMiddleware, async (req, res) => {
   try {
     const { date } = req.query;
     if (!date) return res.status(400).json({ error: 'date required' });
+    if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ error: 'date must be YYYY-MM-DD' });
+    }
 
     const d = parseDayKey(date);
     const tomorrow = new Date(d);
@@ -178,7 +181,7 @@ router.get('/day', authMiddleware, async (req, res) => {
 
     const habitsWithScheduled = await prisma.habit.findMany({
       where: { userId: req.userId, active: true },
-      select: { id: true, title: true, emoji: true, daysPerWeek: true, frequencyType: true, createdAt: true, breaks: { select: { startDate: true, endDate: true } } },
+      select: { id: true, title: true, emoji: true, daysPerWeek: true, frequencyType: true, createdAt: true, intervalDays: true, breaks: { select: { startDate: true, endDate: true } } },
     });
     const scheduledHabitIds = new Set();
     const dow = d.getDay();
@@ -188,6 +191,9 @@ router.get('/day', authMiddleware, async (req, res) => {
       const sched = JSON.parse(typeof h.daysPerWeek === 'string' ? h.daysPerWeek : JSON.stringify(h.daysPerWeek || '[]'));
       if (h.frequencyType === 'daily' || h.frequencyType === 'always' || (Array.isArray(sched) && sched.includes(dow))) {
         scheduledHabitIds.add(h.id);
+      } else if (h.intervalDays >= 2) {
+        const { isIntervalDueDate } = require('../lib/recurrence');
+        if (isIntervalDueDate(h.createdAt, h.intervalDays, d)) scheduledHabitIds.add(h.id);
       }
     }
 

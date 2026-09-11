@@ -26,7 +26,7 @@
             <span v-else-if="cooldownLeft > 0">Wait {{ cooldownLeft }}s before retrying</span>
             <span v-else>Send Reset Link</span>
           </button>
-          <p v-if="success" class="text-center text-xs text-[var(--bb-muted)]">Didn't get mail? Check spam — and wait a few minutes before requesting another link.</p>
+          <p v-if="success" class="text-center text-xs text-[var(--bb-muted)]">Didn't get mail? Check spam — links are limited to one every 10 minutes (max 5 a day), so wait a bit before retrying.</p>
           <p class="text-center text-sm text-[var(--bb-muted)]">
             <router-link to="/login" class="text-emerald-400 hover:text-emerald-300 transition-colors duration-150">Back to Sign In</router-link>
           </p>
@@ -45,7 +45,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onUnmounted } from 'vue'
 import api from '../api'
 import { Loader2, Sun, Moon } from 'lucide-vue-next'
 import Logo from '../components/Logo.vue'
@@ -70,6 +70,8 @@ function startCooldown(secs) {
     }
   }, 1000)
 }
+
+onUnmounted(() => { if (cooldownTimer) clearInterval(cooldownTimer) })
 
 async function handleSubmit() {
   loading.value = true

@@ -297,7 +297,7 @@ async function main() {
     }
   }
 
-  console.log(`Seeded admin user michi (${adminPassword}) and demo user (demo@bebetter.local / password123)`);
+  console.log(`Seeded admin user michi and demo user (demo@bebetter.local / password123)`);
 }
 
 main()

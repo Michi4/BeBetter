@@ -1,7 +1,9 @@
 // Assistant advanced-capability probes (prod, self-cleaning). Run: node /tmp/adv.js
 // Tests: past-question via history_query, multi-create batching, interval habit,
 // multilingual replies (EN/FR/ES).
-const BASE = 'https://bebetter.websters.at/api';
+// NOTE: defaults to the DEV stack so a bare run can never surprise-mutate
+// prod or burn paid LLM budget. Override for prod: BASE=https://bebetter.websters.at/api
+const BASE = process.env.BASE || 'http://bebetter-dev-api:3000/api';
 async function api(path, opts = {}, token) {
   const r = await fetch(BASE + path, { ...opts, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
   const t = await r.text(); let b = null; try { b = JSON.parse(t); } catch {}

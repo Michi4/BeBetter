@@ -142,7 +142,7 @@
           <div v-for="d in ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']" :key="d" class="text-center text-[10px] text-gray-600 font-medium py-0.5">{{ d }}</div>
           <div v-for="cell in historyMonthCells" :key="cell.key">
             <button v-if="cell.date" type="button" @click="selectedDate = cell.date"
-              :aria-label="cell.date" :aria-pressed="selectedDate === cell.date"
+              :aria-label="historyDayLabel(cell.date)" :aria-pressed="selectedDate === cell.date"
               class="w-full aspect-square rounded-md text-xs font-medium transition-colors flex items-center justify-center"
               :class="historyDayClass(cell)">
               {{ cell.dayNum }}
@@ -289,12 +289,6 @@ const camHabit = ref(null)
 
 const clearAllModal = ref(null)
 
-const shiftDay = (offset) => {
-  const d = new Date(selectedDate.value + 'T12:00:00')
-  d.setDate(d.getDate() + offset)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
 const isFutureDay = computed(() => selectedDate.value > todayStr())
 
 const selectedDateLabel = computed(() => {
@@ -373,6 +367,15 @@ const historyMonthCells = computed(() => {
   return cells
 })
 
+function historyDayLabel(ds) {
+  const d = new Date(ds + 'T12:00:00')
+  if (isNaN(d.getTime())) return ds
+  const info = historyMonthData.value[ds]
+  const base = d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
+  if (!info || (info.scheduled === 0 && info.completed === 0 && !info.tasks)) return base + ', no activity'
+  return `${base}, ${info.completed} of ${info.scheduled} done`
+}
+
 function historyDayClass(cell) {
   const classes = []
   const info = historyMonthData.value[cell.date]
@@ -406,6 +409,7 @@ async function loadHistoryMonth() {
   } catch {
     if (token !== historyMonthToken) return
     historyMonthData.value = {}
+    toast.error('Could not load month overview — try again')
   }
 }
 
@@ -464,6 +468,7 @@ async function loadHistory() {
     if (token !== historyToken) return
     scheduledForDay.value = []
     historyTasks.value = []
+    toast.error('Could not load history — try again')
   }
   // Keep the month grid colors fresh after completes/undos.
   if (monthKeyOf(selectedDate.value) === historyMonth.value) loadHistoryMonth()
@@ -535,8 +540,8 @@ function formatDate(dateStr) {
 
 async function updateTaskFromCard(task) {
   try {
-    await api.put(`/tasks/${task.id}`, { title: task.title, description: task.description || undefined, dueDate: task.dueDate ?? null, scheduledTime: task.scheduledTime ?? null, reminderMinutes: task.reminderMinutes })
-    incompleteTasks.value = incompleteTasks.value.map(t => t.id === task.id ? { ...t, title: task.title, description: task.description, dueDate: task.dueDate, scheduledTime: task.scheduledTime, reminderMinutes: task.reminderMinutes } : t)
+    await api.put(`/tasks/${task.id}`, { title: task.title, description: task.description || undefined, dueDate: task.dueDate ?? null, scheduledTime: task.scheduledTime ?? null, reminderMinutes: task.reminderMinutes, isEveryday: task.isEveryday, scheduledDays: task.scheduledDays ?? null })
+    incompleteTasks.value = incompleteTasks.value.map(t => t.id === task.id ? { ...t, title: task.title, description: task.description, dueDate: task.dueDate, scheduledTime: task.scheduledTime, reminderMinutes: task.reminderMinutes, isEveryday: task.isEveryday, scheduledDays: task.scheduledDays } : t)
     toast.success('Task updated')
   } catch {
     toast.error('Failed to update task')
@@ -575,8 +580,8 @@ async function handleCreated(type, data) {
       await api.post('/habits', payload)
       toast.success('Habit created')
       loadAll()
-    } catch {
-      toast.error('Failed to create habit')
+    } catch (e) {
+      toast.error(e?.response?.data?.error || 'Failed to create habit')
     }
   }
   showCreateModal.value = false

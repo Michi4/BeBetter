@@ -197,7 +197,12 @@ router.put('/me', authMiddleware, demoGuard, async (req, res) => {
   try {
     const { bio, isPublic, avatar, username } = req.body;
     const data = {};
-    if (bio !== undefined) data.bio = bio;
+    if (bio !== undefined) {
+      if (typeof bio !== 'string' || bio.length > 500) {
+        return res.status(400).json({ error: 'Bio must be at most 500 characters' });
+      }
+      data.bio = bio;
+    }
     if (isPublic !== undefined) data.isPublic = isPublic;
     if (avatar !== undefined) data.avatar = avatar;
     if (username !== undefined) {
@@ -227,14 +232,18 @@ router.post('/forgot-password', forgotLimiter, async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'Email is required' });
+    const cleanEmail = String(email).trim();
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ where: { email: cleanEmail } });
+    // One message shape for every outcome (no account / throttled / sent) so
+    // request timing and wording never reveal whether the address exists.
+    const GENERIC_REPLY = { ok: true, message: 'If an account exists, a reset link has been sent. Please wait a few minutes before requesting another.' };
     if (!user) {
-      return res.json({ ok: true, message: 'If an account exists, a reset link has been sent' });
+      return res.json(GENERIC_REPLY);
     }
 
     // Anti-spam / cost guard per address: 10-minute cooldown between mails,
-    // max 5 mails per 24h. Always reply generic so account existence never leaks.
+    // max 5 mails per 24h.
     const now = new Date();
     const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const recent = await prisma.passwordReset.findMany({
@@ -244,13 +253,13 @@ router.post('/forgot-password', forgotLimiter, async (req, res) => {
     });
     const freshest = recent[0];
     if ((freshest && now.getTime() - new Date(freshest.createdAt).getTime() < 10 * 60 * 1000) || recent.length >= 5) {
-      return res.json({ ok: true, message: 'If an account exists, a reset link has been sent. Please wait a few minutes before requesting another.' });
+      return res.json(GENERIC_REPLY);
     }
 
-    await prisma.passwordReset.deleteMany({ where: { userId: user.id, used: false } });
-    // Bound table growth: drop consumed/expired rows (the 24h cap above ran first).
+    // Bound table growth WITHOUT breaking the 24h cap accounting above: only
+    // rows older than 24h may go (every row < 24h old represents a sent mail).
     await prisma.passwordReset.deleteMany({
-      where: { userId: user.id, OR: [{ used: true }, { expiresAt: { lt: new Date() } }] },
+      where: { userId: user.id, createdAt: { lt: dayAgo } },
     }).catch(() => {});
 
     const token = crypto.randomBytes(32).toString('hex');
@@ -273,7 +282,7 @@ router.post('/forgot-password', forgotLimiter, async (req, res) => {
       console.error('Failed to send reset email:', emailErr);
     }
 
-    res.json({ ok: true, message: 'If an account exists, a reset link has been sent' });
+    res.json(GENERIC_REPLY);
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Server error' });

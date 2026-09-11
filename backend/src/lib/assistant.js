@@ -464,7 +464,7 @@ async function execTool(userId, tool, args = {}) {
       }
       const toNext = new Date(to);
       toNext.setDate(toNext.getDate() + 1);
-      const [hLogs, tLogs] = await Promise.all([
+      const [hLogs, tLogs, habitTotal, taskTotal] = await Promise.all([
         prisma.habitLog.findMany({
           where: { userId, completedAt: { gte: from, lt: toNext } },
           include: { habit: { select: { title: true } } },
@@ -477,6 +477,8 @@ async function execTool(userId, tool, args = {}) {
           orderBy: { completedAt: 'desc' },
           take: 100,
         }),
+        prisma.habitLog.count({ where: { userId, completedAt: { gte: from, lt: toNext } } }),
+        prisma.taskLog.count({ where: { userId, completedAt: { gte: from, lt: toNext } } }),
       ]);
       const entries = [
         ...hLogs.map((l) => ({ date: dayKeyOf(l.completedAt), type: 'habit', title: l.habit?.title || 'Habit' })),
@@ -484,8 +486,8 @@ async function execTool(userId, tool, args = {}) {
       ].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 100);
       return {
         from: dayKeyOf(from), to: dayKeyOf(to),
-        habitCompletions: hLogs.length, taskCompletions: tLogs.length,
-        truncated: entries.length >= 100,
+        habitCompletions: habitTotal, taskCompletions: taskTotal,
+        truncated: entries.length >= 100 || habitTotal > 100 || taskTotal > 100,
         entries,
       };
     }

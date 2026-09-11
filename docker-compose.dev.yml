@@ -34,6 +34,15 @@ services:
       JWT_SECRET: ${DEV_JWT_SECRET:-bebetter-dev-jwt-secret-change-me}
       B_AI_API_KEY: ${B_AI_API_KEY:-}
       AI_MODELS: ${AI_MODELS:-}
+      FRONTEND_URL: ${DEV_FRONTEND_URL:-https://betterdev.home.websters.at}
+      # Mail testing: point at test/mail-catcher.py
+      # (docker run --network bebetter_bebetter-dev-net python:3.11-alpine ...),
+      # e.g. DEV_SMTP_HOST=fake-smtp DEV_SMTP_PORT=1025. Empty = mail skipped.
+      SMTP_HOST: ${DEV_SMTP_HOST:-}
+      SMTP_PORT: ${DEV_SMTP_PORT:-1025}
+      SMTP_USER: ${DEV_SMTP_USER:-}
+      SMTP_PASS: ${DEV_SMTP_PASS:-}
+      SMTP_FROM: ${DEV_SMTP_FROM:-}
       PORT: "3000"
       TZ: Europe/Vienna
     volumes:

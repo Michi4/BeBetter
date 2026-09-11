@@ -32,12 +32,12 @@
         <div v-if="photoUrl && showSwapPreview" class="absolute top-4 right-4 z-10" @click.stop="swapPreview">
           <div class="w-16 h-20 rounded-lg overflow-hidden border-2 border-emerald-400 shadow-lg cursor-pointer">
             <video v-show="videoActive" ref="thumbVideoEl" autoplay playsinline muted class="w-full h-full object-cover"></video>
-            <img v-show="!videoActive" :src="photoUrl" class="w-full h-full object-cover" />
+            <img alt="Verification photo" v-show="!videoActive" :src="photoUrl" class="w-full h-full object-cover" />
           </div>
         </div>
 
         <!-- Full screen photo when not in swap mode -->
-        <img v-if="photoUrl && !showSwapPreview" :src="photoUrl" class="absolute inset-0 w-full h-full object-cover" />
+        <img alt="Verification photo" v-if="photoUrl && !showSwapPreview" :src="photoUrl" class="absolute inset-0 w-full h-full object-cover" />
 
         <canvas ref="canvasEl" class="hidden"></canvas>
       </div>

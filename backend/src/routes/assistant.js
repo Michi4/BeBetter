@@ -137,8 +137,12 @@ router.post('/chat', async (req, res) => {
       if (!res.writableEnded) res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
     };
     let clientGone = false;
+    let timedOut = false;
     const abort = new AbortController();
     req.on('close', () => { clientGone = true; abort.abort(); });
+    // Overall deadline: 6 tool steps must never hold a worker longer than this.
+    const deadline = setTimeout(() => { timedOut = true; abort.abort(); }, 150000);
+    const clearDeadline = () => clearTimeout(deadline);
 
     const convo = [{ role: 'system', content: systemPrompt(settings) }, ...history];
     const actions = [];
@@ -184,8 +188,15 @@ router.post('/chat', async (req, res) => {
           signal: abort.signal, onDelta: (text) => send('delta', { text }), onThinking: (text) => send('thinking', { text }),
         });
       } catch (e) {
-        if (e.code === 'NO_KEY') { send('error', { error: 'AI is not configured yet. Please try again later.' }); return finish(); }
-        if (e.code === 'CLIENT_GONE' || clientGone) return finish();
+        if (e.code === 'NO_KEY') { clearDeadline(); send('error', { error: 'AI is not configured yet. Please try again later.' }); return finish(); }
+        if (e.code === 'CLIENT_GONE' || clientGone) { clearDeadline(); return finish(); }
+        if (timedOut) {
+          console.error('[assistant] overall deadline exceeded');
+          if (progressed) break;
+          clearDeadline();
+          send('error', { error: 'That took too long — try a shorter ask or split it up.' });
+          return finish();
+        }
         // If tools already ran, report them instead of failing the request —
         // the actions happened, only the summary text is missing.
         if (progressed) {
@@ -288,9 +299,11 @@ router.post('/chat', async (req, res) => {
     }
 
     send('done', { reply: reply || 'Done.', actions, needsConfirmation, model: usedModel, sessionId: session.id, title: session.title });
+    clearDeadline();
     finish();
 
     function finish() {
+      clearDeadline();
       if (!res.writableEnded) res.end();
     }
   } catch (e) {

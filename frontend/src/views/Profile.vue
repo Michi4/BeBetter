@@ -81,7 +81,7 @@
           </div>
           <div>
             <label class="text-xs font-medium text-gray-400 mb-1 block">Bio</label>
-            <textarea v-model="editForm.bio" class="input" placeholder="Tell something about yourself..." rows="3"></textarea>
+            <textarea v-model="editForm.bio" class="input" placeholder="Tell something about yourself..." rows="3" maxlength="500"></textarea>
           </div>
           <div v-if="auth.isDemo" class="flex items-center gap-3 min-h-[44px]">
             <input type="checkbox" checked disabled

@@ -42,11 +42,14 @@ SNAP="backups/pre-deploy-$(date +%Y%m%d-%H%M%S).sql"
 if docker ps --format '{{.Names}}' | grep -qx 'bebetter-db'; then
   log "Snapshotting live DB to $SNAP..."
   mkdir -p backups
-  if docker exec bebetter-db pg_dump -U "${POSTGRES_USER:-bebetter}" -d "${POSTGRES_DB:-bebetter_db}" --clean --if-exists > "$SNAP" 2>/dev/null; then
+  if docker exec bebetter-db pg_dump -U "${POSTGRES_USER:-bebetter}" -d "${POSTGRES_DB:-bebetter_db}" --clean --if-exists > "$SNAP" 2>"$SNAP.err" && [ -s "$SNAP" ]; then
+    rm -f "$SNAP.err"
     ls -1t backups/pre-deploy-*.sql 2>/dev/null | tail -n +6 | xargs -r rm -f
   else
-    log "WARNING: snapshot failed, continuing without it."
-    rm -f "$SNAP"
+    log "ERROR: pre-deploy snapshot failed or empty — aborting deploy, live system untouched."
+    log "pg_dump said: $(cat "$SNAP.err" 2>/dev/null | head -3)"
+    rm -f "$SNAP" "$SNAP.err"
+    exit 1
   fi
 fi
 

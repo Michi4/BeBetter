@@ -442,8 +442,8 @@ async function saveEdit() {
     editing.value = false
     toast.success('Habit updated')
     loadHabit()
-  } catch {
-    toast.error('Failed to update habit')
+  } catch (e) {
+    toast.error(e?.response?.data?.error || 'Failed to update habit')
   }
 }
 

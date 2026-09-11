@@ -2,7 +2,7 @@ FROM node:20-alpine
 WORKDIR /app
 RUN apk add --no-cache tzdata
 COPY backend/package.json backend/package-lock.json ./
-RUN npm install
+RUN npm ci
 COPY backend/prisma ./prisma
 RUN npx prisma generate
 COPY backend/ .

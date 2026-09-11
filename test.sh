@@ -8,6 +8,11 @@
 set +e
 
 BASE="${BASE:-https://bebetter.websters.at/api}"
+# DB container for the admin-promotion step. MUST track BASE: when retargeting
+# at a dev stack, point this at the dev database or the suite writes to prod.
+DB_CONTAINER="${DB_CONTAINER:-bebetter-db}"
+DB_USER="${DB_USER:-bebetter}"
+DB_NAME="${DB_NAME:-bebetter_db}"
 PASS=0; FAIL=0; TOTAL=0
 ADMIN_TOKEN=""; ALICE_TOKEN=""; BOB_TOKEN=""
 ADMIN_ID=""; ALICE_ID=""; BOB_ID=""
@@ -90,7 +95,7 @@ else
 fi
 
 # Promote to admin via DB
-docker exec bebetter-db psql -U bebetter -d bebetter_db -c "UPDATE \"User\" SET role = 'admin' WHERE email = '$ADMIN_EMAIL'" > /dev/null 2>&1
+docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c "UPDATE \"User\" SET role = 'admin' WHERE email = '$ADMIN_EMAIL'" > /dev/null 2>&1
 # Re-login to get fresh token with admin role
 ADMIN_TOKEN=$(curl -s --max-time 5 "$BASE/auth/login" -H "Content-Type: application/json" \
   -d "{\"email\":\"$ADMIN_EMAIL\",\"password\":\"$ADMIN_PW\"}" | grep -o '"token":"[^"]*"' | cut -d'"' -f4)

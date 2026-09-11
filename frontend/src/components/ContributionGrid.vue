@@ -189,7 +189,7 @@ const weeks = computed(() => {
     for (let d = 0; d < 7; d++) {
       const dateStr = cursor.toISOString().slice(0, 10)
       const inYear = cursor.getUTCFullYear() === year
-      const beforeStart = props.startDate && dateStr < props.startDate
+      const beforeStart = isValidDayKey(props.startDate) && dateStr < props.startDate
       if (inYear && !beforeStart) {
           const data = dayMap[dateStr]
           if (data) {
@@ -321,6 +321,10 @@ function onWheel(e) {
     el.scrollLeft += e.deltaY
   }
   // Otherwise let the page scroll normally
+}
+
+function isValidDayKey(v) {
+  return typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)
 }
 
 function isToday(dateStr) {

@@ -74,6 +74,16 @@ router.post('/', authMiddleware, demoFieldGuard(['scheduledTime', 'scheduledDays
       const parsed = new Date(dueDate);
       if (Number.isNaN(parsed.getTime())) return res.status(400).json({ error: 'dueDate must be a valid date' });
     }
+    const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+    if (scheduledTime && !TIME_RE.test(scheduledTime)) {
+      return res.status(400).json({ error: 'Scheduled time must be in HH:MM format' });
+    }
+    if (scheduledDays !== undefined && (!Array.isArray(scheduledDays) || !scheduledDays.every((d) => Number.isInteger(d) && d >= 0 && d <= 6))) {
+      return res.status(400).json({ error: 'scheduledDays must be an array of 0-6' });
+    }
+    if (reminderMinutes !== undefined && (!Array.isArray(reminderMinutes) || !reminderMinutes.every((m) => Number.isInteger(m) && m >= 0 && m <= 1440))) {
+      return res.status(400).json({ error: 'reminderMinutes must be integers 0-1440' });
+    }
     if (!title) return res.status(400).json({ error: 'Title required' });
 
     const minPos = await prisma.task.aggregate({ where: { userId: req.userId }, _min: { position: true } });
@@ -104,19 +114,21 @@ router.post('/', authMiddleware, demoFieldGuard(['scheduledTime', 'scheduledDays
 
 // Persist manual drag-&-drop order. ids = full ordered id list of the user's
 // visible tasks; positions are assigned 0..n in that order, atomically.
-router.post('/reorder', authMiddleware, async (req, res) => {
+router.post('/reorder', authMiddleware, demoGuard, async (req, res) => {
   try {
     const { ids } = req.body || {};
     if (!Array.isArray(ids) || !ids.length || ids.length > 200 ||
         !ids.every((x) => typeof x === 'string' && x.length <= 64)) {
       return res.status(400).json({ error: 'ids must be an array of 1-200 task ids' });
     }
-    const owned = await prisma.task.findMany({ where: { id: { in: ids }, userId: req.userId }, select: { id: true } });
-    if (owned.length !== new Set(ids).size) {
+    const uniqueIds = [...new Set(ids)];
+    const owned = await prisma.task.findMany({ where: { id: { in: uniqueIds }, userId: req.userId }, select: { id: true } });
+    if (owned.length !== uniqueIds.length) {
       return res.status(404).json({ error: 'Unknown task in reorder list' });
     }
+    // Ownership verified above by exact count match; id is the PK.
     await prisma.$transaction(
-      ids.map((id, i) => prisma.task.update({ where: { id }, data: { position: i } }))
+      uniqueIds.map((id, i) => prisma.task.update({ where: { id }, data: { position: i } }))
     );
     res.json({ ok: true });
   } catch (e) {
@@ -274,6 +286,9 @@ router.delete('/:id/uncomplete', authMiddleware, async (req, res) => {
     await prisma.taskLog.delete({ where: { id: log.id } });
 
     // Undoing today's completion of a one-time task brings it back to life.
+    // Re-check ownership: the log lookup is user-scoped, the task row must be too.
+    const task = await prisma.task.findUnique({ where: { id } });
+    if (!task || task.userId !== req.userId) return res.status(404).json({ error: 'Not found' });
     await prisma.task.update({ where: { id }, data: { isActive: true } });
 
     res.json({ ok: true });

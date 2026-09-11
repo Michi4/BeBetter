@@ -123,8 +123,13 @@ router.get('/scheduled', authMiddleware, async (req, res) => {
 
       if (Array.isArray(schedules) && schedules.length > 0) {
         const entries = [];
+        const intervalOn = h.intervalDays >= 2;
+        if (intervalOn) {
+          const { isIntervalDueDate } = require('../lib/recurrence');
+          if (!isIntervalDueDate(h.createdAt, h.intervalDays, d)) return [];
+        }
         for (const slot of schedules) {
-          if (!Array.isArray(slot.days) || !slot.days.includes(dayOfWeek)) continue;
+          if (!intervalOn && (!Array.isArray(slot.days) || !slot.days.includes(dayOfWeek))) continue;
           const slotLogs = todayLogs.filter(l => l.habitId === h.id && l.scheduledTime === slot.time);
           entries.push({
             ...h,
@@ -145,6 +150,10 @@ router.get('/scheduled', authMiddleware, async (req, res) => {
       let isScheduled = false;
       if (h.frequencyType === 'daily' || h.frequencyType === 'always') isScheduled = true;
       else if (Array.isArray(sched) && sched.includes(dayOfWeek)) isScheduled = true;
+      if (!isScheduled && h.intervalDays >= 2) {
+        const { isIntervalDueDate } = require('../lib/recurrence');
+        if (isIntervalDueDate(h.createdAt, h.intervalDays, d)) isScheduled = true;
+      }
 
       if (!isScheduled) return [];
 
@@ -370,6 +379,29 @@ router.put('/:id', authMiddleware, demoFieldGuard(['reminderMinutes', 'isPublic'
       }
     }
 
+    if (Array.isArray(schedules)) {
+      const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+      for (const s of schedules) {
+        if (!s || typeof s !== 'object') continue;
+        if (Array.isArray(s.days)) {
+          for (const d of s.days) {
+            if (!Number.isInteger(d) || d < 0 || d > 6) {
+              return res.status(400).json({ error: 'Schedule days must be 0-6 (Sunday-Saturday)' });
+            }
+          }
+        }
+        if (s.time && typeof s.time === 'string' && !TIME_RE.test(s.time)) {
+          return res.status(400).json({ error: 'Schedule time must be in HH:MM format' });
+        }
+      }
+    }
+    for (const [key, max] of [['buddyIds', 20], ['challengeFriendIds', 20]]) {
+      const arr = req.body[key];
+      if (arr !== undefined && (!Array.isArray(arr) || arr.length > max)) {
+        return res.status(400).json({ error: `${key} must be an array of at most ${max}` });
+      }
+    }
+
     if ((schedules && schedules.some((s) => s && s.time)) || verificationType === 'be_better_cam' || verificationType === 'photo') {
       if (await isDemoUser(req.userId)) {
         return res.status(403).json({ error: 'Not available in the demo account. Sign up to use this.' });
@@ -379,8 +411,7 @@ router.put('/:id', authMiddleware, demoFieldGuard(['reminderMinutes', 'isPublic'
     const updateData = {
       title: title !== undefined ? title.trim() : undefined,
       description: description !== undefined ? description : undefined,
-      emoji: emoji !== undefined ? emoji : undefined,
-      verificationType: verificationType || undefined,
+      emoji: emoji !== undefined ? emoji : undefined,      verificationType: verificationType || undefined,
       config: config !== undefined ? config : undefined,
       isPublic: isPublic !== undefined ? isPublic : undefined,
       reminderMinutes: reminderMinutes !== undefined ? reminderMinutes : undefined,

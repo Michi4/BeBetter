@@ -252,6 +252,7 @@ async function persistTaskOrder(ids) {
   try {
     await api.post('/tasks/reorder', { ids: todayTasks.value.map(t => t.id) })
   } catch {
+    toast.error('Could not save order')
     loadTasks()
   }
 }
@@ -490,8 +491,8 @@ async function handleCreated(type, data) {
       await api.post('/habits', payload)
       toast.success('Habit created')
       loadStats()
-    } catch {
-      toast.error('Failed to create habit')
+    } catch (e) {
+      toast.error(e?.response?.data?.error || 'Failed to create habit')
     }
   }
   showCreateModal.value = false
@@ -552,8 +553,10 @@ async function editTask(task) {
       scheduledTime: task.scheduledTime ?? null,
     }
     if (task.reminderMinutes != null) payload.reminderMinutes = task.reminderMinutes
+    if (task.isEveryday !== undefined) payload.isEveryday = task.isEveryday
+    if (task.scheduledDays !== undefined) payload.scheduledDays = task.scheduledDays
     await api.put(`/tasks/${task.id}`, payload)
-    todayTasks.value = todayTasks.value.map(t => t.id === task.id ? { ...t, title: task.title, description: task.description, dueDate: task.dueDate, scheduledTime: task.scheduledTime, reminderMinutes: task.reminderMinutes } : t)
+    todayTasks.value = todayTasks.value.map(t => t.id === task.id ? { ...t, title: task.title, description: task.description, dueDate: task.dueDate, scheduledTime: task.scheduledTime, reminderMinutes: task.reminderMinutes, isEveryday: task.isEveryday, scheduledDays: task.scheduledDays } : t)
     toast.success('Task updated')
   } catch {
     toast.error('Failed to update')

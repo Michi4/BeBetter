@@ -23,6 +23,25 @@
       <div v-if="editForm.setScheduledTime" class="space-y-2 pl-4 border-l-2 border-gray-700">
         <TimeInput v-model="editForm.scheduledTime" class="flex-1" />
         <div>
+          <label class="text-[10px] text-gray-500 mb-1 block">Repeat</label>
+          <div class="flex flex-wrap gap-1">
+            <button v-for="r in [['Once', 'once'], ['Daily', 'daily'], ['Weekly', 'weekly']]" :key="r[1]" type="button"
+              @click="editForm.repeat = r[1]" :aria-pressed="editForm.repeat === r[1]"
+              class="px-2 py-0.5 rounded text-[10px] font-medium transition-colors"
+              :class="editForm.repeat === r[1] ? 'bg-emerald-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'">
+              {{ r[0] }}
+            </button>
+          </div>
+          <div v-if="editForm.repeat === 'weekly'" class="flex gap-1 mt-1.5">
+            <button v-for="(day, di) in ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']" :key="di" type="button"
+              @click="toggleEditRepeatDay(di)" :aria-pressed="editForm.repeatDays.includes(di)" :aria-label="day"
+              class="flex-1 h-9 rounded-lg text-[10px] font-medium transition-colors"
+              :class="editForm.repeatDays.includes(di) ? 'bg-emerald-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'">
+              {{ day }}
+            </button>
+          </div>
+        </div>
+        <div>
           <label class="text-[10px] text-gray-500 mb-1 block">Reminders</label>
           <div v-if="editForm.reminderMinutes.length" class="flex flex-wrap gap-1 mb-1.5">
             <span v-for="(m, i) in editForm.reminderMinutes" :key="i"
@@ -58,10 +77,9 @@
       :class="isOver ? 'rounded-xl outline outline-2 outline-emerald-500/60 outline-offset-2' : ''">
       <!-- Drag grip (desktop drag + mobile move buttons) -->
       <div class="shrink-0 flex flex-col items-center -ml-1">
-        <span @mousedown="dragging = true" @touchstart.passive="dragging = true"
-          class="cursor-grab active:cursor-grabbing text-gray-600 hover:text-gray-300 p-1 touch-none"
-          role="button" tabindex="0" aria-label="Drag to reorder task"
-          @keydown.up.prevent="$emit('move', task, -1)" @keydown.down.prevent="$emit('move', task, 1)">
+        <span @mousedown="dragging = true"
+          class="cursor-grab active:cursor-grabbing text-gray-600 hover:text-gray-300 p-1 hidden md:block"
+          aria-hidden="true">
           <GripVertical :size="16" />
         </span>
         <div class="flex md:hidden">
@@ -92,6 +110,9 @@
           </span>
           <span v-if="task.scheduledDays?.length" class="text-[10px] px-1.5 py-0.5 rounded bg-gray-700/50 text-gray-400 shrink-0">
             {{ formatDays(task.scheduledDays) }}
+          </span>
+          <span v-if="task.isEveryday" class="text-[10px] px-1.5 py-0.5 rounded bg-gray-700/50 text-gray-400 shrink-0">
+            Daily
           </span>
           <span v-if="task.dueDate" class="text-[10px] px-1.5 py-0.5 rounded shrink-0"
             :class="dueDateClass">{{ dueDateLabel }}</span>
@@ -153,7 +174,7 @@ const showMenu = ref(false)
 const menuPos = ref({ top: '50%', left: '50%' })
 const editing = ref(false)
 const titleInput = ref(null)
-const editForm = reactive({ title: '', description: '', dueDate: '', hasDueTime: false, dueTime: '', setScheduledTime: false, scheduledTime: '', reminderMinutes: [] })
+const editForm = reactive({ title: '', description: '', dueDate: '', hasDueTime: false, dueTime: '', setScheduledTime: false, scheduledTime: '', reminderMinutes: [], repeat: 'once', repeatDays: [1, 2, 3, 4, 5] })
 let longPressTimer = null
 let longPressFired = false
 
@@ -216,6 +237,11 @@ function startEdit() {
   editForm.scheduledTime = props.task.scheduledTime || ''
   editForm.setScheduledTime = !!props.task.scheduledTime
   editForm.reminderMinutes = Array.isArray(props.task.reminderMinutes) ? [...props.task.reminderMinutes] : []
+  if (props.task.isEveryday) editForm.repeat = 'daily'
+  else if (Array.isArray(props.task.scheduledDays) && props.task.scheduledDays.length) {
+    editForm.repeat = 'weekly'
+    editForm.repeatDays = [...props.task.scheduledDays]
+  } else editForm.repeat = 'once'
   editing.value = true
   nextTick(() => titleInput.value?.focus())
 }
@@ -252,6 +278,14 @@ function toggleReminder(val) {
   }
 }
 
+function toggleEditRepeatDay(di) {
+  const i = editForm.repeatDays.indexOf(di)
+  if (i >= 0) {
+    if (editForm.repeatDays.length <= 1) return
+    editForm.repeatDays.splice(i, 1)
+  } else editForm.repeatDays.push(di)
+}
+
 function isReminderActive(val) {
   return editForm.reminderMinutes.includes(val)
 }
@@ -269,9 +303,13 @@ function saveEdit() {
   if (editForm.setScheduledTime && editForm.scheduledTime) {
     payload.scheduledTime = editForm.scheduledTime
     payload.reminderMinutes = editForm.reminderMinutes.length ? editForm.reminderMinutes : undefined
+    payload.isEveryday = editForm.repeat === 'daily'
+    payload.scheduledDays = editForm.repeat === 'weekly' && editForm.repeatDays.length ? [...editForm.repeatDays].sort((a, b) => a - b) : null
   } else {
     payload.scheduledTime = null
     payload.reminderMinutes = undefined
+    payload.isEveryday = false
+    payload.scheduledDays = null
   }
   emit('edit', payload)
   editing.value = false
