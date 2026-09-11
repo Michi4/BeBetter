@@ -9,10 +9,19 @@ async function api(path, opts = {}, token) {
   const t = await r.text(); let b = null; try { b = JSON.parse(t); } catch {}
   return { status: r.status, body: b };
 }
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function chat(token, text, sessionId) {
+  // Paced: the assistant rate-limits rapid chats per user; spacing keeps this
+  // deterministic instead of tripping 429s that surface as empty replies.
+  await sleep(20000);
   const body = { messages: [{ role: 'user', content: text }] };
   if (sessionId) body.sessionId = sessionId;
   const res = await fetch(BASE + '/assistant/chat', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+  if (!res.ok || !res.body) {
+    let err = '';
+    try { err = (await res.json()).error || ''; } catch {}
+    throw new Error(`chat HTTP ${res.status} ${err}`);
+  }
   const reader = res.body.getReader(); const dec = new TextDecoder();
   let buf = '', evName = '', reply = '', done = null;
   while (true) {
