@@ -1,7 +1,7 @@
 const { Router } = require('express');
 const prisma = require('../lib/prisma');
 const { authMiddleware } = require('../middleware/auth');
-const { sendPushNotification } = require('../scheduler');
+const { notifyUser } = require('../scheduler');
 
 const router = Router();
 
@@ -260,13 +260,13 @@ router.post('/announcements', async (req, res) => {
         continue;
       }
 
-      await prisma.notification.create({
-        data: { userId: user.id, type: 'announcement', message, data: { title } },
+      const { pushed } = await notifyUser(user.id, {
+        type: 'announcement', message, url: '/notifications',
+        data: { title }, pushTitle: title, push: !!sendPush,
       });
       savedCount++;
 
-      if (sendPush) {
-        await sendPushNotification(user.id, title, message, '/notifications');
+      if (sendPush && pushed) {
         pushTargets++;
       }
     }
@@ -292,13 +292,11 @@ router.post('/test-notification', async (req, res) => {
     const target = await prisma.user.findUnique({ where: { id: targetUserId }, select: { id: true } });
     if (!target) return res.status(404).json({ error: 'User not found' });
 
-    const notification = await prisma.notification.create({
-      data: { userId: targetUserId, type: 'test', message: body, data: { title } },
+    const { id: nid, pushed } = await notifyUser(targetUserId, {
+      type: 'test', message: body, url: '/', data: { title }, pushTitle: title,
     });
 
-    await sendPushNotification(targetUserId, title, body, '/');
-
-    res.json({ ok: true, notification });
+    res.json({ ok: true, notification: nid ? { id: nid, pushed } : null });
   } catch (e) {
     console.error('test-notification error:', e.message);
     res.status(500).json({ error: 'Server error' });

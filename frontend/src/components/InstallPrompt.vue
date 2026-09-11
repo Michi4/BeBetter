@@ -1,5 +1,5 @@
 <template>
-  <div v-if="visible" class="card">
+  <div v-if="visible" class="card w-full pointer-events-auto">
     <div class="flex items-center gap-3">
       <div class="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
         <Smartphone :size="16" class="text-emerald-400" />

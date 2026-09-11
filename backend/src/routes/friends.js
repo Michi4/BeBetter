@@ -2,7 +2,7 @@ const { Router } = require('express');
 const crypto = require('crypto');
 const prisma = require('../lib/prisma');
 const { authMiddleware, JWT_SECRET, demoGuard } = require('../middleware/auth');
-const { sendPushNotification } = require('../scheduler');
+const { notifyUser } = require('../scheduler');
 
 const router = Router();
 
@@ -140,15 +140,14 @@ router.post('/request', authMiddleware, demoGuard, async (req, res) => {
     });
 
     const requester = await prisma.user.findUnique({ where: { id: req.userId }, select: { username: true } });
-    await prisma.notification.create({
-      data: {
-        userId: receiverId,
-        type: 'friend_request',
-        message: `${requester?.username || 'Someone'} sent you a friend request.`,
-        data: { requestId: request.id, requesterId: req.userId, requesterName: requester?.username },
-      },
+    await notifyUser(receiverId, {
+      type: 'friend_request',
+      message: `${requester?.username || 'Someone'} sent you a friend request.`,
+      url: '/friends',
+      data: { requestId: request.id, requesterId: req.userId, requesterName: requester?.username },
+      pushTitle: 'Friend request',
+      pushBody: `${requester?.username || 'Someone'} wants to be your friend`,
     }).catch(() => {});
-    await sendPushNotification(receiverId, 'Friend request', `${requester?.username || 'Someone'} wants to be your friend`, '/friends').catch(() => {});
 
     res.json({ request });
   } catch (e) {

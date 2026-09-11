@@ -72,8 +72,10 @@
       </div>
     </div>
 
-    <!-- Push prompt (authenticated, first-run) — pads itself above the mobile bottom nav -->
-    <div class="max-w-3xl mx-auto px-4">
+    <!-- First-run prompts: fixed bottom stack (zero in-flow height, never shifts the page).
+         InstallPrompt is app-wide here so it can convert on any page. -->
+    <div class="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom,0px)+0.75rem)] md:bottom-4 z-40 flex flex-col items-center gap-2 px-4 pointer-events-none">
+      <InstallPrompt />
       <PushPrompt v-if="auth.user" />
     </div>
 
@@ -108,6 +110,7 @@ import { useAuthStore } from './stores/auth'
 import { LogOut, LayoutDashboard, ListTodo, Users, Trophy, BookOpen, Shield, Sun, Moon, WifiOff, Sparkles } from 'lucide-vue-next'
 import Logo from './components/Logo.vue'
 import PushPrompt from './components/PushPrompt.vue'
+import InstallPrompt from './components/InstallPrompt.vue'
 import SignUpPrompt from './components/SignUpPrompt.vue'
 import { useTheme } from './composables/useTheme'
 import { useOnline } from './composables/useOnline'

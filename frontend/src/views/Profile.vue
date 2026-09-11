@@ -662,6 +662,7 @@ async function togglePush() {
       endpoint: sub.endpoint,
       p256dh: keys.p256dh,
       auth: keys.auth,
+      userAgent: typeof navigator !== 'undefined' ? String(navigator.userAgent || '').slice(0, 512) : undefined,
     })
     pushEnabled.value = true
     toast.success('Push notifications enabled')

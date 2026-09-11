@@ -63,7 +63,14 @@ self.addEventListener('push', (event) => {
     actions: [{ action: 'open', title: 'Open BeBetter' }]
   };
 
-  event.waitUntil(self.registration.showNotification(data.title, options));
+  // A focused app window already shows this via the in-app UI — don't stack
+  // an OS notification on top of it.
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      if (clients.some((c) => c.focused)) return;
+      return self.registration.showNotification(data.title, options);
+    })
+  );
 });
 
 self.addEventListener('notificationclick', (event) => {

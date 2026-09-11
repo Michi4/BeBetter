@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show && auth.user && isSupported && onDashboard" class="pb-24 md:pb-4">
+  <div v-if="show && auth.user && isSupported && onDashboard" class="w-full pointer-events-auto">
     <div class="card border border-emerald-500/30 bg-emerald-500/5">
     <div class="flex items-start gap-3">
       <div class="shrink-0 w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center">
@@ -16,11 +16,11 @@
       <button @click="enablePush" :disabled="loading" class="btn flex-1 text-xs py-2">
         <Loader2 v-if="loading" :size="14" class="animate-spin" />
         <BellRing v-else :size="14" />
-        {{ loading ? 'Setting up...' : 'Enable notifications' }}
+        <span class="inline-block min-w-[118px]">{{ loading ? 'Setting up...' : 'Enable notifications' }}</span>
       </button>
       <button @click="dismiss" class="btn-secondary flex-1 text-xs py-2">Not now</button>
     </div>
-    <p class="text-[10px] text-gray-500 mt-2">{{ platformHint }}</p>
+    <p class="text-[10px] text-gray-500 mt-2 min-h-[28px]">{{ platformHint }}</p>
     </div>
   </div>
 </template>
@@ -109,6 +109,7 @@ async function enablePush() {
       endpoint: sub.endpoint,
       p256dh: keys.p256dh,
       auth: keys.auth,
+      userAgent: typeof navigator !== 'undefined' ? String(navigator.userAgent || '').slice(0, 512) : undefined,
     })
 
     // Ensure in-app reminder toggles are enabled so reminders flow

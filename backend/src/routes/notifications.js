@@ -23,8 +23,9 @@ router.get('/', authMiddleware, async (req, res) => {
         orderBy: { createdAt: 'desc' },
         take: 50,
       }),
+      // Already pushed to a device = already seen: not browser-unread.
       prisma.notification.count({
-        where: { userId: req.userId, read: false },
+        where: { userId: req.userId, read: false, pushed: false },
       }),
     ]);
 
@@ -110,11 +111,18 @@ router.post('/subscribe', authMiddleware, demoGuard, async (req, res) => {
         p256dh.length > 256 || auth.length > 256 || !p256dh.length || !auth.length) {
       return res.status(400).json({ error: 'Invalid push keys' });
     }
+    let userAgent;
+    if (req.body.userAgent !== undefined) {
+      if (typeof req.body.userAgent !== 'string' || req.body.userAgent.length > 512) {
+        return res.status(400).json({ error: 'Invalid user agent' });
+      }
+      userAgent = req.body.userAgent;
+    }
 
     await prisma.pushSubscription.upsert({
       where: { userId_endpoint: { userId: req.userId, endpoint } },
-      update: { p256dh, auth },
-      create: { userId: req.userId, endpoint, p256dh, auth },
+      update: { p256dh, auth, ...(userAgent !== undefined ? { userAgent } : {}) },
+      create: { userId: req.userId, endpoint, p256dh, auth, ...(userAgent !== undefined ? { userAgent } : {}) },
     });
 
     res.json({ ok: true });

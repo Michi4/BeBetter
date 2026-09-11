@@ -1,7 +1,7 @@
 <template>
   <div v-if="alerts.length" class="fixed inset-x-0 top-[calc(3rem+env(safe-area-inset-top,0px)+8px)] z-[45] flex justify-center px-3 sm:px-4 pointer-events-none">
     <TransitionGroup name="alert" tag="div" class="w-full max-w-lg space-y-2 pointer-events-auto">
-      <div v-if="alerts.length > 1" class="flex justify-end pr-1 -mb-1">
+      <div v-if="alerts.length > 1" key="dismiss-all" class="flex justify-end pr-1">
         <button @click="dismissAll" class="text-[10px] text-gray-500 hover:text-gray-300 transition-colors">Dismiss all</button>
       </div>
       <div
@@ -60,7 +60,8 @@ async function fetchAlerts() {
   try {
     const res = await api.get('/notifications')
     const all = res.data.notifications || []
-    alerts.value = all.filter(n => !n.read).slice(0, 5)
+    // Pushed rows already reached a device — never banner them in-browser.
+    alerts.value = all.filter(n => !n.read && !n.pushed).slice(0, 5)
   } catch {}
 }
 
@@ -171,7 +172,8 @@ onUnmounted(() => {
   transition: opacity 0.18s ease;
 }
 .alert-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition: opacity 0.15s ease, transform 0.15s ease, margin 0.15s ease, height 0.15s ease;
+  overflow: hidden;
 }
 .alert-enter-from {
   opacity: 0;
@@ -180,7 +182,10 @@ onUnmounted(() => {
   opacity: 0;
   transform: translateY(-3px);
 }
+.alert-move {
+  transition: transform 0.18s ease;
+}
 @media (prefers-reduced-motion: reduce) {
-  .alert-enter-active, .alert-leave-active { transition: none; }
+  .alert-enter-active, .alert-leave-active, .alert-move { transition: none; }
 }
 </style>

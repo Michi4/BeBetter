@@ -187,11 +187,14 @@ async function resetDemoAccount(db = prisma) {
 }
 
 async function sendPushNotification(userId, title, body, url, db = prisma) {
+  // Returns the number of endpoints the push provably reached (throws only on
+  // DB failure). Callers use it to decide whether the in-app copy is a duplicate.
   try {
     const subscriptions = await db.pushSubscription.findMany({ where: { userId } });
-    if (subscriptions.length === 0) return;
+    if (subscriptions.length === 0) return 0;
 
     const payload = JSON.stringify({ title, body, url: url || '/' });
+    let delivered = 0;
 
     for (const sub of subscriptions) {
       try {
@@ -203,14 +206,17 @@ async function sendPushNotification(userId, title, body, url, db = prisma) {
           ),
           new Promise((_, reject) => setTimeout(() => reject(new Error('push timeout')), 10000)),
         ]);
+        delivered++;
       } catch (e) {
         if (e.statusCode === 404 || e.statusCode === 410) {
           await db.pushSubscription.delete({ where: { id: sub.id } });
         }
       }
     }
+    return delivered;
   } catch (e) {
     console.error('Push notification error:', e);
+    return 0;
   }
 }
 
@@ -325,16 +331,31 @@ async function alreadyNotified(userId, type, entityId, time, reminderOffset, tod
 }
 
 async function sendReminder(userId, message, url, data, db = prisma, type = 'scheduled_reminder') {
-  const todayDate = getTodayDateStr();
-  await db.notification.create({
-    data: {
-      userId,
-      type,
-      message,
-      data,
-    },
-  }).catch(() => {});
-  await sendPushNotification(userId, 'BeBetter Reminder', message, url, db);
+  await notifyUser(userId, { type, message, url, data, pushTitle: 'BeBetter Reminder', db });
+}
+
+// One funnel for every user-facing notification: persistent in-app row first,
+// then push; when the push provably reached >=1 device the row is flagged so
+// browser UI can suppress the duplicate. No subscriptions or total push
+// failure => pushed=false and the in-app copy stays the fallback.
+async function notifyUser(userId, { type, message, url, data, pushTitle, pushBody, push = true, db = prisma }) {
+  let row = null;
+  try {
+    row = await db.notification.create({ data: { userId, type, message, data } });
+  } catch {}
+  if (!row || !push) {
+    if (push) await sendPushNotification(userId, pushTitle || 'BeBetter', pushBody || message, url, db);
+    return { id: row ? row.id : null, pushed: false };
+  }
+  const delivered = await sendPushNotification(userId, pushTitle || 'BeBetter', pushBody || message, url, db);
+  let pushed = false;
+  if (delivered > 0) {
+    try {
+      await db.notification.update({ where: { id: row.id }, data: { pushed: true } });
+      pushed = true;
+    } catch {}
+  }
+  return { id: row.id, pushed };
 }
 
 async function checkScheduledReminders(db = prisma) {
@@ -556,6 +577,7 @@ function startScheduler() {
 module.exports = {
   startScheduler,
   sendPushNotification,
+  notifyUser,
   alreadyNotified,
   digestNotified,
   inReminderWindow,

@@ -9,7 +9,6 @@
     <!-- Inline Notifications -->
     <NotificationAlerts />
 
-    <InstallPrompt />
 
     <!-- Demo Banner -->
     <div v-if="auth.isDemo" class="card bg-emerald-500/10 border border-emerald-500/20">
@@ -213,7 +212,6 @@ import TaskCard from '../components/TaskCard.vue'
 import BeBetterCam from '../components/BeBetterCam.vue'
 import CreateModal from '../components/CreateModal.vue'
 import NotificationAlerts from '../components/NotificationAlerts.vue'
-import InstallPrompt from '../components/InstallPrompt.vue'
 import { useAuthStore } from '../stores/auth'
 import { openDemoPrompt } from '../utils/demoPrompt'
 

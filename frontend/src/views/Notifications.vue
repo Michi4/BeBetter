@@ -9,8 +9,14 @@
       </button>
     </div>
 
-    <div v-if="loading" class="text-center py-16">
-      <Loader2 :size="28" class="animate-spin mx-auto text-gray-500" />
+    <div v-if="loading" class="space-y-2" aria-label="Loading notifications">
+      <div v-for="i in 4" :key="i" class="card flex items-start gap-3 animate-pulse">
+        <div class="w-8 h-8 rounded-full bg-gray-700/60 shrink-0 mt-0.5"></div>
+        <div class="flex-1 min-w-0 space-y-2 py-1">
+          <div class="h-3 rounded bg-gray-700/60 w-11/12"></div>
+          <div class="h-3 rounded bg-gray-700/60 w-2/3"></div>
+        </div>
+      </div>
     </div>
 
     <div v-else-if="notifications.length === 0" class="text-center py-16">
@@ -23,7 +29,7 @@
         v-for="n in notifications"
         :key="n.id"
         class="card flex items-start gap-3"
-        :class="{ 'bg-emerald-500/5 border-emerald-500/20': !n.read }"
+        :class="{ 'bg-emerald-500/5 border-emerald-500/20': isNew(n) }"
       >
         <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
           :class="iconClass(n.type)">
@@ -34,31 +40,31 @@
           <p class="text-sm break-words" :class="n.type === 'announcement' ? 'text-gray-400 mt-0.5' : ''">{{ n.message }}</p>
           <p class="text-[10px] text-gray-500 mt-1">{{ formatTime(n.createdAt) }}</p>
 
-          <div v-if="n.type === 'challenge_invite' && n.data?.challengeId && !n.read" class="flex gap-2 mt-2">
-            <button @click="acceptChallenge(n)" class="btn text-xs px-3 py-1.5">
+          <div v-if="n.type === 'challenge_invite' && n.data?.challengeId" class="flex gap-2 mt-2 min-h-[44px] items-center" :class="n.read ? 'invisible' : ''">
+            <button @click="acceptChallenge(n)" class="btn text-xs px-3 py-1.5" :tabindex="n.read ? -1 : 0">
               <Check :size="12" /> Accept
             </button>
-            <button @click="declineChallenge(n)" class="btn-secondary text-xs px-3 py-1.5">
+            <button @click="declineChallenge(n)" class="btn-secondary text-xs px-3 py-1.5" :tabindex="n.read ? -1 : 0">
               <X :size="12" /> Decline
             </button>
           </div>
 
-          <div v-if="n.type === 'friend_request' && n.data?.requestId && !n.read" class="flex gap-2 mt-2">
-            <button @click="acceptFriendRequest(n)" class="btn text-xs px-3 py-1.5">
+          <div v-if="n.type === 'friend_request' && n.data?.requestId" class="flex gap-2 mt-2 min-h-[44px] items-center" :class="n.read ? 'invisible' : ''">
+            <button @click="acceptFriendRequest(n)" class="btn text-xs px-3 py-1.5" :tabindex="n.read ? -1 : 0">
               <Check :size="12" /> Accept
             </button>
-            <button @click="declineFriendRequest(n)" class="btn-secondary text-xs px-3 py-1.5">
+            <button @click="declineFriendRequest(n)" class="btn-secondary text-xs px-3 py-1.5" :tabindex="n.read ? -1 : 0">
               <X :size="12" /> Decline
             </button>
           </div>
 
-          <div v-if="n.type === 'buddy_request' && !n.read" class="mt-2">
+          <div v-if="n.type === 'buddy_request'" class="mt-2 min-h-[26px] flex items-center" :class="n.read ? 'invisible' : ''">
             <span class="text-[10px] px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400">
               You have a new accountability buddy!
             </span>
           </div>
         </div>
-        <button v-if="!n.read" @click="markRead(n.id)" class="text-[10px] text-emerald-400 hover:text-emerald-300 shrink-0 mt-1">
+        <button v-if="isNew(n)" @click="markRead(n.id)" class="text-[10px] text-emerald-400 hover:text-emerald-300 shrink-0 mt-1">
           Read
         </button>
       </div>
@@ -84,6 +90,11 @@ const auth = useAuthStore()
 
 const notifications = ref([])
 const unread = ref(0)
+// Pushed rows already reached a device: history, not news. They render dimmed,
+// never highlight, and never count as unread.
+function isNew(n) {
+  return n && !n.read && !n.pushed
+}
 const loading = ref(true)
 const confirmDialog = ref(null)
 

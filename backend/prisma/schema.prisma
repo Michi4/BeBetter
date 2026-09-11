@@ -358,6 +358,7 @@ model Notification {
   message   String
   data      Json?
   read      Boolean  @default(false)
+  pushed    Boolean  @default(false) // a push reached >=1 device: browser UI treats it as seen
   createdAt DateTime @default(now())
 
   @@index([userId, createdAt])

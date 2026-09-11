@@ -2,7 +2,7 @@ const { Router } = require('express');
 const crypto = require('crypto');
 const prisma = require('../lib/prisma');
 const { authMiddleware, demoGuard } = require('../middleware/auth');
-const { sendPushNotification } = require('../scheduler');
+const { notifyUser } = require('../scheduler');
 const { dayKey } = require('../utils/dayKey');
 
 const router = Router();
@@ -148,15 +148,13 @@ router.post('/', authMiddleware, demoGuard, async (req, res) => {
     });
 
     const creatorUser = await prisma.user.findUnique({ where: { id: req.userId }, select: { username: true } });
-    await prisma.notification.create({
-      data: {
-        userId: opponentId,
-        type: 'challenge_invite',
-        message: `${creatorUser?.username || 'Someone'} challenged you to "${habit.title}"!`,
-        data: { challengeId: challenge.id, habitTitle: habit.title, creatorName: creatorUser?.username },
-      },
+    await notifyUser(opponentId, {
+      type: 'challenge_invite',
+      message: `${creatorUser?.username || 'Someone'} challenged you to "${habit.title}"!`,
+      url: `/challenges/${challenge.id}`,
+      data: { challengeId: challenge.id, habitTitle: habit.title, creatorName: creatorUser?.username },
+      pushTitle: 'New challenge!',
     }).catch(() => {});
-    await sendPushNotification(opponentId, 'New challenge!', `${creatorUser?.username || 'Someone'} challenged you to "${habit.title}"`, `/challenges/${challenge.id}`).catch(() => {});
 
     await prisma.activity.create({
       data: {
