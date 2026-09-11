@@ -1,8 +1,8 @@
 # BeBetter — Production Readiness Audit Report
 
-**Date:** 2026-09-06 · **Auditor:** automated full-stack audit (static analysis + live probes)
+**Date:** 2026-09-06, re-audit round 2: 2026-09-10/11 · **Auditor:** automated full-stack audit (static analysis + live probes)
 **Scope:** entire app — frontend, backend/API, security, data/DB, infra/deploy, E2E journeys, tests
-**Live-test target:** dev stack only (`bebetter-dev-api` + isolated `bebetter_dev_db`), per approval. Production was only *read* (logs, file presence, response codes, hash comparisons) — no prod writes except the pre-existing 83-test suite's self-cleaning accounts.
+**Live-test target:** round 1: dev stack (isolated `bebetter_dev_db`) + self-cleaning prod accounts for LLM paths. **Round 2 (this round): production, per explicit approval** — self-cleaning test accounts only, NO mail emitted (suites use nonexistent addresses), paced for rate limits.
 **Method rule:** every finding below has file:line, endpoint+response, or command+output evidence. Items that could not be verified are marked as such.
 
 ## Phase 0 — Inventory
@@ -354,3 +354,21 @@ Ship the current state — all CRITICALs are closed and verified, HIGHs fixed or
 2. **Browser verification** — run through key pages once with devtools open (console, mobile widths, keyboard) — could not be done from here.
 3. **Users must re-login** — expected fallout of the JWT rotation; consider an announcement.
 4. **Accepted tech debt** (tracked above): prisma-migrate baseline decision, nodemailer major, CSP, N+1 batch, 30d/6-char policy, USER root + limits, monitoring registration.
+
+## Round 2 re-audit (2026-09-10/11, prod target per approval)
+
+Five parallel static passes (all prior fixes re-verified — RE-VERIFIED lines kept inline above) + live prod probes. New findings fixed in this round:
+
+**Fixed HIGH:**
+- `.env.example` documented `SMTP_PASSWORD` (code reads `SMTP_PASS`) + omitted 9 vars → rewrote example as complete source of truth (verified against `process.env` grep).
+- `test-assistant-adv.js` hardcoded prod BASE → `process.env.BASE` default (dev-safe like its siblings).
+- Compose JWT fallback neutered the fail-closed boot check → both services now use `${JWT_SECRET:?...}` (compose refuses to boot without it).
+- `test.sh` retargeting still wrote prod DB → `DB_CONTAINER/DB_USER/DB_NAME` parameterized.
+
+**Fixed MEDIUM (backend):** forgot cooldown reply unified to one constant (existence-oracle closed, identical strings verified live); cap accounting fixed (only >24h rows pruned — cap now actually fires); tasks POST validation parity; habits PUT schedules validation + buddy/challenge caps (20); `grid/day` date validation; demoGuard on reorder + link-decline; friend-link DB `expiresAt` on accept + decline (400s verified live); assistant 150s overall deadline; interval due-ness in `/habits/scheduled` + `grid/day` (verified live); uncomplete ownership re-check; forgot email trim.
+**Fixed MEDIUM (frontend):** weekly-empty guard, timeless-reminder guard, server messages in 3 generic toasts, month-grid + outer-history failure toasts, dashboard reorder toast, TaskCard edit Repeat controls + payload forwarding, aria-pressed/labels, ForgotPassword honest copy + timer cleanup, startDate validation, interval input error, Daily badge, grip simplification, dead `shiftDay` removed, BeBetterCam alts, twitter:image, bio maxlength 500 (UI + API).
+**Fixed LOW/infra:** CI full deps; FRONTEND_URL both composes; deploy aborts on snapshot failure; seed stops printing ADMIN_PASSWORD; Dockerfile.dev `npm ci`; dev SMTP example; backups/ gitignored; history true counts; reorder dedupe; `@@index([userId, position])`.
+**npm audit (runs now):** `npm audit fix` → qs high→moderate (lockfile committed, suites green). Remaining with usage analysis: deepmerge-ts chain (Prisma-gated), nodemailer (major deferred; none of the CVE vectors in our usage), qs/express moderate residual.
+**Live prod verification this round:** 83/83 + 60/60 + 19/19 + adv multilingual + uniformity/cooldown/validation/reorder/interval/expiry probes (self-cleaning, zero mail). Headers re-checked (HSTS ✓, CSP absent by design).
+
+**Deliberately residual:** per-row JS recurrence (unindexable by nature), XFF-vs-limits (edge-set at Traefik), concurrent reset double-send (bounded by working cap), `===` HMAC compare (theoretical), VAPID fail-open, nodemailer major, CSP, 30d/6-char policy, USER root, monitoring, migrate baseline, N+1 batch.
