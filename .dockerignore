@@ -1,0 +1,19 @@
+# Keep the Docker build context lean, hermetic and secret-free.
+# Without this, host leftovers (notably node_modules) get COPY'd over fresh
+# installs and silently neutralize lockfile security fixes in production.
+.git
+.gitignore
+**/node_modules
+frontend/dist
+backend/public
+uploads/*
+uploads-dev/*
+backups/*
+.env
+.env.*
+vapid-keys.json
+vapid-keys.dev.json
+test/
+coverage/
+*.log
+.DS_Store
