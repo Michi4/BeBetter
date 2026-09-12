@@ -147,6 +147,20 @@
           </div>
 
           <div v-if="notifPrefs" class="space-y-3">
+            <!-- Master switch -->
+            <div class="flex items-center justify-between min-h-[44px] pb-2 border-b border-gray-800">
+              <div>
+                <div class="text-sm font-medium text-gray-200">All notifications</div>
+                <div class="text-[10px] text-gray-500">One switch for everything below</div>
+              </div>
+              <button @click="toggleAllNotifPrefs"
+                class="relative w-12 h-6 rounded-full transition-colors duration-200 shrink-0"
+                :class="allNotifOn ? 'bg-emerald-600' : 'bg-gray-700'"
+                role="switch" :aria-checked="allNotifOn" aria-label="All notifications">
+                <span class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200"
+                  :class="allNotifOn ? 'translate-x-6' : ''"></span>
+              </button>
+            </div>
             <!-- Morning Reminder -->
             <div class="flex items-center justify-between min-h-[44px]">
               <div>
@@ -187,7 +201,7 @@
             <div class="flex items-center justify-between min-h-[44px]">
               <div>
                 <div class="text-sm text-gray-300">Habit reminders</div>
-                <div class="text-[10px] text-gray-500">Remind about incomplete habits</div>
+                <div class="text-[10px] text-gray-500">Reminders at your habit times</div>
               </div>
               <button @click="notifPrefs.habitRemindersEnabled = !notifPrefs.habitRemindersEnabled; saveNotifPrefs()"
                 class="relative w-12 h-6 rounded-full transition-colors duration-200 shrink-0"
@@ -613,6 +627,25 @@ async function saveNotifPrefs() {
   } catch {
     toast.error('Failed to save settings')
   }
+}
+
+const allNotifOn = computed(() => {
+  const p = notifPrefs.value
+  return !!p && !!p.morningEnabled && !!p.eveningEnabled && !!p.habitRemindersEnabled && !!p.announcementsEnabled
+})
+
+async function toggleAllNotifPrefs() {
+  if (auth.isDemo) {
+    openDemoPrompt()
+    return
+  }
+  if (!notifPrefs.value) return
+  const turnOn = !allNotifOn.value
+  notifPrefs.value.morningEnabled = turnOn
+  notifPrefs.value.eveningEnabled = turnOn
+  notifPrefs.value.habitRemindersEnabled = turnOn
+  notifPrefs.value.announcementsEnabled = turnOn
+  await saveNotifPrefs()
 }
 
 async function togglePush() {

@@ -22,7 +22,8 @@
     </div>
     <p class="text-[10px] text-gray-500 mt-2 min-h-[28px]">{{ platformHint }}</p>
     </div>
-  </div>
+    </div>
+  <ConfirmDialog ref="confirmDlg" />
 </template>
 
 <script setup>
@@ -32,6 +33,7 @@ import { useAuthStore } from '../stores/auth'
 import api from '../api'
 import { useToast } from 'vue-toastification'
 import { BellRing, Loader2 } from 'lucide-vue-next'
+import ConfirmDialog from './ConfirmDialog.vue'
 
 const auth = useAuthStore()
 const toast = useToast()
@@ -58,6 +60,7 @@ const loading = ref(false)
 const isSupported = ref(false)
 
 const DISMISS_KEY = 'bebetter_push_banner_dismissed'
+const confirmDlg = ref(null)
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4)
@@ -112,12 +115,17 @@ async function enablePush() {
       userAgent: typeof navigator !== 'undefined' ? String(navigator.userAgent || '').slice(0, 512) : undefined,
     })
 
-    // Ensure in-app reminder toggles are enabled so reminders flow
+    // Never silently re-enable: if the user turned habit reminders off, ask.
     try {
       const prefsRes = await api.get('/notifications/preferences')
       const prefs = prefsRes.data.preferences
       if (prefs && !prefs.habitRemindersEnabled) {
-        await api.put('/notifications/preferences', { ...prefs, habitRemindersEnabled: true })
+        const turnOn = await confirmDlg.value?.open({
+          title: 'Habit reminders are off',
+          message: 'Push is on, but your habit reminders are disabled — so there is nothing to push. Turn habit reminders on too?',
+          confirmLabel: 'Turn on',
+        })
+        if (turnOn) await api.put('/notifications/preferences', { habitRemindersEnabled: true })
       }
     } catch {}
 
