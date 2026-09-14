@@ -233,6 +233,10 @@
             <a :href="appUrl('/login')" class="btn-secondary px-10 py-4 text-lg font-medium">Sign In</a>
             <a href="/login?demo=1" class="btn-demo px-10 py-4 text-lg font-medium">Try the Demo</a>
           </div>
+          <div class="pt-2 flex flex-col sm:flex-row gap-3 justify-center items-center">
+            <a href="https://github.com/Michi4/BeBetter-android/releases/latest" target="_blank" rel="noopener" class="btn-secondary px-8 py-3 text-sm font-medium">Download for Android</a>
+            <a href="https://github.com/Michi4/BeBetter-android/releases/latest" target="_blank" rel="noopener" class="text-sm text-[var(--bb-muted)] hover:text-[var(--bb-accent)] transition-colors underline underline-offset-2">Pixel Watch app included</a>
+          </div>
           <p class="text-xs text-[var(--bb-faint)]">
             <a href="/privacy" class="underline underline-offset-2 hover:text-[var(--bb-accent)] transition-colors">Privacy</a>
             &middot;

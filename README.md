@@ -51,6 +51,11 @@ vapid-keys.json     Web-push VAPID keypair
   real-only platform stats.
 - **Landing** — editorial theme with animated ambient background, kinetic hero
   tilt, scroll reveals; server-rendered OG image for rich link previews.
+- **Android + Wear OS** — native apps in
+  [BeBetter-android](https://github.com/Michi4/BeBetter-android): full app
+  parity on phones (widget, keep-screen-on, photo proof) plus a Pixel Watch app
+  with Tile and streak complication. Download the APKs from
+  [the latest release](https://github.com/Michi4/BeBetter-android/releases/latest).
 
 ## Getting started (local)
 

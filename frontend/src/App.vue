@@ -40,6 +40,10 @@
             <Sparkles :size="18" />
           </button>
           <template v-if="auth.user">
+            <a href="https://github.com/Michi4/BeBetter-android/releases/latest" target="_blank" rel="noopener" aria-label="Download Android app"
+              class="p-2.5 rounded-lg text-gray-500 hover:text-emerald-300 hover:bg-gray-800 transition-colors touch-target inline-flex items-center justify-center shrink-0">
+              <Smartphone :size="18" />
+            </a>
             <router-link :to="`/profile/${auth.user.username || auth.user.id}`" :aria-label="`View profile ${auth.user.username || ''}`"
               class="w-8 h-8 rounded-full bg-emerald-600/20 flex items-center justify-center text-xs font-bold text-emerald-400 ring-1 ring-emerald-500/30">
               {{ (auth.user?.username || '?')[0]?.toUpperCase() || '?' }}
@@ -49,6 +53,7 @@
             </button>
           </template>
           <template v-else>
+            <a href="https://github.com/Michi4/BeBetter-android/releases/latest" target="_blank" rel="noopener" class="text-xs font-medium text-gray-400 hover:text-gray-200 px-2 py-1 rounded-lg hover:bg-gray-800 transition-colors">Android app</a>
             <router-link to="/login" class="text-xs font-medium text-emerald-400 hover:text-emerald-300 px-2 py-1 rounded-lg hover:bg-gray-800 transition-colors">Sign In</router-link>
             <router-link to="/register" class="text-xs font-medium bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-500 transition-colors">Sign Up</router-link>
           </template>
@@ -107,7 +112,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
-import { LogOut, LayoutDashboard, ListTodo, Users, Trophy, BookOpen, Shield, Sun, Moon, WifiOff, Sparkles } from 'lucide-vue-next'
+import { LogOut, LayoutDashboard, ListTodo, Users, Trophy, BookOpen, Shield, Sun, Moon, WifiOff, Sparkles, Smartphone } from 'lucide-vue-next'
 import Logo from './components/Logo.vue'
 import PushPrompt from './components/PushPrompt.vue'
 import InstallPrompt from './components/InstallPrompt.vue'
