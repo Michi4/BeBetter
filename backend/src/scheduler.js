@@ -433,17 +433,21 @@ async function checkScheduledReminders(db = prisma) {
       const reminders = parseReminders(task.reminderMinutes);
       if (!reminders.length) continue;
 
+      // Interval tasks recur by anchor, not weekdays/due dates.
+      const taskIntervalOn = Number.isInteger(task.intervalDays) && task.intervalDays >= 2;
+      if (taskIntervalOn && !isIntervalDueDate(task.createdAt, task.intervalDays, new Date())) continue;
+
       let taskDays = null;
       if (task.scheduledDays) {
         taskDays = typeof task.scheduledDays === 'string' ? JSON.parse(task.scheduledDays) : task.scheduledDays;
       }
-      if (Array.isArray(taskDays) && !taskDays.includes(dayOfWeek)) continue;
+      if (!taskIntervalOn && Array.isArray(taskDays) && !taskDays.includes(dayOfWeek)) continue;
 
-      if (task.dueDate) {
+      if (!taskIntervalOn && task.dueDate) {
         const t = new Date(task.dueDate);
         const dueStr = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
         if (dueStr !== todayDate) continue;
-      } else if (!Array.isArray(taskDays) || !taskDays.length) {
+      } else if (!taskIntervalOn && (!Array.isArray(taskDays) || !taskDays.length)) {
         // One-time task (no recurring weekday selection, no due date): remind
         // only on the day it was created — "this once, not every week".
         const c = new Date(task.createdAt);

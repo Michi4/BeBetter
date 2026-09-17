@@ -73,6 +73,26 @@ async function main() {
   const tUndone = await api(`/tasks/${tid}/uncomplete`, { method: 'DELETE' }, ta);
   ok(tUndone.status === 200, `task uncomplete (${tUndone.status})`);
 
+  // ---- task intervals + reorder ----
+  const tIvBad = await api('/tasks', { method: 'POST', body: JSON.stringify({ title: 'Bad', intervalDays: 1 }) }, ta);
+  ok(tIvBad.status === 400, `task interval validation (${tIvBad.status})`);
+  const tIv = await api('/tasks', { method: 'POST', body: JSON.stringify({ title: 'Sweep interval', intervalDays: 3, scheduledTime: '09:00' }) }, ta);
+  const tIvId = uid(tIv.body);
+  ok((tIv.status === 200 || tIv.status === 201) && tIvId, 'task interval create');
+  const tList = await api('/tasks', {}, ta);
+  const tIvRow = ((tList.body && tList.body.tasks) || []).find(x => x.id === tIvId);
+  ok(tIvRow && tIvRow.isDueToday === true, 'interval task due on anchor day');
+  const tA = await api('/tasks', { method: 'POST', body: JSON.stringify({ title: 'Sweep order A' }) }, ta);
+  const tB = await api('/tasks', { method: 'POST', body: JSON.stringify({ title: 'Sweep order B' }) }, ta);
+  const idA = uid(tA.body), idB = uid(tB.body);
+  const ro = await api('/tasks/reorder', { method: 'POST', body: JSON.stringify({ ids: [idA, idB] }) }, ta);
+  ok(ro.status === 200, `task reorder (${ro.status})`);
+  const roBad = await api('/tasks/reorder', { method: 'POST', body: JSON.stringify({ ids: ['00000000-0000-0000-0000-000000000000'] }) }, ta);
+  ok(roBad.status === 404, `task reorder foreign id (${roBad.status})`);
+  await api(`/tasks/${tIvId}`, { method: 'DELETE' }, ta);
+  await api(`/tasks/${idA}`, { method: 'DELETE' }, ta);
+  await api(`/tasks/${idB}`, { method: 'DELETE' }, ta);
+
   // ---- grid + stats ----
   const grid = await api('/grid', {}, ta);
   ok(grid.status === 200, 'grid year');

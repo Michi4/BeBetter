@@ -31,6 +31,9 @@ services:
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required in .env — refusing to boot with a default (see .env.example)}
       B_AI_API_KEY: ${B_AI_API_KEY:-}
       AI_MODELS: ${AI_MODELS:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_BASE_URL: ${GEMINI_BASE_URL:-}
+      GEMINI_MODELS: ${GEMINI_MODELS:-}
       FRONTEND_URL: ${FRONTEND_URL:-https://bebetter.websters.at}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
@@ -94,6 +97,9 @@ services:
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required in .env — refusing to boot with a default (see .env.example)}
       B_AI_API_KEY: ${B_AI_API_KEY:-}
       AI_MODELS: ${AI_MODELS:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_BASE_URL: ${GEMINI_BASE_URL:-}
+      GEMINI_MODELS: ${GEMINI_MODELS:-}
       FRONTEND_URL: ${FRONTEND_URL:-https://bebetter.websters.at}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}

@@ -40,7 +40,11 @@ router.get('/', authMiddleware, async (req, res) => {
         } catch { schedDays = null; }
       }
 
-      if (Array.isArray(schedDays) && !schedDays.includes(dayOfWeek)) {
+      const intervalOn = Number.isInteger(t.intervalDays) && t.intervalDays >= 2;
+      if (intervalOn) {
+        const { isIntervalDueDate } = require('../lib/recurrence');
+        if (!isIntervalDueDate(t.createdAt, t.intervalDays, d)) dueToday = false;
+      } else if (Array.isArray(schedDays) && !schedDays.includes(dayOfWeek)) {
         dueToday = false;
       }
 
@@ -70,6 +74,15 @@ router.get('/', authMiddleware, async (req, res) => {
 router.post('/', authMiddleware, demoFieldGuard(['scheduledTime', 'scheduledDays', 'isEveryday', 'reminderMinutes']), async (req, res) => {
   try {
     const { title, description, emoji, dueDate, isScheduled, isEveryday, scheduledTime, scheduledDays, reminderMinutes } = req.body;
+    let { intervalDays } = req.body;
+    if (intervalDays !== undefined && intervalDays !== null) {
+      intervalDays = Number(intervalDays);
+      if (!Number.isInteger(intervalDays) || intervalDays < 2 || intervalDays > 365) {
+        return res.status(400).json({ error: 'intervalDays must be a whole number between 2 and 365' });
+      }
+    } else {
+      intervalDays = undefined;
+    }
     if (dueDate) {
       const parsed = new Date(dueDate);
       if (Number.isNaN(parsed.getTime())) return res.status(400).json({ error: 'dueDate must be a valid date' });
@@ -99,6 +112,7 @@ router.post('/', authMiddleware, demoFieldGuard(['scheduledTime', 'scheduledDays
         isEveryday: isEveryday || false,
         scheduledTime: scheduledTime || undefined,
         scheduledDays: Array.isArray(scheduledDays) ? JSON.stringify(scheduledDays) : undefined,
+        intervalDays,
         // Standard reminder: at the set time unless the caller chose otherwise
         // (or disabled reminders in settings — enforced by the scheduler).
         reminderMinutes: reminderMinutes !== undefined ? reminderMinutes : (scheduledTime ? [0] : undefined),
@@ -168,7 +182,7 @@ router.post('/:id/complete', authMiddleware, async (req, res) => {
 
     // One-time tasks (no recurring day selection) are done once: completing
     // them deactivates them so they never reappear the next day as "due".
-    let recurring = !!task.isEveryday;
+    let recurring = !!task.isEveryday || (Number.isInteger(task.intervalDays) && task.intervalDays >= 2);
     if (task.scheduledDays) {
       try {
         const sd = typeof task.scheduledDays === 'string' ? JSON.parse(task.scheduledDays) : task.scheduledDays;
@@ -224,6 +238,13 @@ router.put('/:id', authMiddleware, demoFieldGuard(['scheduledTime', 'scheduledDa
     // unless the task already has reminders stored.
     const effectiveTime = scheduledTime !== undefined ? scheduledTime : task.scheduledTime;
     const needsDefaultReminder = reminderMinutes === undefined && effectiveTime && task.reminderMinutes == null;
+    let putInterval = req.body.intervalDays;
+    if (intervalDays !== undefined && intervalDays !== null) {
+      putInterval = Number(intervalDays);
+      if (!Number.isInteger(putInterval) || putInterval < 2 || putInterval > 365) {
+        return res.status(400).json({ error: 'intervalDays must be a whole number between 2 and 365' });
+      }
+    }
     if (Array.isArray(scheduledDays)) {
       for (const d of scheduledDays) {
         if (!Number.isInteger(d) || d < 0 || d > 6) {
@@ -244,6 +265,7 @@ router.put('/:id', authMiddleware, demoFieldGuard(['scheduledTime', 'scheduledDa
         isEveryday: isEveryday !== undefined ? isEveryday : undefined,
         scheduledTime: scheduledTime !== undefined ? scheduledTime : undefined,
         scheduledDays: scheduledDays !== undefined ? (Array.isArray(scheduledDays) ? JSON.stringify(scheduledDays) : scheduledDays) : undefined,
+        intervalDays: putInterval !== undefined ? putInterval : undefined,
         reminderMinutes: reminderMinutes !== undefined ? reminderMinutes : (needsDefaultReminder ? [0] : undefined),
       },
     });

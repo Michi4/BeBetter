@@ -25,13 +25,20 @@
         <div>
           <label class="text-[10px] text-gray-500 mb-1 block">Repeat</label>
           <div class="flex flex-wrap gap-1">
-            <button v-for="r in [['Once', 'once'], ['Daily', 'daily'], ['Weekly', 'weekly']]" :key="r[1]" type="button"
+            <button v-for="r in [['Once', 'once'], ['Daily', 'daily'], ['Weekly', 'weekly'], ['Every N', 'interval']]" :key="r[1]" type="button"
               @click="editForm.repeat = r[1]" :aria-pressed="editForm.repeat === r[1]"
               class="px-2 py-0.5 rounded text-[10px] font-medium transition-colors"
               :class="editForm.repeat === r[1] ? 'bg-emerald-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'">
               {{ r[0] }}
             </button>
           </div>
+          <div v-if="editForm.repeat === 'interval'" class="flex items-center gap-2 mt-1.5">
+            <span class="text-[10px] text-gray-500">Every</span>
+            <input v-model.number="editForm.repeatN" type="number" min="2" max="365" aria-label="Repeat every N days"
+              class="input w-16 text-center text-xs py-1" />
+            <span class="text-[10px] text-gray-500">days</span>
+          </div>
+          <p v-if="editRepeatError" class="text-[10px] text-red-400">{{ editRepeatError }}</p>
           <div v-if="editForm.repeat === 'weekly'" class="flex gap-1 mt-1.5">
             <button v-for="(day, di) in ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']" :key="di" type="button"
               @click="toggleEditRepeatDay(di)" :aria-pressed="editForm.repeatDays.includes(di)" :aria-label="day"
@@ -114,6 +121,9 @@
           <span v-if="task.isEveryday" class="text-[10px] px-1.5 py-0.5 rounded bg-gray-700/50 text-gray-400 shrink-0">
             Daily
           </span>
+          <span v-if="task.intervalDays >= 2" class="text-[10px] px-1.5 py-0.5 rounded bg-gray-700/50 text-gray-400 shrink-0">
+            Every {{ task.intervalDays }}d
+          </span>
           <span v-if="task.dueDate" class="text-[10px] px-1.5 py-0.5 rounded shrink-0"
             :class="dueDateClass">{{ dueDateLabel }}</span>
         </div>
@@ -174,7 +184,8 @@ const showMenu = ref(false)
 const menuPos = ref({ top: '50%', left: '50%' })
 const editing = ref(false)
 const titleInput = ref(null)
-const editForm = reactive({ title: '', description: '', dueDate: '', hasDueTime: false, dueTime: '', setScheduledTime: false, scheduledTime: '', reminderMinutes: [], repeat: 'once', repeatDays: [1, 2, 3, 4, 5] })
+const editForm = reactive({ title: '', description: '', dueDate: '', hasDueTime: false, dueTime: '', setScheduledTime: false, scheduledTime: '', reminderMinutes: [], repeat: 'once', repeatDays: [1, 2, 3, 4, 5], repeatN: 2 })
+const editRepeatError = ref('')
 let longPressTimer = null
 let longPressFired = false
 
@@ -241,6 +252,9 @@ function startEdit() {
   else if (Array.isArray(props.task.scheduledDays) && props.task.scheduledDays.length) {
     editForm.repeat = 'weekly'
     editForm.repeatDays = [...props.task.scheduledDays]
+  } else if (Number.isInteger(props.task.intervalDays) && props.task.intervalDays >= 2) {
+    editForm.repeat = 'interval'
+    editForm.repeatN = props.task.intervalDays
   } else editForm.repeat = 'once'
   editing.value = true
   nextTick(() => titleInput.value?.focus())
@@ -305,6 +319,17 @@ function saveEdit() {
     payload.reminderMinutes = editForm.reminderMinutes.length ? editForm.reminderMinutes : undefined
     payload.isEveryday = editForm.repeat === 'daily'
     payload.scheduledDays = editForm.repeat === 'weekly' && editForm.repeatDays.length ? [...editForm.repeatDays].sort((a, b) => a - b) : null
+    if (editForm.repeat === 'interval') {
+      const n = parseInt(editForm.repeatN)
+      if (!Number.isInteger(n) || n < 2 || n > 365) {
+        editRepeatError.value = 'Enter a whole number from 2 to 365'
+        return
+      }
+      editRepeatError.value = ''
+      payload.intervalDays = n
+    } else {
+      payload.intervalDays = null
+    }
   } else {
     payload.scheduledTime = null
     payload.reminderMinutes = undefined

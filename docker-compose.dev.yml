@@ -34,6 +34,9 @@ services:
       JWT_SECRET: ${DEV_JWT_SECRET:-bebetter-dev-jwt-secret-change-me}
       B_AI_API_KEY: ${B_AI_API_KEY:-}
       AI_MODELS: ${AI_MODELS:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_BASE_URL: ${GEMINI_BASE_URL:-}
+      GEMINI_MODELS: ${GEMINI_MODELS:-}
       FRONTEND_URL: ${DEV_FRONTEND_URL:-https://betterdev.home.websters.at}
       # Mail testing: point at test/mail-catcher.py
       # (docker run --network bebetter_bebetter-dev-net python:3.11-alpine ...),

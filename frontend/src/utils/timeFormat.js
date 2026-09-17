@@ -50,4 +50,23 @@ export function formatTimeForDisplay(timeStr) {
   return formatTime(timeStr)
 }
 
+const DAY_ABBR = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+
+// Human schedule label for a habit: "Every 3 days", "Daily", "Weekdays", "Mo We Fr".
+export function formatSchedule(habit) {
+  if (!habit) return ''
+  const n = Number(habit.intervalDays)
+  if (Number.isInteger(n) && n >= 2) return n === 7 ? 'Weekly' : `Every ${n} days`
+  let days = habit.scheduledDays || habit.daysPerWeek
+  if (typeof days === 'string') {
+    try { days = JSON.parse(days) } catch { return '' }
+  }
+  if (habit.frequencyType === 'daily' || habit.frequencyType === 'always') return 'Daily'
+  if (!Array.isArray(days) || !days.length) return ''
+  if (days.length === 7) return 'Daily'
+  if (days.length === 5 && days.every(d => d >= 1 && d <= 5)) return 'Weekdays'
+  if (days.length === 2 && days.includes(0) && days.includes(6)) return 'Weekends'
+  return days.map(d => DAY_ABBR[d] || '').filter(Boolean).join(' ')
+}
+
 initTimeFormat()

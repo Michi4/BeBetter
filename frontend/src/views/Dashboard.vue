@@ -463,6 +463,7 @@ async function handleCreated(type, data) {
       if (data.scheduledTime) payload.scheduledTime = data.scheduledTime
       if (data.scheduledDays?.length) payload.scheduledDays = data.scheduledDays
       if (data.isEveryday) payload.isEveryday = true
+      if (data.intervalDays) payload.intervalDays = data.intervalDays
       if (data.reminderMinutes != null) payload.reminderMinutes = data.reminderMinutes
       const res = await api.post('/tasks', payload)
       todayTasks.value.unshift(res.data.task || res.data)
@@ -554,7 +555,7 @@ async function editTask(task) {
     if (task.isEveryday !== undefined) payload.isEveryday = task.isEveryday
     if (task.scheduledDays !== undefined) payload.scheduledDays = task.scheduledDays
     await api.put(`/tasks/${task.id}`, payload)
-    todayTasks.value = todayTasks.value.map(t => t.id === task.id ? { ...t, title: task.title, description: task.description, dueDate: task.dueDate, scheduledTime: task.scheduledTime, reminderMinutes: task.reminderMinutes, isEveryday: task.isEveryday, scheduledDays: task.scheduledDays } : t)
+    todayTasks.value = todayTasks.value.map(t => t.id === task.id ? { ...t, title: task.title, description: task.description, dueDate: task.dueDate, scheduledTime: task.scheduledTime, reminderMinutes: task.reminderMinutes, isEveryday: task.isEveryday, scheduledDays: task.scheduledDays, intervalDays: task.intervalDays } : t)
     toast.success('Task updated')
   } catch {
     toast.error('Failed to update')

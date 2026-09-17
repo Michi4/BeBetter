@@ -1,7 +1,7 @@
 const { Router } = require('express');
 const prisma = require('../lib/prisma');
 const { authMiddleware } = require('../middleware/auth');
-const { modelChain } = require('../lib/assistant');
+const { availableModels } = require('../lib/assistant');
 
 const router = Router();
 router.use(authMiddleware);
@@ -85,7 +85,7 @@ router.delete('/:id', async (req, res) => {
 // Expose the available model list for the Profile picker.
 router.get('/meta/models', async (req, res) => {
   try {
-    res.json({ models: modelChain() });
+    res.json({ models: availableModels() });
   } catch (e) {
     console.error('[assistant] models meta:', e.message);
     res.status(500).json({ error: 'Server error' });

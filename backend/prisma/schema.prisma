@@ -327,6 +327,7 @@ model Task {
   scheduledTime   String? // "HH:MM" — specific time of day
   scheduledDays   Json? // [0,1,2,3,4,5,6] — which days (null = everyday if isEveryday)
   reminderMinutes Json? // [0, 5, 15] — array of reminder offsets in minutes
+  intervalDays    Int? // "every N days" recurrence (2..365); null = once/weekly logic
   position        Int      @default(0) // manual sort order (drag & drop); lower = first
   createdAt       DateTime  @default(now())
 

@@ -540,8 +540,8 @@ function formatDate(dateStr) {
 
 async function updateTaskFromCard(task) {
   try {
-    await api.put(`/tasks/${task.id}`, { title: task.title, description: task.description || undefined, dueDate: task.dueDate ?? null, scheduledTime: task.scheduledTime ?? null, reminderMinutes: task.reminderMinutes, isEveryday: task.isEveryday, scheduledDays: task.scheduledDays ?? null })
-    incompleteTasks.value = incompleteTasks.value.map(t => t.id === task.id ? { ...t, title: task.title, description: task.description, dueDate: task.dueDate, scheduledTime: task.scheduledTime, reminderMinutes: task.reminderMinutes, isEveryday: task.isEveryday, scheduledDays: task.scheduledDays } : t)
+    await api.put(`/tasks/${task.id}`, { title: task.title, description: task.description || undefined, dueDate: task.dueDate ?? null, scheduledTime: task.scheduledTime ?? null, reminderMinutes: task.reminderMinutes, isEveryday: task.isEveryday, scheduledDays: task.scheduledDays ?? null, intervalDays: task.intervalDays ?? null })
+    incompleteTasks.value = incompleteTasks.value.map(t => t.id === task.id ? { ...t, title: task.title, description: task.description, dueDate: task.dueDate, scheduledTime: task.scheduledTime, reminderMinutes: task.reminderMinutes, isEveryday: task.isEveryday, scheduledDays: task.scheduledDays, intervalDays: task.intervalDays } : t)
     toast.success('Task updated')
   } catch {
     toast.error('Failed to update task')

@@ -3,7 +3,7 @@ const prisma = require('../lib/prisma');
 const { authMiddleware, demoGuard } = require('../middleware/auth');
 const {
   TOOLS, TOOL_POLICY, summarizeCall, deniedMessage,
-  execTool, chatStream, systemPrompt, modelChain,
+  execTool, chatStream, systemPrompt, availableModels,
 } = require('../lib/assistant');
 
 const router = Router();
@@ -34,7 +34,7 @@ function sanitizeLevels(body) {
   if (body.preferredModel !== undefined) {
     const m = String(body.preferredModel || '').trim();
     // '' resets to Auto; otherwise only known model ids pass.
-    out.preferredModel = m === '' ? '' : (modelChain().includes(m) ? m : '');
+    out.preferredModel = m === '' ? '' : (availableModels().includes(m) ? m : '');
   }
   return out;
 }
@@ -189,6 +189,13 @@ router.post('/chat', async (req, res) => {
         });
       } catch (e) {
         if (e.code === 'NO_KEY') { clearDeadline(); send('error', { error: 'AI is not configured yet. Please try again later.' }); return finish(); }
+        if (e.code === 'QUOTA_EXHAUSTED' && !clientGone) {
+          console.error('[assistant] quota exhausted:', e.message);
+          if (progressed) break;
+          clearDeadline();
+          send('error', { error: 'The AI is out of credit right now — please try again later.' });
+          return finish();
+        }
         if (e.code === 'CLIENT_GONE' || clientGone) { clearDeadline(); return finish(); }
         if (timedOut) {
           console.error('[assistant] overall deadline exceeded');

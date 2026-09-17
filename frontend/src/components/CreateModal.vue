@@ -57,7 +57,7 @@
               class="flex items-center gap-2 text-xs transition-colors"
               :class="taskForm.setScheduledTime ? 'text-emerald-400' : 'text-gray-500 hover:text-gray-300'">
               <Clock :size="14" />
-              {{ taskForm.setScheduledTime ? 'Scheduled for ' + (taskForm.scheduledTime ? formatTime(taskForm.scheduledTime) : 'selected time') : 'Set a time' }}
+              {{ taskScheduleToggleLabel }}
             </button>
             <p v-if="taskForm.setScheduledTime && !taskForm.scheduledTime" class="text-[10px] text-gray-600 mt-1">Pick a time below to get reminded.</p>
           </div>
@@ -74,6 +74,13 @@
                 </button>
               </div>
               <p class="text-[10px] text-gray-600 mt-1">{{ taskRepeatHint }}</p>
+              <div v-if="taskForm.repeat === 'interval'" class="flex items-center gap-2 mt-1.5">
+                <span class="text-[10px] text-gray-500">Every</span>
+                <input v-model.number="taskForm.repeatN" type="number" min="2" max="365" aria-label="Repeat every N days"
+                  class="input w-16 text-center text-xs py-1" />
+                <span class="text-[10px] text-gray-500">days, starting today</span>
+              </div>
+              <p v-if="taskRepeatError" class="text-[10px] text-red-400">{{ taskRepeatError }}</p>
               <div v-if="taskForm.repeat === 'weekly'" class="flex gap-1 mt-1.5">
                 <button v-for="(day, di) in weekDays" :key="di" type="button" @click="toggleTaskRepeatDay(di)"
                   :aria-pressed="taskForm.repeatDays.includes(di)" :aria-label="day"
@@ -319,20 +326,33 @@ const customTaskReminderInput = ref('')
 const taskForm = reactive({
   title: '', description: '', dueDate: '', hasDueTime: false, dueTime: '',
   setScheduledTime: false, scheduledTime: '', reminderMinutes: [],
-  repeat: 'once', repeatDays: [1, 2, 3, 4, 5],
+  repeat: 'once', repeatDays: [1, 2, 3, 4, 5], repeatN: 2,
 })
 
 const taskRepeatOptions = [
   { label: 'Once', value: 'once' },
   { label: 'Daily', value: 'daily' },
   { label: 'Weekly', value: 'weekly' },
+  { label: 'Every N days', value: 'interval' },
 ]
 const weekDays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 const taskRepeatHint = computed(() => {
   if (taskForm.repeat === 'daily') return 'Reminds every day at this time until completed.'
   if (taskForm.repeat === 'weekly') return 'Reminds on the selected days at this time.'
+  if (taskForm.repeat === 'interval') return 'Repeats every N days from today.'
   return "One-time only — you'll be reminded on the creation day, not every week."
 })
+const taskRepeatError = ref('')
+function taskIntervalOrNull() {
+  if (taskForm.repeat !== 'interval') return undefined
+  const n = parseInt(taskForm.repeatN)
+  if (!Number.isInteger(n) || n < 2 || n > 365) {
+    taskRepeatError.value = 'Enter a whole number from 2 to 365'
+    return 'invalid'
+  }
+  taskRepeatError.value = ''
+  return n
+}
 function toggleTaskRepeatDay(di) {
   const i = taskForm.repeatDays.indexOf(di)
   if (i >= 0) {
@@ -345,6 +365,15 @@ const habitForm = reactive({
   schedules: [{ time: null, days: [0, 1, 2, 3, 4, 5, 6] }],
   intervalDays: null,
   verificationType: 'honor', makePublic: false, reminderMinutes: [],
+})
+
+const taskScheduleToggleLabel = computed(() => {
+  if (!taskForm.setScheduledTime) return 'Set a time'
+  const when = taskForm.scheduledTime ? formatTime(taskForm.scheduledTime) : 'selected time'
+  if (taskForm.repeat === 'daily') return `Scheduled for ${when} · Daily`
+  if (taskForm.repeat === 'weekly') return `Scheduled for ${when} · Weekly`
+  if (taskForm.repeat === 'interval') return `Scheduled for ${when} · Every ${taskForm.repeatN || '?'} days`
+  return `Scheduled for ${when}`
 })
 
 function toggleSetTaskTime() {
@@ -395,6 +424,8 @@ watch(() => props.show, (val) => {
     taskForm.reminderMinutes = []
     taskForm.repeat = 'once'
     taskForm.repeatDays = [1, 2, 3, 4, 5]
+    taskForm.repeatN = 2
+    taskRepeatError.value = ''
     habitForm.title = ''
     habitForm.description = ''
     habitForm.emoji = ''
@@ -549,6 +580,8 @@ function createTask() {
       ? `${taskForm.dueDate}T${taskForm.dueTime}:00`
       : `${taskForm.dueDate}T00:00:00`
   }
+  const taskInterval = taskForm.setScheduledTime ? taskIntervalOrNull() : undefined
+  if (taskInterval === 'invalid') return
   const data = {
     title: taskForm.title,
     description: taskForm.description,
@@ -563,6 +596,7 @@ function createTask() {
     scheduledDays: taskForm.setScheduledTime && taskForm.repeat === 'weekly' && taskForm.repeatDays.length
       ? [...taskForm.repeatDays].sort((a, b) => a - b)
       : undefined,
+    intervalDays: taskInterval === undefined ? undefined : taskInterval,
   }
   delete data.setScheduledTime
   emit('created', 'task', data)

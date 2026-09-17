@@ -11,6 +11,9 @@
         <span v-if="scheduledTime" class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-medium">
           {{ formatTime(scheduledTime) }}
         </span>
+        <span v-if="scheduleLabel" class="text-[10px] px-1.5 py-0.5 rounded bg-gray-700/50 text-gray-400 font-medium shrink-0">
+          {{ scheduleLabel }}
+        </span>
         <span v-if="habit.challengeId" class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 font-medium">challenge</span>
         <span v-if="habit.currentStreak > 0" class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">{{ habit.currentStreak }}d</span>
         <span v-if="habit.hasBreak" class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400">pause</span>
@@ -32,7 +35,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { CheckCircle2, Camera, Undo2 } from 'lucide-vue-next'
-import { formatTime } from '../utils/timeFormat'
+import { formatTime, formatSchedule } from '../utils/timeFormat'
 import { useTap } from '../utils/tapTrigger'
 
 const props = defineProps({
@@ -48,6 +51,8 @@ const undoTap = useTap(() => emit('undo', props.habit, props.scheduledTime))
 const needsCamera = computed(() => {
   return props.habit.verificationType === 'be_better_cam' || props.habit.verificationType === 'photo'
 })
+
+const scheduleLabel = computed(() => formatSchedule(props.habit))
 
 const isCompleted = computed(() => {
   if (props.scheduledTime && props.habit.completedSlots) {
