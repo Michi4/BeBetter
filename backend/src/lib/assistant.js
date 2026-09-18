@@ -60,13 +60,13 @@ function availableModels() {
 }
 
 // A response means "no usable quota on this provider" (vs transient errors).
-// Money words (balance/credit/billing/deposit/top-up) decide — plain 429
-// throttling without them is transient and must NOT poison the provider.
+// 429 throttling is ALWAYS transient — even Google's "check plan and billing"
+// wording recovers on its own. Money words only count on 400/402/403.
 function isQuotaError(status, text) {
+  if (status === 429) return false;
   const t = String(text || '');
   if (/insufficient|balance|out of credit|top up|billing|deposit required|payment/i.test(t)) return true;
   if (status === 402) return true;
-  if (status === 429) return false;
   if (status === 400 || status === 403) {
     return /quota|credit/i.test(t);
   }
