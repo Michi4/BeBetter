@@ -22,10 +22,16 @@ const routes = [
   { path: '/notifications', name: 'notifications', component: () => import('../views/Notifications.vue'), meta: { auth: true } },
   { path: '/assistant', name: 'assistant', component: () => import('../views/Assistant.vue'), meta: { auth: true } },
   { path: '/profile/:id', name: 'profile', component: () => import('../views/Profile.vue') },
-  { path: '/profile', name: 'profile-own', redirect: (to) => {
+  { path: '/profile', name: 'profile-own', beforeEnter: async (to, from, next) => {
+    // Bare /profile resolves the logged-in user's id. A route `redirect`
+    // function cannot be async (vue-router uses its return value synchronously
+    // and would choke on the Promise), so this lives in beforeEnter instead.
+    // Cold deep-links (fresh reload) may arrive before the session loads —
+    // wait for it instead of bouncing logged-in users to the dashboard.
     const auth = useAuthStore()
+    if (!auth.user) { try { await auth.fetchUser() } catch {} }
     const id = auth.user?.username || auth.user?.id || ''
-    return id ? { path: `/profile/${id}`, hash: to.hash, query: to.query } : '/dashboard'
+    next(id ? { path: `/profile/${id}`, hash: to.hash, query: to.query } : '/dashboard')
   } },
   { path: '/leaderboard', name: 'leaderboard', component: () => import('../views/Leaderboard.vue'), meta: { auth: true } },
   { path: '/challenges/new', name: 'new-challenge', component: () => import('../views/NewChallenge.vue'), meta: { auth: true } },

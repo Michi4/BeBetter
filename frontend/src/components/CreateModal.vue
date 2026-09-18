@@ -339,7 +339,7 @@ const weekDays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 const taskRepeatHint = computed(() => {
   if (taskForm.repeat === 'daily') return 'Reminds every day at this time until completed.'
   if (taskForm.repeat === 'weekly') return 'Reminds on the selected days at this time.'
-  if (taskForm.repeat === 'interval') return 'Repeats every N days from today.'
+  if (taskForm.repeat === 'interval') return `Repeats every ${taskForm.repeatN || 2} days from today.`
   return "One-time only — you'll be reminded on the creation day, not every week."
 })
 const taskRepeatError = ref('')

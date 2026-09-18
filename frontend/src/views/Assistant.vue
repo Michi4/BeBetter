@@ -56,7 +56,7 @@
     </div>
 
     <template v-else>
-      <div ref="scrollEl" class="space-y-2 min-h-[40vh]" aria-live="polite" aria-label="Conversation">
+      <div ref="scrollEl" class="space-y-2 min-h-[40vh] pb-24 md:pb-20" aria-live="polite" aria-label="Conversation">
         <div v-if="!messages.length" class="card text-center py-6 space-y-3">
           <Sparkles :size="24" class="mx-auto text-gray-500" />
           <p class="text-sm text-gray-400">Ask me anything about your habits &amp; tasks —<br />type below or tap the mic.</p>
@@ -106,7 +106,8 @@
         </div>
       </div>
 
-      <div class="sticky bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] md:bottom-0 -mx-4 px-4 pt-2 pb-3 bg-[var(--app-bar-bg)] border-t border-gray-800/60">
+      <div class="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] md:bottom-0 z-30">
+        <div class="max-w-3xl mx-auto px-4 pt-2 pb-3 bg-[var(--app-bar-bg)] border-t border-gray-800/60">
         <div v-if="!online" class="card !py-2 !px-3 mb-2 text-xs text-amber-300 bg-amber-950/40 border border-amber-900 flex items-center gap-2">
           <WifiOff :size="14" /> You might be offline — messages will still try to send.
         </div>
@@ -126,6 +127,7 @@
         <p v-if="listening" class="text-[11px] text-red-400 mt-1 text-center">
           {{ interim ? `“${interim}”…` : 'Listening… tap the mic or press Esc to stop' }}
         </p>
+        </div>
       </div>
     </template>
     <ConfirmDialog ref="confirmDlg" />

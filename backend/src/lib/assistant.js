@@ -31,9 +31,28 @@ function geminiModels(preferred) {
   return [...new Set(chain)];
 }
 
-// All selectable models (settings dropdown): b.ai chain + Gemini when keyed.
+// Third provider: TokenHarbor (OpenAI-compatible) — primary paid route,
+// e.g. DeepSeek V4.1 Flash. Env: TOKENHARBOR_API_KEY / TOKENHARBOR_BASE_URL /
+// TOKENHARBOR_MODELS.
+const TH_BASE = (process.env.TOKENHARBOR_BASE_URL || 'https://tokenharbor.ai/v1').replace(/\/$/, '');
+const TH_KEY = () => process.env.TOKENHARBOR_API_KEY || '';
+
+function thModels(preferred) {
+  const fromEnv = (process.env.TOKENHARBOR_MODELS || 'deepseek-v4.1-flash')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const known = [...modelChain(), ...geminiModels()];
+  const chain = [...(preferred && !known.includes(preferred) ? [preferred] : []), ...fromEnv];
+  return [...new Set(chain)];
+}
+
+// All selectable models (settings dropdown): every keyed provider's chain.
 function availableModels() {
   const base = modelChain();
+  if (TH_KEY()) {
+    for (const m of thModels()) if (!base.includes(m)) base.push(m);
+  }
   if (GEMINI_KEY()) {
     for (const m of geminiModels()) if (!base.includes(m)) base.push(m);
   }
@@ -741,10 +760,17 @@ async function chatStream({ messages, tools, temperature = 0.2, preferred, signa
   // Provider order: b.ai first (unless the pinned model is a Gemini one),
   // then Gemini free tier. Providers without a key are skipped silently.
   const providers = [];
+  // Default order: tokenharbor (paid primary) → b.ai → gemini (free backup).
+  if (TH_KEY()) providers.push({ name: 'tokenharbor', base: TH_BASE, key: TH_KEY(), models: thModels(preferred) });
   if (BAI_KEY()) providers.push({ name: 'b.ai', base: BAI_BASE, key: BAI_KEY(), models: modelChain(preferred) });
   if (GEMINI_KEY()) providers.push({ name: 'gemini', base: GEMINI_BASE, key: GEMINI_KEY(), models: geminiModels(preferred) });
-  if (preferred && GEMINI_KEY() && geminiModels(preferred)[0] === preferred) {
-    providers.sort((a, b) => (a.name === 'gemini' ? -1 : 1));
+  // A pinned model jumps its provider to the front (avoids slow dead-provider
+  // timeouts before reaching the wanted one).
+  if (preferred) {
+    const owner = providers.find((p) => p.models[0] === preferred);
+    if (owner) {
+      providers.sort((a, b) => (a === owner ? -1 : b === owner ? 1 : 0));
+    }
   }
   if (!providers.length) {
     const e = new Error('AI is not configured yet (missing API key).');
@@ -884,5 +910,5 @@ function systemPrompt(settings) {
 module.exports = {
   TOOLS, TOOL_POLICY, GROUP_LABEL, deniedMessage, summarizeCall,
   execTool, chatStream, systemPrompt, modelChain,
-  geminiModels, availableModels, isQuotaError,
+  geminiModels, thModels, availableModels, isQuotaError,
 };
