@@ -60,10 +60,15 @@ function availableModels() {
 }
 
 // A response means "no usable quota on this provider" (vs transient errors).
+// Money words (balance/credit/billing/deposit/top-up) decide — plain 429
+// throttling without them is transient and must NOT poison the provider.
 function isQuotaError(status, text) {
+  const t = String(text || '');
+  if (/insufficient|balance|out of credit|top up|billing|deposit required|payment/i.test(t)) return true;
   if (status === 402) return true;
-  if (status === 400 || status === 403 || status === 429) {
-    return /insufficient|quota|balance|credit|billing|deposit|exceed/i.test(text || '');
+  if (status === 429) return false;
+  if (status === 400 || status === 403) {
+    return /quota|credit/i.test(t);
   }
   return false;
 }
@@ -896,7 +901,7 @@ function systemPrompt(settings) {
     'You can read and manage the user own tasks, habits, logs and stats via tools.',
     'Rules:',
     '- Use tools for facts; never invent ids, titles or stats.',
-    '- For create/update/log actions state exactly what you will do; the app may ask the user to confirm first.',
+    '- For create/update/log actions CALL the matching tool immediately (never just announce it); the app may ask the user to confirm first.',
     '- Deletions only when the user explicitly asked to delete/remove.',
     '- If a tool result contains {error} about missing access, tell the user they can enable it anytime in Profile \u2192 AI Assistant.',
     '- Times are HH:MM 24h, days 0=Sun..6=Sat, dates YYYY-MM-DD. For a task due on a day without a specific time, pass only dueDate and leave scheduledTime out.',
