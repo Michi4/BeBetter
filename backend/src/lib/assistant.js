@@ -794,17 +794,17 @@ async function chatStream({ messages, tools, temperature = 0.2, preferred, signa
         return { ...out, provider: p.name };
       } catch (e) {
         lastErr = e;
+        if (signal?.aborted) {
+          const err = new Error('Client disconnected');
+          err.code = 'CLIENT_GONE';
+          throw err;
+        }
         if (e.quota) {
           console.warn('[assistant] quota dead:', `${p.name}/${model}`.slice(0, 120));
           continue;
         }
         providerQuotaDead = false;
         console.warn('[assistant] falling back:', `${p.name}/${model}: ${e.message}`.slice(0, 160));
-        if (signal?.aborted) {
-          const err = new Error('Client disconnected');
-          err.code = 'CLIENT_GONE';
-          throw err;
-        }
       }
     }
     if (providerQuotaDead) quotaDead++;

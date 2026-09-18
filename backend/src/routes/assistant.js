@@ -196,13 +196,17 @@ router.post('/chat', async (req, res) => {
           send('error', { error: 'The AI is out of credit right now — please try again later.' });
           return finish();
         }
-        if (e.code === 'CLIENT_GONE' || clientGone) { clearDeadline(); return finish(); }
-        if (timedOut) {
-          console.error('[assistant] overall deadline exceeded');
-          if (progressed) break;
-          clearDeadline();
-          send('error', { error: 'That took too long — try a shorter ask or split it up.' });
-          return finish();
+        if (e.code === 'CLIENT_GONE' || clientGone) {
+          // Deadline aborts surface as CLIENT_GONE too — but a present client
+          // deserves the timeout message instead of a silent hang.
+          if (timedOut && !clientGone && !res.writableEnded) {
+            console.error('[assistant] overall deadline exceeded');
+            if (progressed) break;
+            clearDeadline();
+            send('error', { error: 'That took too long — try a shorter ask or split it up.' });
+            return finish();
+          }
+          clearDeadline(); return finish();
         }
         // If tools already ran, report them instead of failing the request —
         // the actions happened, only the summary text is missing.
