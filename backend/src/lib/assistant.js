@@ -23,7 +23,7 @@ const GEMINI_BASE = (process.env.GEMINI_BASE_URL || 'https://generativelanguage.
 const GEMINI_KEY = () => process.env.GEMINI_API_KEY || '';
 
 function geminiModels(preferred) {
-  const fromEnv = (process.env.GEMINI_MODELS || 'gemini-2.5-flash')
+  const fromEnv = (process.env.GEMINI_MODELS || 'gemini-2.5-flash,gemini-2.5-flash-lite')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
