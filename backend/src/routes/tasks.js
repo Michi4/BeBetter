@@ -239,8 +239,8 @@ router.put('/:id', authMiddleware, demoFieldGuard(['scheduledTime', 'scheduledDa
     const effectiveTime = scheduledTime !== undefined ? scheduledTime : task.scheduledTime;
     const needsDefaultReminder = reminderMinutes === undefined && effectiveTime && task.reminderMinutes == null;
     let putInterval = req.body.intervalDays;
-    if (intervalDays !== undefined && intervalDays !== null) {
-      putInterval = Number(intervalDays);
+    if (putInterval !== undefined && putInterval !== null) {
+      putInterval = Number(putInterval);
       if (!Number.isInteger(putInterval) || putInterval < 2 || putInterval > 365) {
         return res.status(400).json({ error: 'intervalDays must be a whole number between 2 and 365' });
       }

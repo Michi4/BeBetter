@@ -89,6 +89,14 @@ async function main() {
   ok(ro.status === 200, `task reorder (${ro.status})`);
   const roBad = await api('/tasks/reorder', { method: 'POST', body: JSON.stringify({ ids: ['00000000-0000-0000-0000-000000000000'] }) }, ta);
   ok(roBad.status === 404, `task reorder foreign id (${roBad.status})`);
+  const tPut = await api(`/tasks/${tIvId}`, { method: 'PUT', body: JSON.stringify({ title: 'Sweep interval edited' }) }, ta);
+  ok(tPut.status === 200, `task PUT without interval (${tPut.status})`);
+  const tPutIv = await api(`/tasks/${tIvId}`, { method: 'PUT', body: JSON.stringify({ intervalDays: 5 }) }, ta);
+  ok(tPutIv.status === 200 && ((tPutIv.body.task || tPutIv.body).intervalDays === 5), 'task PUT set interval');
+  const tPutBad = await api(`/tasks/${tIvId}`, { method: 'PUT', body: JSON.stringify({ intervalDays: 1 }) }, ta);
+  ok(tPutBad.status === 400, `task PUT bad interval (${tPutBad.status})`);
+  const tPutNull = await api(`/tasks/${tIvId}`, { method: 'PUT', body: JSON.stringify({ intervalDays: null }) }, ta);
+  ok(tPutNull.status === 200 && ((tPutNull.body.task || tPutNull.body).intervalDays == null), 'task PUT clear interval');
   await api(`/tasks/${tIvId}`, { method: 'DELETE' }, ta);
   await api(`/tasks/${idA}`, { method: 'DELETE' }, ta);
   await api(`/tasks/${idB}`, { method: 'DELETE' }, ta);
