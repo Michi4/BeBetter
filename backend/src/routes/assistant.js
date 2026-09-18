@@ -246,7 +246,7 @@ router.post('/chat', async (req, res) => {
         }
         if (policy.write && settings.confirmBeforeExecute && !confirmed.has(key)) {
           needsConfirmation.push({ id: key, tool, arguments: args, summary: summarizeCall(tool, args) });
-          convo.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify({ deferred: true, note: 'Waiting for user confirmation.' }) });
+          convo.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify({ deferred: true, note: 'Waiting for user confirmation — but do NOT stop: keep emitting any other independent tool calls from this same user request in this turn.' }) });
           progressed = true;
           continue;
         }
