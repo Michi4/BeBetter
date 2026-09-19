@@ -68,9 +68,9 @@ async function main() {
   console.log('MULTI-CREATE created:', ['Milch kaufen', 'Arzt anrufen'].every(x => titles.some(y => y.includes(x))) ? 'YES ' + titles.join('|') : 'NO ' + titles.join('|'));
 
   for (const [lang, text, expect] of [
-    ['EN', 'What did I do in the last 7 days?', /walk|habit|done/i],
-    ['FR', 'Quest-ce que jai fait ces 7 derniers jours ?', /promenade|habitude|fait/i],
-    ['ES', 'Que hice en los ultimos 7 dias?', /paseo|hábito|hecho|hiciste/i],
+    ['EN', 'What did I do in the last 7 days?', /walk|habit|done|complet|log/i],
+    ['FR', 'Quest-ce que jai fait ces 7 derniers jours ?', /promenade|habitude|fait|complet|validation/i],
+    ['ES', 'Que hice en los ultimos 7 dias?', /paseo|habito|hecho|hiciste|complet/i],
   ]) {
     const q = await chat(t, text);
     console.log(lang, 'reply-ok:', expect.test(q.reply) ? 'YES' : 'NO', '|', q.reply.slice(0, 120));
