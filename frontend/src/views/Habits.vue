@@ -30,9 +30,13 @@
         <span v-if="incompleteTasks.length" class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-medium">{{ incompleteTasks.length }}</span>
       </div>
       <div v-if="incompleteTasks.length === 0" class="text-sm text-gray-500 py-2">No incomplete tasks</div>
-      <div v-for="task in incompleteTasks" :key="task.id" class="space-y-1" :class="{ 'animate-celebrate': completingTaskId === task.id }">
+      <div v-for="task in visibleHabitTasks" :key="task.id" class="space-y-1" :class="{ 'animate-celebrate': completingTaskId === task.id }">
         <TaskCard :task="task" @complete="completeTask" @delete="confirmDeleteTask" @edit="updateTaskFromCard" @convert="convertTask" @dragstart="dragTaskId = task.id" @drop="dropTask(task)" @move="moveTask" />
       </div>
+      <button v-if="incompleteTasks.length > 5 && !showAllHabitTasks" @click="showAllHabitTasks = true"
+        class="text-xs text-emerald-400 hover:text-emerald-300 transition-colors">Show {{ incompleteTasks.length - 5 }} more</button>
+      <button v-if="showAllHabitTasks && incompleteTasks.length > 5" @click="showAllHabitTasks = false"
+        class="text-xs text-emerald-400 hover:text-emerald-300 transition-colors">Show less</button>
       <div v-if="completedTasks.length > 0" class="rounded-xl border border-gray-800 bg-gray-900/50 overflow-hidden">
         <div class="min-h-[44px] w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-400 hover:bg-gray-800/50 transition-colors">
           <button @click="showCompletedTasks = !showCompletedTasks" :aria-expanded="showCompletedTasks" class="flex items-center gap-2">
@@ -477,6 +481,11 @@ async function loadHistory() {
 watch(selectedDate, loadHistory)
 
 const incompleteTasks = ref([])
+const showAllHabitTasks = ref(false)
+const visibleHabitTasks = computed(() => {
+  if (showAllHabitTasks.value || incompleteTasks.value.length <= 5) return incompleteTasks.value
+  return incompleteTasks.value.slice(0, 5)
+})
 const dragTaskId = ref(null)
 async function persistTaskOrder(ids) {
   const byId = new Map(incompleteTasks.value.map(t => [t.id, t]))

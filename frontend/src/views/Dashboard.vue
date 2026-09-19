@@ -20,7 +20,7 @@
             <p class="text-xs text-emerald-400/80">Shared public account - data resets hourly. Sign up to save your own streaks.</p>
           </div>
         </div>
-        <router-link to="/register" class="text-xs text-emerald-300 hover:text-emerald-100 transition-colors">Sign Up</router-link>
+        <button @click="handleDemoSignUp" class="text-xs font-medium text-emerald-300 hover:text-emerald-100 bg-emerald-500/10 hover:bg-emerald-500/20 px-3 py-1.5 rounded-lg transition-colors">Sign Up</button>
       </div>
     </div>
 
@@ -204,6 +204,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import api from '../api'
 import { useToast } from 'vue-toastification'
+import { useRouter } from 'vue-router'
 import { Plus, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Target, Loader2, FlaskConical, Palmtree } from 'lucide-vue-next'
 import ContributionGrid from '../components/ContributionGrid.vue'
 import DayDetail from '../components/DayDetail.vue'
@@ -216,6 +217,7 @@ import { useAuthStore } from '../stores/auth'
 import { openDemoPrompt } from '../utils/demoPrompt'
 
 const auth = useAuthStore()
+const router = useRouter()
 const toast = useToast()
 
 const showAllTasks = ref(false)
@@ -665,6 +667,11 @@ async function endVacation() {
   } catch {
     toast.error('Failed to end vacation')
   }
+}
+
+function handleDemoSignUp() {
+  auth.logout()
+  router.push('/register')
 }
 
 onMounted(async () => {

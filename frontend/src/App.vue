@@ -2,14 +2,14 @@
   <div class="min-h-[100dvh]">
     <!-- Top bar -->
     <nav v-if="!publicRoutes.includes(route.name)" class="border-b border-[var(--app-nav-border)] bg-[var(--app-nav-bg)] backdrop-blur-xl sticky top-0 z-50 safe-top">
-      <div class="max-w-3xl mx-auto px-4 h-12 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-        <div class="flex items-center gap-2 min-w-0">
+      <div class="max-w-3xl mx-auto px-4 h-12 flex items-center justify-between relative">
+        <div class="flex items-center gap-2 shrink-0">
           <router-link to="/" class="flex items-center gap-2 font-bold text-lg shrink-0">
             <Logo :size="28" />
             <span class="bg-gradient-to-r from-emerald-400 to-emerald-300 bg-clip-text text-transparent">BeBetter</span>
           </router-link>
         </div>
-        <div class="hidden md:flex items-center justify-center gap-1">
+        <div class="hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
           <template v-if="auth.user">
             <template v-for="item in desktopNavItems" :key="item.to">
               <button v-if="isLockedForDemo(item.to)" @click="openDemoPrompt()"
@@ -26,7 +26,7 @@
             </template>
           </template>
         </div>
-        <div class="flex items-center gap-1 justify-end shrink-0">
+        <div class="flex items-center gap-1 shrink-0">
           <button @click="toggleTheme" class="p-2.5 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition-colors touch-target inline-flex items-center justify-center shrink-0" aria-label="Toggle theme">
             <Sun v-if="isDark" :size="18" />
             <Moon v-else :size="18" />

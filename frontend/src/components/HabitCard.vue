@@ -3,7 +3,8 @@
     <button v-bind="checkTap" @click.stop.prevent :aria-label="isCompleted ? `Completed ${habit.title}` : `Complete ${habit.title}`" :aria-pressed="String(isCompleted)" class="w-11 h-11 rounded-full flex items-center justify-center transition-colors duration-150"
       :class="isCompleted ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-800 text-gray-400 hover:bg-emerald-500/10 hover:text-emerald-400'">
       <Camera v-if="needsCamera && !isCompleted" :size="18" />
-      <CheckCircle2 v-else :size="18" />
+      <CheckCircle2 v-else-if="isCompleted" :size="18" />
+      <Circle v-else :size="18" class="opacity-60" />
     </button>
     <div class="flex-1 min-w-0">
       <div class="flex items-center gap-2 flex-wrap">
@@ -34,7 +35,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { CheckCircle2, Camera, Undo2 } from 'lucide-vue-next'
+import { CheckCircle2, Camera, Undo2, Circle } from 'lucide-vue-next'
 import { formatTime, formatSchedule } from '../utils/timeFormat'
 import { useTap } from '../utils/tapTrigger'
 

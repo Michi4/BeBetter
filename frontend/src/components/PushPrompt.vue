@@ -1,26 +1,28 @@
 <template>
-  <div v-if="show && auth.user && isSupported && onDashboard" class="w-full pointer-events-auto">
-    <div class="card border border-emerald-500/30 bg-emerald-500/5">
+  <div v-if="show && auth.user && isSupported && onDashboard && !auth.isDemo" class="w-full pointer-events-auto">
+    <div class="card border border-gray-700 bg-gray-800/95 backdrop-blur-xl shadow-lg">
     <div class="flex items-start gap-3">
-      <div class="shrink-0 w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center">
-        <BellRing :size="20" class="text-emerald-400" />
+      <div class="shrink-0 w-8 h-8 rounded-lg bg-gray-700 flex items-center justify-center">
+        <BellRing :size="16" class="text-gray-400" />
       </div>
       <div class="flex-1 min-w-0">
-        <p class="text-sm font-semibold text-gray-100">Never miss a habit</p>
-        <p class="text-xs text-gray-400 mt-0.5 leading-relaxed">
-          Turn on push notifications to get reminders at your scheduled times — even when the phone is locked or the app is in the background.
+        <p class="text-sm font-medium text-gray-200">Stay on track</p>
+        <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">
+          Enable reminders — works even when the app is closed.
         </p>
       </div>
+      <button @click="dismiss" class="shrink-0 p-1 rounded text-gray-500 hover:text-gray-300" aria-label="Dismiss">
+        <X :size="14" />
+      </button>
     </div>
     <div class="flex gap-2 mt-3">
       <button @click="enablePush" :disabled="loading" class="btn flex-1 text-xs py-2">
         <Loader2 v-if="loading" :size="14" class="animate-spin" />
-        <BellRing v-else :size="14" />
-        <span class="inline-block min-w-[118px]">{{ loading ? 'Setting up...' : 'Enable notifications' }}</span>
+        <span v-else>Enable</span>
       </button>
-      <button @click="dismiss" class="btn-secondary flex-1 text-xs py-2">Not now</button>
+      <button @click="dismiss" class="btn-secondary flex-1 text-xs py-2">Later</button>
     </div>
-    <p class="text-[10px] text-gray-500 mt-2 min-h-[28px]">{{ platformHint }}</p>
+    <p class="text-[10px] text-gray-600 mt-2 min-h-[14px]">{{ platformHint }}</p>
     </div>
     </div>
   <ConfirmDialog ref="confirmDlg" />
@@ -32,7 +34,7 @@ import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../api'
 import { useToast } from 'vue-toastification'
-import { BellRing, Loader2 } from 'lucide-vue-next'
+import { BellRing, Loader2, X } from 'lucide-vue-next'
 import ConfirmDialog from './ConfirmDialog.vue'
 
 const auth = useAuthStore()
@@ -73,6 +75,7 @@ function urlBase64ToUint8Array(base64String) {
 
 onMounted(async () => {
   if (!auth.user) return
+  if (auth.isDemo) return
   if (auth.user.role === 'admin') return
   if (localStorage.getItem(DISMISS_KEY)) return
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
@@ -82,7 +85,10 @@ onMounted(async () => {
     if (Notification.permission === 'denied') return
     const reg = await navigator.serviceWorker.ready
     const sub = await reg.pushManager.getSubscription()
-    show.value = !sub
+    if (!sub) {
+      // delay a bit so it doesn't pop the instant the dashboard loads
+      setTimeout(() => { show.value = true }, 3500)
+    }
   } catch {}
 })
 

@@ -26,13 +26,12 @@
           </div>
 
           <div class="flex flex-col gap-2 pt-1">
-            <router-link
-              to="/register"
+            <button
               class="btn w-full"
-              @click="close"
+              @click="handleSignUp"
             >
               <UserPlus :size="16" /> Sign Up
-            </router-link>
+            </button>
             <button
               class="btn-secondary w-full"
               @click="close"
@@ -48,13 +47,26 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { Sparkles, UserPlus } from 'lucide-vue-next'
+import { useAuthStore } from '../stores/auth'
 import { demoPromptVisible, closeDemoPrompt } from '../utils/demoPrompt'
 
+const router = useRouter()
+const auth = useAuthStore()
 const visible = computed(() => demoPromptVisible.value)
 
 function close() {
   closeDemoPrompt()
+}
+
+function handleSignUp() {
+  closeDemoPrompt()
+  // Demo is a real logged-in user; guest routes bounce while still authed,
+  // so log out first then go to register. Keep it instant, no API call needed
+  // — the demo token is hourly and disposable.
+  auth.logout()
+  router.push('/register')
 }
 </script>
 

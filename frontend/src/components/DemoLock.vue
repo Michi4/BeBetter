@@ -10,9 +10,9 @@
       {{ message }}
     </p>
     <div class="flex flex-col sm:flex-row gap-2 mt-5 w-full max-w-xs sm:max-w-none sm:w-auto">
-      <router-link to="/register" class="btn flex-1 sm:flex-none sm:px-8">
+      <button @click="handleSignUp" class="btn flex-1 sm:flex-none sm:px-8">
         <UserPlus :size="16" /> Create free account
-      </router-link>
+      </button>
       <router-link to="/dashboard" class="btn-secondary flex-1 sm:flex-none sm:px-8">
         Back to dashboard
       </router-link>
@@ -22,6 +22,11 @@
 
 <script setup>
 import { Sparkles, UserPlus } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
+
+const router = useRouter()
+const auth = useAuthStore()
 
 defineProps({
   message: {
@@ -29,4 +34,9 @@ defineProps({
     default: 'Sign up free to unlock social features like friends, leaderboards, and notifications. Your own streaks will be saved to your account.',
   },
 })
+
+function handleSignUp() {
+  auth.logout()
+  router.push('/register')
+}
 </script>
