@@ -38,7 +38,7 @@ const TH_BASE = (process.env.TOKENHARBOR_BASE_URL || 'https://tokenharbor.ai/v1'
 const TH_KEY = () => process.env.TOKENHARBOR_API_KEY || '';
 
 function thModels(preferred) {
-  const fromEnv = (process.env.TOKENHARBOR_MODELS || 'deepseek-v4.1-flash')
+  const fromEnv = (process.env.TOKENHARBOR_MODELS || 'deepseek-v4.1-flash:free,deepseek-v4.1-flash')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
