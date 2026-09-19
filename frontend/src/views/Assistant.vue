@@ -68,22 +68,39 @@
           </div>
         </div>
         <div v-for="(m, i) in messages" :key="m.id ?? i">
-          <div v-if="m.role === 'user'" class="flex justify-end">
-            <div class="max-w-[85%] px-3 py-2 rounded-2xl rounded-br-md bg-emerald-600 text-white text-sm break-words">
-              <p class="whitespace-pre-wrap">{{ m.content }}</p>
-              <span class="block text-[10px] text-white/60 text-right mt-1">{{ fmtTime(m.ts) }}</span>
+          <div v-if="m.role === 'user'" class="group flex justify-end">
+            <div class="max-w-[85%] px-3 py-2 rounded-2xl rounded-br-md bg-emerald-600 text-white text-sm break-words relative">
+              <template v-if="editingIndex === i">
+                <textarea v-model="editDraft" class="w-full min-h-[60px] p-2 rounded-lg bg-white/10 text-white placeholder-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-white/30" placeholder="Edit message..."></textarea>
+                <div class="flex gap-2 justify-end mt-2">
+                  <button @click="cancelEdit" class="text-xs px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white">Cancel</button>
+                  <button @click="confirmEdit(i)" class="text-xs px-3 py-1 rounded-lg bg-white text-emerald-700 font-medium hover:bg-gray-100">Save & Retry</button>
+                </div>
+              </template>
+              <template v-else>
+                <p class="whitespace-pre-wrap">{{ m.content }}</p>
+                <span class="block text-[10px] text-white/60 text-right mt-1">{{ fmtTime(m.ts) }}</span>
+                <div class="hidden group-hover:flex absolute -left-16 top-1 gap-1">
+                  <button @click="startEdit(i)" class="p-1 rounded bg-gray-800 text-gray-300 hover:text-white" title="Edit"><Pencil :size="12" /></button>
+                  <button @click="deleteMessage(i)" class="p-1 rounded bg-gray-800 text-gray-300 hover:text-red-400" title="Delete"><Trash2 :size="12" /></button>
+                </div>
+              </template>
             </div>
           </div>
-          <div v-else class="flex justify-start">
+          <div v-else class="flex justify-start group">
             <div class="max-w-[85%] px-3 py-2 rounded-2xl rounded-bl-md text-sm break-words space-y-2"
               :class="m.isError ? 'bg-red-950/60 border border-red-900 text-red-200' : 'bg-gray-800 text-gray-100'">
               <div v-if="m.isError" class="whitespace-pre-wrap">{{ m.content }}</div>
               <template v-else>
-                <div v-if="m.thinking && !m.content" class="text-xs italic text-gray-500 leading-relaxed">
-                  <span class="flex items-center gap-1.5 mb-1 text-gray-500 not-italic"><Loader2 :size="12" class="animate-spin" /> Thinking…</span>
-                  {{ m.thinking }}
+                <div v-if="m.thinking" class="rounded-lg bg-gray-900/60 border border-gray-700 overflow-hidden">
+                  <button @click="m._showThinking = !m._showThinking" class="w-full flex items-center justify-between px-3 py-1.5 text-xs text-gray-400 hover:text-gray-200">
+                    <span class="flex items-center gap-1.5"><Loader2 v-if="!m.content" :size="12" :class="!m.content ? 'animate-spin' : 'opacity-0'" /> {{ m._showThinking ? 'Hide thought' : 'Show thought' }}</span>
+                    <ChevronDown :size="12" :class="m._showThinking ? 'rotate-180' : ''" class="transition-transform" />
+                  </button>
+                  <div v-if="m._showThinking" class="px-3 pb-2 text-xs italic text-gray-500 leading-relaxed whitespace-pre-wrap max-h-40 overflow-y-auto">{{ m.thinking }}</div>
                 </div>
-                <div class="md-body" v-html="renderMarkdown(m.content)"></div>
+                <div v-if="m.content" class="md-body" v-html="renderMarkdown(m.content)"></div>
+                <p v-else-if="!m.thinking" class="text-xs text-gray-500 italic">…</p>
               </template>
               <button v-if="m.isError && m.canRetry && lastFailed" @click="retry" :disabled="sending"
                 class="text-[11px] px-2 py-1 rounded bg-red-900/70 hover:bg-red-800 text-red-100 min-h-[32px] self-start">Retry</button>
@@ -142,7 +159,7 @@ import { useAuthStore } from '../stores/auth'
 import { useOnline } from '../composables/useOnline'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
-import { ArrowLeft, Loader2, Mic, Send, Settings, Sparkles, WifiOff, History, SquarePen, Trash2, MessageSquare } from 'lucide-vue-next'
+import { ArrowLeft, Loader2, Mic, Send, Settings, Sparkles, WifiOff, History, SquarePen, Trash2, MessageSquare, ChevronDown, Pencil } from 'lucide-vue-next'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 
 // Assistant replies come back as markdown — render them safely.
@@ -203,6 +220,43 @@ let recog = null
 let streamAbort = null
 
 const CHAT_TIMEOUT_MS = 100000
+const editingIndex = ref(null)
+const editDraft = ref('')
+
+function startEdit(i) {
+  editingIndex.value = i
+  editDraft.value = messages.value[i]?.content || ''
+}
+function cancelEdit() {
+  editingIndex.value = null
+  editDraft.value = ''
+}
+async function confirmEdit(i) {
+  const newText = editDraft.value.trim()
+  if (!newText) return
+  // truncate conversation at edited message and retry
+  const before = messages.value.slice(0, i)
+  const after = messages.value.slice(i) // includes old message + following
+  // keep history in sync: remove corresponding history entries (user messages)
+  // simplest: rebuild history from truncated messages
+  messages.value = before
+  history.value = before.filter(m => m.content).map(m => ({ role: m.role, content: m.content }))
+  // push edited message as new user input
+  messages.value.push({ role: 'user', content: newText, ts: Date.now() })
+  history.value.push({ role: 'user', content: newText })
+  editingIndex.value = null
+  editDraft.value = ''
+  scrollDown(true)
+  await performRequest({ confirmed: null, failedText: newText })
+}
+function deleteMessage(i) {
+  // delete user message at i and the following assistant message if exists
+  const isUser = messages.value[i]?.role === 'user'
+  const count = isUser && messages.value[i+1]?.role === 'assistant' ? 2 : 1
+  messages.value.splice(i, count)
+  // rebuild history
+  history.value = messages.value.filter(m => m.content && !m.isError).map(m => ({ role: m.role, content: m.content }))
+}
 
 function scrollDown(force = false) {
   nextTick(() => {
@@ -398,7 +452,7 @@ function handleEvent({ event, data }, bubble) {
   if (event === 'delta') {
     streamStarted.value = true
     if (!bubble) {
-      bubble = { role: 'assistant', content: '', thinking: '', ts: Date.now() }
+      bubble = { role: 'assistant', content: '', thinking: '', _showThinking: false, ts: Date.now() }
       messages.value.push(bubble)
       scrollDown()
     }
@@ -409,7 +463,7 @@ function handleEvent({ event, data }, bubble) {
   if (event === 'thinking') {
     streamStarted.value = true
     if (!bubble) {
-      bubble = { role: 'assistant', content: '', thinking: '', ts: Date.now() }
+      bubble = { role: 'assistant', content: '', thinking: '', _showThinking: false, ts: Date.now() }
       messages.value.push(bubble)
     }
     bubble.thinking += (data.text || '').replace(/[#*`>]/g, '')
@@ -419,7 +473,8 @@ function handleEvent({ event, data }, bubble) {
   if (event === 'done') {
     if (bubble) {
       bubble.content = data.reply || bubble.content || 'Done.'
-      bubble.thinking = ''
+      // keep thought for collapsable view, collapsed by default
+      bubble._showThinking = false
       bubble.pending = (data.needsConfirmation || []).map((a) => ({ ...a }))
       bubble.needsAccess = (data.actions || []).some((a) => a.status === 'denied') || undefined
     } else {

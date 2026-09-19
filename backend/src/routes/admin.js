@@ -286,6 +286,9 @@ router.post('/announcements', async (req, res) => {
 router.post('/test-notification', async (req, res) => {
   try {
     const targetUserId = req.body?.userId || req.userId;
+    if (typeof targetUserId !== 'string' || !targetUserId) {
+      return res.status(400).json({ error: 'Invalid user id' });
+    }
     const title = req.body?.title || 'BeBetter Test';
     const body = req.body?.body || 'This is a test notification. If you see this, push is working correctly.';
 

@@ -430,6 +430,10 @@ model AssistantSettings {
   logsLevel            Int      @default(2)
   statsLevel           Int      @default(1)
   preferredModel       String   @default("")
+  customBaseUrl      String?
+  customApiKey       String? // encrypted with JWT_SECRET
+  customModel        String?
+  customEnabled      Boolean  @default(false)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 }

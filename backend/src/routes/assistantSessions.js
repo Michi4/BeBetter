@@ -85,7 +85,8 @@ router.delete('/:id', async (req, res) => {
 // Expose the available model list for the Profile picker.
 router.get('/meta/models', async (req, res) => {
   try {
-    res.json({ models: availableModels() });
+    const settings = await prisma.assistantSettings.findUnique({ where: { userId: req.userId } });
+    res.json({ models: availableModels(settings) });
   } catch (e) {
     console.error('[assistant] models meta:', e.message);
     res.status(500).json({ error: 'Server error' });

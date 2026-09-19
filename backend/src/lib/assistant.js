@@ -48,7 +48,7 @@ function thModels(preferred) {
 }
 
 // All selectable models (settings dropdown): every keyed provider's chain.
-function availableModels() {
+function availableModels(settings) {
   const base = modelChain();
   if (TH_KEY()) {
     for (const m of thModels()) if (!base.includes(m)) base.push(m);
@@ -56,6 +56,8 @@ function availableModels() {
   if (GEMINI_KEY()) {
     for (const m of geminiModels()) if (!base.includes(m)) base.push(m);
   }
+  const custom = settings ? customProviderFromSettings(settings) : null;
+  if (custom && !base.includes(custom.model)) base.push(custom.model);
   return base;
 }
 
@@ -71,6 +73,18 @@ function isQuotaError(status, text) {
     return /quota|credit/i.test(t);
   }
   return false;
+}
+
+function customProviderFromSettings(settings) {
+  if (!settings || !settings.customEnabled) return null;
+  const { decrypt } = require('./encryption');
+  const key = settings.customApiKey ? decrypt(settings.customApiKey) : null;
+  const base = settings.customBaseUrl ? String(settings.customBaseUrl).trim().replace(/\/$/, '') : null;
+  const model = settings.customModel ? String(settings.customModel).trim() : null;
+  if (!key || !base || !model) return null;
+  try { new URL(base); } catch { return null; }
+  if (!/^https:\/\//.test(base)) return null;
+  return { base, key, model };
 }
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -189,10 +203,16 @@ const TOOLS = [
     type: 'function',
     function: {
       name: 'habits_update',
-      description: 'Update a habit title/description by id.',
+      description: 'Update a habit title/description/schedule by id. Use schedules [{time: HH:MM|null, days:[0-6]}] and/or intervalDays (every N days) and/or reminderMinutes [0,5...] to change when it is due and when to remind.',
       parameters: {
         type: 'object',
-        properties: { id: { type: 'string' }, title: { type: 'string' }, description: { type: 'string' } },
+        properties: {
+          id: { type: 'string' },
+          title: { type: 'string' }, description: { type: 'string' },
+          schedules: { type: 'array', items: { type: 'object', properties: { time: { type: ['string', 'null'] }, days: { type: 'array', items: { type: 'integer' } } }, additionalProperties: false } },
+          intervalDays: { type: ['integer', 'null'], description: '2-365 or null to clear interval' },
+          reminderMinutes: { type: 'array', items: { type: 'integer' } },
+        },
         required: ['id'], additionalProperties: false,
       },
     },
@@ -627,8 +647,44 @@ async function execTool(userId, tool, args = {}) {
       const habit = await prisma.habit.findUnique({ where: { id: args.id } });
       if (!habit || habit.userId !== userId) return { error: 'Habit not found' };
       const data = {};
-      if (args.title !== undefined) data.title = String(args.title).trim().slice(0, 200);
+      if (args.title !== undefined) {
+        const t = String(args.title).trim();
+        if (!t) return { error: 'Title cannot be empty' };
+        data.title = t.slice(0, 200);
+      }
       if (args.description !== undefined) data.description = String(args.description ?? '').slice(0, 2000);
+      if (args.schedules !== undefined) {
+        if (args.schedules === null) {
+          data.schedules = null;
+        } else {
+          if (!Array.isArray(args.schedules)) return { error: 'schedules must be an array' };
+          for (const s of args.schedules) {
+            if (s && typeof s === 'object') {
+              if (Array.isArray(s.days)) for (const d of s.days) if (!Number.isInteger(d) || d < 0 || d > 6) return { error: 'Schedule days must be 0-6' };
+              if (s.time && !TIME_RE.test(s.time)) return { error: 'Schedule time must be HH:MM' };
+            }
+          }
+          data.schedules = args.schedules;
+          // keep daysPerWeek in sync
+          const union = new Set();
+          for (const s of args.schedules) if (Array.isArray(s.days)) for (const d of s.days) union.add(d);
+          if (union.size) { data.daysPerWeek = [...union].sort((a, b) => a - b); data.frequencyType = 'daily'; }
+        }
+      }
+      if (args.intervalDays !== undefined) {
+        if (args.intervalDays === null) data.intervalDays = null;
+        else {
+          const n = Number(args.intervalDays);
+          if (!Number.isInteger(n) || n < 2 || n > 365) return { error: 'intervalDays must be 2-365' };
+          data.intervalDays = n;
+        }
+      }
+      if (args.reminderMinutes !== undefined) {
+        if (!Array.isArray(args.reminderMinutes)) return { error: 'reminderMinutes must be an array' };
+        for (const m of args.reminderMinutes) if (!Number.isInteger(m) || m < 0 || m > 1440) return { error: 'reminderMinutes must be 0-1440' };
+        data.reminderMinutes = args.reminderMinutes;
+      }
+      if (!Object.keys(data).length) return { error: 'Nothing to update' };
       const updated = await prisma.habit.update({ where: { id: args.id }, data });
       return { id: updated.id, title: updated.title };
     }
@@ -761,10 +817,12 @@ function extractSseData(buffer) {
 // Streaming variant: calls onDelta(tokenText) as tokens arrive so the UI can
 // render the reply live. Falls back to non-streaming for models that reject
 // stream:true. Resolves {data, model} with the assembled final message.
-async function chatStream({ messages, tools, temperature = 0.2, preferred, signal, onDelta, onThinking }) {
-  // Provider order: b.ai first (unless the pinned model is a Gemini one),
-  // then Gemini free tier. Providers without a key are skipped silently.
+async function chatStream({ messages, tools, temperature = 0.2, preferred, custom, signal, onDelta, onThinking }) {
+  // Provider order: custom first if configured, then tokenharbor → b.ai → gemini.
   const providers = [];
+  if (custom && custom.base && custom.key && custom.model) {
+    providers.push({ name: 'custom', base: custom.base, key: custom.key, models: [custom.model] });
+  }
   // Default order: tokenharbor (paid primary) → b.ai → gemini (free backup).
   if (TH_KEY()) providers.push({ name: 'tokenharbor', base: TH_BASE, key: TH_KEY(), models: thModels(preferred) });
   if (BAI_KEY()) providers.push({ name: 'b.ai', base: BAI_BASE, key: BAI_KEY(), models: modelChain(preferred) });
@@ -782,7 +840,7 @@ async function chatStream({ messages, tools, temperature = 0.2, preferred, signa
     e.code = 'NO_KEY';
     throw e;
   }
-  const effective = signal ? AbortSignal.any([signal, AbortSignal.timeout(90000)]) : AbortSignal.timeout(90000);
+  const effective = signal ? AbortSignal.any([signal, AbortSignal.timeout(25000)]) : AbortSignal.timeout(25000);
   let lastErr = null;
   let quotaDead = 0;
   const quotaProviders = providers.length;
@@ -915,5 +973,5 @@ function systemPrompt(settings) {
 module.exports = {
   TOOLS, TOOL_POLICY, GROUP_LABEL, deniedMessage, summarizeCall,
   execTool, chatStream, systemPrompt, modelChain,
-  geminiModels, thModels, availableModels, isQuotaError,
+  geminiModels, thModels, availableModels, customProviderFromSettings, isQuotaError,
 };

@@ -317,6 +317,43 @@
                 <option v-for="m in aiModels" :key="m" :value="m">{{ m }}</option>
               </select>
             </div>
+            <div class="border-t border-gray-800 pt-3 space-y-3">
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="text-sm text-gray-300">Custom model</div>
+                  <div class="text-[10px] text-gray-500">OpenAI-compatible — your key stays encrypted on the server</div>
+                </div>
+                <button @click="aiPrefs.customEnabled = !aiPrefs.customEnabled; saveAiPrefs()"
+                  class="relative w-12 h-6 rounded-full transition-colors duration-200 shrink-0"
+                  :class="aiPrefs.customEnabled ? 'bg-emerald-600' : 'bg-gray-700'"
+                  role="switch" :aria-checked="!!aiPrefs.customEnabled" aria-label="Enable custom model">
+                  <span class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200"
+                    :class="aiPrefs.customEnabled ? 'translate-x-6' : ''"></span>
+                </button>
+              </div>
+              <template v-if="aiPrefs.customEnabled">
+                <div>
+                  <label class="text-xs text-gray-400">Base URL (must be https://.../v1)</label>
+                  <input v-model="aiPrefs.customBaseUrl" placeholder="https://api.openai.com/v1" class="input text-xs mt-1" />
+                </div>
+                <div>
+                  <label class="text-xs text-gray-400">Model</label>
+                  <input v-model="aiPrefs.customModel" placeholder="e.g. gpt-4o-mini" class="input text-xs mt-1" />
+                </div>
+                <div>
+                  <label class="text-xs text-gray-400">API Key {{ aiPrefs.hasCustomKey ? '(saved — enter new to replace)' : '' }}</label>
+                  <input v-model="customKeyInput" type="password" placeholder="sk-..." class="input text-xs mt-1" autocomplete="off" />
+                </div>
+                <div class="flex gap-2">
+                  <button @click="saveCustomModel" class="btn text-xs flex-1" :disabled="customSaving">
+                    <Loader2 v-if="customSaving" :size="14" class="animate-spin" /> Save custom
+                  </button>
+                  <button @click="clearCustomModel" class="btn-secondary text-xs">Clear</button>
+                </div>
+                <p v-if="customTestResult" class="text-xs" :class="customTestResult.ok ? 'text-emerald-400' : 'text-red-400'">{{ customTestResult.msg }}</p>
+                <p class="text-[10px] text-gray-500">Auto will prefer your custom model when enabled. Disable to go back to shared models.</p>
+              </template>
+            </div>
             <p class="text-[10px] text-gray-600">Reads and creations are on by default. If the assistant hits something locked, it tells you where to unlock it.</p>
           </div>
           <div v-else class="text-center py-4">
@@ -495,6 +532,9 @@ const editForm = reactive({ bio: '', isPublic: false })
 const notifPrefs = ref(null)
 const aiPrefs = ref(null)
 const aiModels = ref([])
+const customKeyInput = ref('')
+const customSaving = ref(false)
+const customTestResult = ref(null)
 const aiGroups = [
   { key: 'tasksLevel', label: 'Tasks', options: [{ value: 0, label: 'Off' }, { value: 1, label: 'Read' }, { value: 2, label: 'Create' }, { value: 3, label: 'Full' }] },
   { key: 'habitsLevel', label: 'Habits', options: [{ value: 0, label: 'Off' }, { value: 1, label: 'Read' }, { value: 2, label: 'Create' }, { value: 3, label: 'Full' }] },
@@ -511,12 +551,68 @@ function aiLevelLabel(key) {
 
 async function saveAiPrefs() {
   if (!aiPrefs.value) return
-  const { id, userId, createdAt, updatedAt, ...payload } = aiPrefs.value
+  const { id, userId, createdAt, updatedAt, hasCustomKey, customApiKey, ...payload } = aiPrefs.value
+  // customApiKey is write-only; never send hasCustomKey
+  if (customApiKey !== undefined) delete payload.customApiKey
   try {
     const res = await api.put('/assistant/settings', payload)
-    aiPrefs.value = res.data.settings
+    const s = res.data.settings
+    // preserve hasCustomKey flag, never leak key
+    aiPrefs.value = { ...s, hasCustomKey: s.hasCustomKey ?? hasCustomKey }
+    // refresh model list to include custom if newly enabled
+    try {
+      const modelsRes = await api.get('/assistant/sessions/meta/models')
+      aiModels.value = modelsRes.data.models || []
+    } catch {}
   } catch {
     toast.error('Failed to save AI settings')
+  }
+}
+
+async function saveCustomModel() {
+  if (!aiPrefs.value) return
+  const base = String(aiPrefs.value.customBaseUrl || '').trim()
+  const model = String(aiPrefs.value.customModel || '').trim()
+  const key = String(customKeyInput.value || '').trim()
+  if (base && !/^https:\/\/.+/.test(base)) { toast.error('Base URL must start with https://'); return }
+  if (model && model.length > 100) { toast.error('Model name too long'); return }
+  customSaving.value = true
+  customTestResult.value = null
+  try {
+    const payload = { customBaseUrl: base || null, customModel: model || null, customEnabled: !!aiPrefs.value.customEnabled }
+    if (key) payload.customApiKey = key
+    const res = await api.put('/assistant/settings', payload)
+    aiPrefs.value = { ...res.data.settings, hasCustomKey: res.data.settings.hasCustomKey }
+    customKeyInput.value = ''
+    toast.success('Custom model saved (key encrypted)')
+    try {
+      const modelsRes = await api.get('/assistant/sessions/meta/models')
+      aiModels.value = modelsRes.data.models || []
+    } catch {}
+  } catch (e) {
+    toast.error(e.response?.data?.error || 'Failed to save custom model')
+  } finally {
+    customSaving.value = false
+  }
+}
+
+async function clearCustomModel() {
+  if (!aiPrefs.value) return
+  customSaving.value = true
+  try {
+    const res = await api.put('/assistant/settings', { customBaseUrl: null, customModel: null, customApiKey: '', customEnabled: false })
+    aiPrefs.value = { ...res.data.settings, hasCustomKey: false }
+    customKeyInput.value = ''
+    customTestResult.value = null
+    toast.success('Custom model cleared')
+    try {
+      const modelsRes = await api.get('/assistant/sessions/meta/models')
+      aiModels.value = modelsRes.data.models || []
+    } catch {}
+  } catch {
+    toast.error('Failed to clear')
+  } finally {
+    customSaving.value = false
   }
 }
 const vacation = reactive({ active: false, data: null })

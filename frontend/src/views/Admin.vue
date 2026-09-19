@@ -159,7 +159,7 @@
             <div class="text-sm font-semibold">Send test notification</div>
             <div class="text-[10px] text-gray-500">Verifies push delivery to your own device</div>
           </div>
-          <button @click="sendTestNotification" :disabled="testLoading" class="btn text-xs min-h-[36px]">
+          <button @click="sendTestNotification(null)" :disabled="testLoading" class="btn text-xs min-h-[36px]">
             <Loader2 v-if="testLoading" :size="12" class="animate-spin" />
             <Bell v-else :size="12" />
             Test push

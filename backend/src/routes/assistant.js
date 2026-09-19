@@ -22,7 +22,7 @@ async function getSettings(userId) {
   return s;
 }
 
-function sanitizeLevels(body) {
+function sanitizeLevels(body, settings) {
   const out = {};
   const clamp = (v, max) => Math.max(0, Math.min(max, Number.isInteger(v) ? v : parseInt(v, 10) || 0));
   if (body.tasksLevel !== undefined) out.tasksLevel = clamp(body.tasksLevel, 3);
@@ -33,8 +33,41 @@ function sanitizeLevels(body) {
   if (body.confirmBeforeExecute !== undefined) out.confirmBeforeExecute = !!body.confirmBeforeExecute;
   if (body.preferredModel !== undefined) {
     const m = String(body.preferredModel || '').trim();
-    // '' resets to Auto; otherwise only known model ids pass.
-    out.preferredModel = m === '' ? '' : (availableModels().includes(m) ? m : '');
+    // '' resets to Auto; otherwise only known model ids pass (including custom).
+    const avail = availableModels(settings);
+    out.preferredModel = m === '' ? '' : (avail.includes(m) ? m : '');
+  }
+  // Custom OpenAI-compatible provider (user-supplied key, never logged)
+  if (body.customBaseUrl !== undefined) {
+    const u = String(body.customBaseUrl || '').trim();
+    if (!u) out.customBaseUrl = null;
+    else {
+      try {
+        const parsed = new URL(u);
+        if (parsed.protocol !== 'https:') throw new Error('https only');
+        out.customBaseUrl = u.replace(/\/$/, '');
+      } catch {
+        // leave out.customBaseUrl undefined -> will be ignored, frontend validates too
+      }
+    }
+  }
+  if (body.customModel !== undefined) {
+    const m = String(body.customModel || '').trim().slice(0, 100);
+    out.customModel = m || null;
+  }
+  if (body.customApiKey !== undefined) {
+    const raw = String(body.customApiKey || '').trim();
+    if (!raw) {
+      out.customApiKey = null;
+      out.customEnabled = false;
+    } else {
+      const { encrypt } = require('../lib/encryption');
+      out.customApiKey = encrypt(raw);
+      out.customEnabled = true;
+    }
+  }
+  if (body.customEnabled !== undefined && body.customApiKey === undefined) {
+    out.customEnabled = !!body.customEnabled;
   }
   return out;
 }
@@ -42,7 +75,10 @@ function sanitizeLevels(body) {
 router.get('/settings', async (req, res) => {
   try {
     const s = await getSettings(req.userId);
-    res.json({ settings: s });
+    // never leak raw key
+    const { customApiKey, ...safe } = s;
+    const hasCustomKey = !!customApiKey;
+    res.json({ settings: { ...safe, hasCustomKey, customApiKey: undefined } });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Server error' });
@@ -51,10 +87,15 @@ router.get('/settings', async (req, res) => {
 
 router.put('/settings', async (req, res) => {
   try {
-    await getSettings(req.userId);
-    const data = sanitizeLevels(req.body || {});
+    const existing = await getSettings(req.userId);
+    const data = sanitizeLevels(req.body || {}, existing);
+    // don't overwrite customApiKey with undefined; keep existing if not provided
+    if (data.customApiKey === undefined && existing.customApiKey) {
+      delete data.customApiKey;
+    }
     const s = await prisma.assistantSettings.update({ where: { userId: req.userId }, data });
-    res.json({ settings: s });
+    const { customApiKey: _k, ...safe } = s;
+    res.json({ settings: { ...safe, hasCustomKey: !!s.customApiKey } });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Server error' });
@@ -150,6 +191,8 @@ router.post('/chat', async (req, res) => {
     let reply = '';
     let usedModel = '';
     let progressed = false;
+    const { customProviderFromSettings } = require('../lib/assistant');
+    const custom = customProviderFromSettings(settings);
 
     // Accepted actions execute deterministically — never depend on the model
     // regenerating the identical call.
@@ -184,7 +227,7 @@ router.post('/chat', async (req, res) => {
       let out;
       try {
         out = await chatStream({
-          messages: convo, tools: TOOLS, preferred: settings.preferredModel || undefined,
+          messages: convo, tools: TOOLS, preferred: settings.preferredModel || undefined, custom,
           signal: abort.signal, onDelta: (text) => send('delta', { text }), onThinking: (text) => send('thinking', { text }),
         });
       } catch (e) {
