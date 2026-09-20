@@ -2,26 +2,24 @@
   <div class="min-h-[100dvh]">
     <!-- Top bar -->
     <nav v-if="!publicRoutes.includes(route.name)" class="border-b border-[var(--app-nav-border)] bg-[var(--app-nav-bg)] backdrop-blur-xl sticky top-0 z-50 safe-top">
-      <div class="max-w-3xl mx-auto px-4 h-12 flex items-center justify-between relative">
-        <div class="flex items-center gap-2 shrink-0">
-          <router-link to="/" class="flex items-center gap-2 font-bold text-lg shrink-0">
-            <Logo :size="28" />
-            <span class="bg-gradient-to-r from-emerald-400 to-emerald-300 bg-clip-text text-transparent">BeBetter</span>
-          </router-link>
-        </div>
-        <div class="hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
+      <div class="max-w-3xl mx-auto px-4 h-12 flex items-center gap-2">
+        <router-link to="/" class="flex items-center gap-2 font-bold text-lg shrink-0">
+          <Logo :size="28" />
+          <span class="hidden sm:inline bg-gradient-to-r from-emerald-400 to-emerald-300 bg-clip-text text-transparent">BeBetter</span>
+        </router-link>
+        <div class="hidden md:flex items-center gap-1 flex-1 justify-center min-w-0">
           <template v-if="auth.user">
             <template v-for="item in desktopNavItems" :key="item.to">
               <button v-if="isLockedForDemo(item.to)" @click="openDemoPrompt()"
-                class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors text-gray-400 hover:text-gray-200 hover:bg-gray-800">
+                class="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors text-gray-400 hover:text-gray-200 hover:bg-gray-800 shrink-0">
                 <component :is="item.icon" :size="14" />
-                {{ item.label }}
+                <span class="hidden xl:inline">{{ item.label }}</span>
               </button>
               <router-link v-else :to="item.to"
-                class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                class="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors shrink-0"
                 :class="isActive(item.to) ? 'text-emerald-400 bg-emerald-500/10' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'">
                 <component :is="item.icon" :size="14" />
-                {{ item.label }}
+                <span class="hidden xl:inline">{{ item.label }}</span>
               </router-link>
             </template>
           </template>
