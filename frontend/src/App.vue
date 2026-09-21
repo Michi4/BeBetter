@@ -5,7 +5,7 @@
       <div class="max-w-3xl mx-auto px-4 h-12 flex items-center gap-2">
         <router-link to="/" class="flex items-center gap-2 font-bold text-lg shrink-0">
           <Logo :size="28" />
-          <span class="hidden sm:inline bg-gradient-to-r from-emerald-400 to-emerald-300 bg-clip-text text-transparent">BeBetter</span>
+          <span class="hidden lg:inline bg-gradient-to-r from-emerald-400 to-emerald-300 bg-clip-text text-transparent">BeBetter</span>
         </router-link>
         <div class="hidden md:flex items-center gap-1 flex-1 justify-center min-w-0">
           <template v-if="auth.user">
