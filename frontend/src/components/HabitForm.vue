@@ -170,8 +170,8 @@ if (!form.schedules || !form.schedules.length) {
 }
 
 watch(form, (val) => {
-  emit('update:modelValue', { ...val })
-}, { deep: true })
+  emit('update:modelValue', { ...val, schedules: val.schedules.map(s => ({ ...s, days: [...s.days] })), wagers: val.wagers.map(w => ({ ...w })), reminderMinutes: [...(val.reminderMinutes || [])] })
+}, { deep: true, flush: 'sync' })
 
 watch(() => props.modelValue, (val) => {
   if (val.title !== undefined) form.title = val.title
@@ -232,4 +232,6 @@ function addCustomReminder() {
   localStorage.setItem('bebetter_lastReminder', String(val))
   customReminderInput.value = ''
 }
+
+defineExpose({ form })
 </script>

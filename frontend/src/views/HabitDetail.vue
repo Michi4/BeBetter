@@ -246,7 +246,7 @@
 
     <div v-else class="card space-y-4">
       <p class="section-title">Edit Habit</p>
-      <HabitForm v-model="editForm" :showPresetOption="false" />
+      <HabitForm ref="habitFormRef" v-model="editForm" :showPresetOption="false" />
       <div class="flex gap-2 pt-1">
         <button @click="saveEdit" class="btn flex-1">
           <Save :size="14" /> Save
@@ -312,6 +312,7 @@ const loadFailed = ref(false)
 const logs = ref([])
 const loading = ref(true)
 const editing = ref(false)
+const habitFormRef = ref(null)
 const showBreakForm = ref(false)
 const showFinishForm = ref(false)
 const finishNote = ref('')
@@ -425,25 +426,32 @@ async function loadChallenges() {
 }
 
 async function saveEdit() {
-  if (!editForm.value.title.trim()) return
-  const ef = editForm.value
+  // Prefer the live form state from the child component — the parent's
+  // editForm may still be one tick behind due to v-model watch flush timing.
+  const ef = habitFormRef.value?.form || editForm.value
+  if (!ef.title?.trim()) {
+    toast.error('Title is required')
+    return
+  }
   try {
     await api.put(`/habits/${route.params.id}`, {
-      title: ef.title,
-      description: ef.description,
-      emoji: ef.emoji,
+      title: ef.title.trim(),
+      description: ef.description || '',
+      emoji: ef.emoji || '',
       schedules: ef.schedules,
       intervalDays: ef.intervalDays ?? null,
-      verificationType: ef.verificationType,
-      config: ef.config,
-      reminderMinutes: ef.reminderMinutes.length ? ef.reminderMinutes : null,
-      wagers: ef.wagers,
+      verificationType: ef.verificationType || 'honor',
+      config: ef.config ?? null,
+      reminderMinutes: Array.isArray(ef.reminderMinutes) && ef.reminderMinutes.length ? ef.reminderMinutes : null,
+      wagers: Array.isArray(ef.wagers) ? ef.wagers : [],
     })
     editing.value = false
     toast.success('Habit updated')
-    loadHabit()
+    await loadHabit()
   } catch (e) {
-    toast.error(e?.response?.data?.error || 'Failed to update habit')
+    const msg = e?.response?.data?.error || 'Failed to update habit'
+    console.error('saveEdit failed:', msg, e?.response?.data)
+    toast.error(msg)
   }
 }
 

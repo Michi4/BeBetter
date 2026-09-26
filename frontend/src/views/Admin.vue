@@ -2,10 +2,10 @@
   <div class="page">
     <h1 class="text-xl font-bold">Admin</h1>
 
-    <div class="grid grid-cols-2 gap-3">
-      <div v-for="stat in statCards" :key="stat.label" class="card text-center">
-        <div class="text-2xl font-bold text-emerald-400">{{ stat.value }}</div>
-        <div class="text-[10px] text-gray-500 mt-1">{{ stat.label }}</div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <div v-for="stat in statCards" :key="stat.label" class="card text-center min-w-0 overflow-hidden">
+        <div class="text-2xl font-bold text-emerald-400 truncate">{{ stat.value }}</div>
+        <div class="text-[10px] text-gray-500 mt-1 truncate">{{ stat.label }}</div>
       </div>
     </div>
 

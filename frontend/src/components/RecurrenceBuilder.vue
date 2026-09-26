@@ -131,7 +131,7 @@ function detectPreset() {
 watch(entries, () => {
   detectPreset()
   emit('update:modelValue', entries.value.map(e => ({ time: e.time, days: [...e.days] })))
-}, { deep: true })
+}, { deep: true, flush: 'sync' })
 
 watch(() => props.intervalDays, () => {
   detectPreset()
